@@ -9,7 +9,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR cmdLine, i
 
 	SystemClass theSystem(hInstance);
 
-	if (!theSystem.Init()) return 0;
+	if (!theSystem.Init("settings.ini")) return 0;
 
 	return theSystem.Run();
 } 

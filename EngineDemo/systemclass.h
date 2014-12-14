@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include "inih\cpp\INIReader.h"
+
 class SystemClass
 {
 	public:
@@ -17,7 +19,7 @@ class SystemClass
 		SystemClass(const SystemClass&);
 		~SystemClass();
 
-		bool Init();
+		bool Init(std::string filename);
 		void Shutdown();
 		int Run();
 
@@ -29,11 +31,13 @@ class SystemClass
 		void ShutdownMainWindow();
 
 	private:
-		HINSTANCE mhAppInstance;
-		HWND	  mhMainWnd;
-		LPCWSTR	  mAppName;
-		LPCWSTR	  mWndCap;
+		HINSTANCE	 mhAppInstance;
+		HWND		 mhMainWnd;
+		LPCWSTR		 mAppName;
+		std::wstring mWndCap;
 
 		int mClientWidth;
 		int mClientHeight;
+
+		std::shared_ptr<INIReader> Settings;
 };

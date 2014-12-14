@@ -32,8 +32,15 @@ SystemClass::~SystemClass()
 	callbackSystem = nullptr;
 }
 
-bool SystemClass::Init()
+bool SystemClass::Init(std::string filename)
 {
+	Settings = std::make_unique<INIReader>(filename);
+
+	if (Settings->ParseError() < 0) return false;
+
+	mClientHeight = Settings->GetInteger("Window", "height", mClientHeight);
+	mClientWidth = Settings->GetInteger("Window", "width", mClientWidth);
+
 	if (!InitMainWindow()) return false;
 
 	return true;
@@ -97,7 +104,7 @@ bool SystemClass::InitMainWindow()
 	auto width = R.right - R.left;
 	auto height = R.bottom - R.top;
 
-	mhMainWnd = CreateWindow(mAppName, mWndCap,
+	mhMainWnd = CreateWindow(mAppName, mWndCap.c_str(),
 		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, mhAppInstance, 0);
 	if (!mhMainWnd)
 	{
