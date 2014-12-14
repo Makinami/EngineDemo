@@ -43,6 +43,9 @@ bool SystemClass::Init(std::string filename)
 
 	if (!InitMainWindow()) return false;
 
+	if (mD3D = std::make_shared<D3DClass>())
+		if (!mD3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
+	
 	return true;
 }
 
@@ -64,6 +67,8 @@ int SystemClass::Run()
 		}
 		else
 		{
+			mD3D->BeginScene();
+			mD3D->EndScene();
 			Sleep(100);
 		}
 	}

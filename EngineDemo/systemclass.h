@@ -12,6 +12,8 @@
 
 #include "inih\cpp\INIReader.h"
 
+#include "d3dclass.h"
+
 class SystemClass
 {
 	public:
@@ -35,6 +37,8 @@ class SystemClass
 		HWND		 mhMainWnd;
 		LPCWSTR		 mAppName;
 		std::wstring mWndCap;
+
+		std::shared_ptr<D3DClass> mD3D;
 
 		int mClientWidth;
 		int mClientHeight;
