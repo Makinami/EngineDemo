@@ -28,10 +28,14 @@ class SystemClass
 
 		LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+		LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 	private:
 		bool Frame();
 		bool InitMainWindow();
 		void ShutdownMainWindow();
+
+		bool CreateStatusWindow();
 
 	private:
 		HINSTANCE	 mhAppInstance;
@@ -46,4 +50,7 @@ class SystemClass
 
 		std::shared_ptr<INIReader> Settings;
 		std::shared_ptr<LoggerClass> Logger;
+
+		HWND mStatusWnd;
+		HWND mEdit;
 };

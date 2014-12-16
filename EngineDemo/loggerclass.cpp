@@ -49,13 +49,13 @@ int LoggerClass::SetWindow(HWND hWnd)
 	{
 		mOutWnd = hWnd;
 		mWndValid = true;
-		return 0;
+		return true;
 	}
 	else
 	{
 		mOutWnd = 0;
 		mWndValid = false;
-		return 1;
+		return false;
 	}
 }
 
@@ -84,7 +84,7 @@ int LoggerClass::Write(wstring msg, DWORD output)
 		std::wstring text = std::wstring(date) + L" : " + msg + L"\n";
 		WriteFileRaw(text);
 	}
-	return 0;
+	return 1;
 }
 
 int LoggerClass::Error(wstring msg, DWORD output)
