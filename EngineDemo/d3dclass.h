@@ -17,11 +17,16 @@
 
 #include <memory>
 
-#include <d3d11.h>
+#include <d3d11_1.h>
+
+#pragma warning(disable:4838)
 #include <DirectXMath.h>
+#pragma warning(default:4838)
+
 #include <DirectXColors.h>
 
 #include "inih\cpp\INIReader.h"
+#include "loggerclass.h"
 
 class D3DClass
 {
@@ -37,16 +42,20 @@ class D3DClass
 		void BeginScene();
 		void EndScene();
 
+		void SetLogger(std::shared_ptr<LoggerClass> &lLogger);
+
 	private:
 		UINT m4xMSAAQuality;
 
-		ID3D11Device* mDevice;
-		ID3D11DeviceContext* mImmediateContext;
-		IDXGISwapChain* mSwapChain;
+		ID3D11Device1* mDevice;
+		ID3D11DeviceContext1* mImmediateContext;
+		IDXGISwapChain1* mSwapChain;
 		ID3D11Texture2D* mDepthStencilBuffer;
 		ID3D11RenderTargetView* mRenderTargetView;
 		ID3D11DepthStencilView* mDepthStencilView;
 		D3D11_VIEWPORT mScreenViewport;
 		
 		bool mEnable4xMSAA;
+		
+		std::shared_ptr<LoggerClass> Logger;
 };

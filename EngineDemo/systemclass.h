@@ -12,6 +12,7 @@
 
 #include "inih\cpp\INIReader.h"
 
+#include "loggerclass.h"
 #include "d3dclass.h"
 
 class SystemClass
@@ -44,4 +45,5 @@ class SystemClass
 		int mClientHeight;
 
 		std::shared_ptr<INIReader> Settings;
+		std::shared_ptr<LoggerClass> Logger;
 };

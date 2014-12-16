@@ -36,6 +36,9 @@
     <ClCompile Include="inih\cpp\INIReader.cpp">
       <Filter>3rd-party\inih</Filter>
     </ClCompile>
+    <ClCompile Include="loggerclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -49,6 +52,9 @@
     </ClInclude>
     <ClInclude Include="inih\cpp\INIReader.h">
       <Filter>3rd-party\inih</Filter>
+    </ClInclude>
+    <ClInclude Include="loggerclass.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

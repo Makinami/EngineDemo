@@ -34,34 +34,40 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+	D3D_FEATURE_LEVEL targetFeatureLevels = D3D_FEATURE_LEVEL_11_1;
 	D3D_FEATURE_LEVEL featureLevel;
-	HRESULT hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, createDeviceFlags, 0, 0,
-								   D3D11_SDK_VERSION, &mDevice, &featureLevel, &mImmediateContext);
+
+	HRESULT hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, createDeviceFlags, &targetFeatureLevels, 1,
+								   D3D11_SDK_VERSION, (ID3D11Device**)&mDevice, &featureLevel, (ID3D11DeviceContext**)&mImmediateContext);
 	if (FAILED(hr))
 	{
 		MessageBox(0, L"D3D11CreateDevice Failed.", 0, 0);
+		Logger->Error(L"D3D11CreateDevice failed. Exiting...");
 		return false;
 	}
 
-	if (featureLevel != D3D_FEATURE_LEVEL_11_0)
+	if (mDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
 	{
 		MessageBox(0, L"Direct3D Feature Level 11 unsupported.", 0, 0);
+		Logger->Error(L"Direct3D Feature Level 11 unsupported. Exiting...");
 		return false;
+	}
+	else if (mDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
+	{
+		MessageBox(0, L"Direct3D in feature level 11_0. Possible unexpected behavior.", 0, 0);
+		Logger->Notice(L"Direct3D in feature level 11_0. Possible unexpected behavior.");
 	}
 
 	// Check 4xMSAA quality support for back buffer format.
 	mDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMSAAQuality);
 
 	// Describe swap chain.
-	DXGI_SWAP_CHAIN_DESC sd;
-	sd.BufferDesc.Width = mClientWidth;
-	sd.BufferDesc.Height = mClientHeight;
-	sd.BufferDesc.RefreshRate.Numerator = 60;
-	sd.BufferDesc.RefreshRate.Denominator = 1;
-	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-
+	DXGI_SWAP_CHAIN_DESC1 sd;
+	sd.Width = 0;
+	sd.Height = 0;
+	sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.Stereo = 0;
+	
 	if (mEnable4xMSAA)
 	{
 		sd.SampleDesc.Count = 4;
@@ -75,22 +81,21 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	sd.BufferCount = 1;
-	sd.OutputWindow = hwnd;
-	sd.Windowed = true;
+	sd.Scaling = DXGI_SCALING_STRETCH;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 	sd.Flags = 0;
 
-	// Create swap chain
-	IDXGIDevice* dxgiDevice = 0;
-	mDevice->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
+	IDXGIDevice2 *dxgiDevice;
+	mDevice->QueryInterface(__uuidof(IDXGIDevice2), (void**)&dxgiDevice);
 
-	IDXGIAdapter* dxgiAdapter = 0;
-	dxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&dxgiAdapter);
+	IDXGIAdapter *dxgiAdapter;
+	dxgiDevice->GetAdapter(&dxgiAdapter);
 
-	IDXGIFactory* dxgiFactory = 0;
-	dxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&dxgiFactory);
+	IDXGIFactory2 *dxgiFactory;
+	dxgiAdapter->GetParent(__uuidof(IDXGIFactory2), (void**)&dxgiFactory);
 
-	dxgiFactory->CreateSwapChain(mDevice, &sd, &mSwapChain);
+	dxgiFactory->CreateSwapChainForHwnd(mDevice, hwnd, &sd, NULL, NULL, &mSwapChain);
 
 	ReleaseCOM(dxgiFactory);
 	ReleaseCOM(dxgiAdapter);
@@ -184,4 +189,9 @@ void D3DClass::BeginScene()
 void D3DClass::EndScene()
 {
 	mSwapChain->Present(0, 0);
+}
+
+void D3DClass::SetLogger(std::shared_ptr<LoggerClass>& lLogger)
+{
+	Logger = lLogger;
 }

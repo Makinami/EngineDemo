@@ -34,17 +34,26 @@ SystemClass::~SystemClass()
 
 bool SystemClass::Init(std::string filename)
 {
-	Settings = std::make_unique<INIReader>(filename);
+	Settings = std::make_shared<INIReader>(filename);
 
-	if (Settings->ParseError() < 0) return false;
+	Logger = std::make_shared<LoggerClass>(Settings->GetWString("General", "logfile", L"log.txt"), (HWND)0);
+
+	if (Settings->ParseError() < 0) Logger->Error(L"Could not open file. Will use default settings.");
+	else if (Settings->ParseError() > 0) Logger->Error(L"Could not parse one or more lines (first line: " + std::to_wstring(Settings->ParseError()) + L"). Will skip them and use defaults instead.");
+	else Logger->Success(L"Setting loaded.");
 
 	mClientHeight = Settings->GetInteger("Window", "height", mClientHeight);
 	mClientWidth = Settings->GetInteger("Window", "width", mClientWidth);
 
 	if (!InitMainWindow()) return false;
+	Logger->Success(L"Main window created.");
 
 	if (mD3D = std::make_shared<D3DClass>())
+	{
+		mD3D->SetLogger(Logger);
 		if (!mD3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
+	}
+	Logger->Success(L"DirectX initiated.");
 	
 	return true;
 }
@@ -78,6 +87,13 @@ int SystemClass::Run()
 
 LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	switch (msg)
+	{
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			return 0;
+	}
+
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
@@ -100,6 +116,7 @@ bool SystemClass::InitMainWindow()
 	if (!RegisterClass(&wc))
 	{
 		MessageBox(0, L"RegisterClass Failed.", 0, 0);
+		Logger->Error(L"Main window class not registered. Exiting...");
 		return false;
 	}
 
@@ -114,6 +131,7 @@ bool SystemClass::InitMainWindow()
 	if (!mhMainWnd)
 	{
 		MessageBox(0, L"CreateWindow Failes.", 0, 0);
+		Logger->Error(L"Main window not created. Exiting...");
 		return false;
 	}
 
