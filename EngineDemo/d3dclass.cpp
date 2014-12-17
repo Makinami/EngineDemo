@@ -42,20 +42,20 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	if (FAILED(hr))
 	{
 		MessageBox(0, L"D3D11CreateDevice Failed.", 0, 0);
-		Logger->Error(L"D3D11CreateDevice failed. Exiting...");
+		LogError(L"D3D11CreateDevice failed. Exiting...");
 		return false;
 	}
 
 	if (mDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
 	{
 		MessageBox(0, L"Direct3D Feature Level 11 unsupported.", 0, 0);
-		Logger->Error(L"Direct3D Feature Level 11 unsupported. Exiting...");
+		LogSuccess(L"Direct3D Feature Level 11 unsupported. Exiting...");
 		return false;
 	}
 	else if (mDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
 	{
 		MessageBox(0, L"Direct3D in feature level 11_0. Possible unexpected behavior.", 0, 0);
-		Logger->Notice(L"Direct3D in feature level 11_0. Possible unexpected behavior.");
+		LogNotice(L"Direct3D in feature level 11_0. Possible unexpected behavior.");
 	}
 
 	// Check 4xMSAA quality support for back buffer format.
@@ -189,9 +189,4 @@ void D3DClass::BeginScene()
 void D3DClass::EndScene()
 {
 	mSwapChain->Present(0, 0);
-}
-
-void D3DClass::SetLogger(std::shared_ptr<LoggerClass>& lLogger)
-{
-	Logger = lLogger;
 }

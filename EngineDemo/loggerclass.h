@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <time.h>
+#include <memory>
 
 
 using namespace std;
@@ -25,24 +26,44 @@ class LoggerClass
 		~LoggerClass();
 
 		int SetFile(const wstring &fileName);
-		const wstring GetFile();
+		wstring GetFile() const;
 
 		int SetWindow(HWND hWnd);
-		const HWND GetWindow();
+		HWND GetWindow() const;
 
 		int Write(wstring msg, DWORD output = LOG_ALL);
 		int Error(wstring msg, DWORD output = LOG_ALL);
 		int Success(wstring msg, DWORD output = LOG_ALL);
 		int Notice(wstring msg, DWORD output = LOG_ALL);
 
-		DWORD GetValidChannels();
+		DWORD GetValidChannels() const;
 
 	private:
-		inline void WriteFileRaw(wstring text);
+		void WriteFileRaw(wstring text);
 		
 		wofstream mOutFile;
 		HWND	  mOutWnd;
 
 		wstring mFileName;
 		bool	mWndValid;
+};
+
+class HasLogger
+{
+	public:
+		HasLogger();
+		~HasLogger();
+
+		void SetLogger(std::shared_ptr<LoggerClass> &lLogger);
+
+	protected:
+		bool IsSet() const;
+		DWORD GetValidChannels() const;
+
+		int LogWrite(wstring msg, DWORD output = LOG_ALL);
+		int LogError(wstring msg, DWORD output = LOG_ALL);
+		int LogSuccess(wstring msg, DWORD output = LOG_ALL);
+		int LogNotice(wstring msg, DWORD output = LOG_ALL);
+
+		std::shared_ptr<LoggerClass> Logger;
 };

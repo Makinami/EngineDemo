@@ -36,7 +36,7 @@ int LoggerClass::SetFile(const wstring &fileName)
 	}
 }
 
-const wstring LoggerClass::GetFile()
+wstring LoggerClass::GetFile() const
 {
 	return mFileName;
 }
@@ -59,7 +59,7 @@ int LoggerClass::SetWindow(HWND hWnd)
 	}
 }
 
-const HWND LoggerClass::GetWindow()
+HWND LoggerClass::GetWindow() const
 {
 	return mOutWnd;
 }
@@ -102,7 +102,7 @@ int LoggerClass::Notice(wstring msg, DWORD output)
 	return Write(L"Notice: " + msg);
 }
 
-DWORD LoggerClass::GetValidChannels()
+DWORD LoggerClass::GetValidChannels() const
 {
 	DWORD validChannels = LOG_NONE;
 	if (mOutWnd) validChannels |= LOG_WINDOW;
@@ -111,7 +111,50 @@ DWORD LoggerClass::GetValidChannels()
 	return validChannels;
 }
 
-void LoggerClass::WriteFileRaw(wstring text)
+inline void LoggerClass::WriteFileRaw(wstring text)
 {
 	mOutFile << text << std::flush;
+}
+
+
+HasLogger::HasLogger()
+{}
+
+HasLogger::~HasLogger()
+{}
+
+bool HasLogger::IsSet() const
+{
+	return Logger ? true : false;
+}
+
+DWORD HasLogger::GetValidChannels() const
+{
+	if (IsSet()) return Logger->GetValidChannels();
+	else return LOG_NONE;
+}
+
+int HasLogger::LogWrite(wstring msg, DWORD output)
+{
+	return IsSet() ? Logger->Write(msg, output) : 0;
+}
+
+int HasLogger::LogError(wstring msg, DWORD output)
+{
+	return IsSet() ? Logger->Error(msg, output) : 0;
+}
+
+int HasLogger::LogSuccess(wstring msg, DWORD output)
+{
+	return IsSet() ? Logger->Success(msg, output) : 0;
+}
+
+int HasLogger::LogNotice(wstring msg, DWORD output)
+{
+	return IsSet() ? Logger->Notice(msg, output) : 0;
+}
+
+void HasLogger::SetLogger(std::shared_ptr<LoggerClass>& lLogger)
+{
+	Logger = lLogger;
 }

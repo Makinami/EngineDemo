@@ -28,7 +28,7 @@
 #include "inih\cpp\INIReader.h"
 #include "loggerclass.h"
 
-class D3DClass
+class D3DClass : public HasLogger
 {
 	public:
 		D3DClass();
@@ -42,8 +42,6 @@ class D3DClass
 		void BeginScene();
 		void EndScene();
 
-		void SetLogger(std::shared_ptr<LoggerClass> &lLogger);
-
 	private:
 		UINT m4xMSAAQuality;
 
@@ -56,6 +54,4 @@ class D3DClass
 		D3D11_VIEWPORT mScreenViewport;
 		
 		bool mEnable4xMSAA;
-		
-		std::shared_ptr<LoggerClass> Logger;
 };
