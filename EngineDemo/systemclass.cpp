@@ -1,21 +1,29 @@
 #include "systemclass.h"
 
+// Hack for inability to set class member function as window proc
 namespace
 {
 	SystemClass* callbackSystem = nullptr;
 }
 
+// Main/game window proc
 LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return callbackSystem->MsgProc(hwnd, msg, wParam, lParam);
 }
 
+// Status window proc
 LRESULT CALLBACK StatusWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return callbackSystem->StatusWndMsgProc(hwnd, msg, wParam, lParam);
 }
 
 
+// ------------------------------------------------------------------------
+//                           SystemClass definition
+// ------------------------------------------------------------------------
+
+// Set basic values
 SystemClass::SystemClass(HINSTANCE hInstance)
 : mhAppInstance(hInstance),
   mhMainWnd(0),
@@ -28,21 +36,24 @@ SystemClass::SystemClass(HINSTANCE hInstance)
 }
 
 SystemClass::SystemClass(const SystemClass &)
-{}
+{
+}
 
 SystemClass::~SystemClass()
 {
+	// Close main/game window
 	ShutdownMainWindow();
-
-	mhAppInstance = NULL;
 
 	callbackSystem = nullptr;
 }
 
+// Init all systems
 bool SystemClass::Init(std::string filename)
 {
+	// Load setting
 	Settings = std::make_shared<INIReader>(filename);
 
+	// Create logger
 	Logger = std::make_shared<LoggerClass>(Settings->GetWString("General", "logfile", L"log.txt"), (HWND)0);
 
 	if (!CreateStatusWindow())
@@ -54,14 +65,18 @@ bool SystemClass::Init(std::string filename)
 	else if (Settings->ParseError() > 0) Logger->Notice(L"Could not parse one or more lines (first line: " + std::to_wstring(Settings->ParseError()) + L"). Will skip them and use defaults instead.");
 	else Logger->Success(L"Setting loaded.");
 
+	// Set client size
 	mClientHeight = Settings->GetInteger("Window", "height", mClientHeight);
 	mClientWidth = Settings->GetInteger("Window", "width", mClientWidth);
 
+	// Init main window
 	if (!InitMainWindow()) return false;
 	Logger->Success(L"Main window created.");
 
+	// Create D3D class
 	if (mD3D = std::make_shared<D3DClass>())
 	{
+		// Give D3D logger and initiate
 		mD3D->SetLogger(Logger);
 		if (!mD3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	}
@@ -70,11 +85,13 @@ bool SystemClass::Init(std::string filename)
 	return true;
 }
 
+// Shut down everything
 void SystemClass::Shutdown()
 {
 	ShutdownMainWindow();
 }
 
+// Main loop (for now just outline)
 int SystemClass::Run()
 {
 	MSG msg = {0};
@@ -97,11 +114,13 @@ int SystemClass::Run()
 	return (int)msg.wParam;
 }
 
+// Main/game window's proc
 LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 		case WM_KEYDOWN:
+			// Show/hide status window
 			if (wParam == VK_F11)
 			{
 				if (IsWindowVisible(mStatusWnd)) ShowWindow(mStatusWnd, SW_HIDE);
@@ -121,15 +140,18 @@ LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	switch (msg)
 	{
 		case WM_SIZE:
+			// Keep edit control the same size as status window
 			mClientWidth = LOWORD(lParam);
 			mClientHeight = HIWORD(lParam);
 
 			SetWindowPos(mEdit, 0, 0, 0, mClientWidth, mClientHeight, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_SHOWWINDOW);
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		case WM_KEYDOWN:
+			// Hide status window
 			if (wParam == VK_F11) ShowWindow(mStatusWnd, SW_HIDE);
 			return 0;
 		case WM_CLOSE:
+			// Instead of closing status window, hide it
 			ShowWindow(mStatusWnd, SW_HIDE);
 			return 0;
 		default:
@@ -138,11 +160,13 @@ LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	return 0;
 }
 
+// Run every frame
 bool SystemClass::Frame()
 {
 	return false;
 }
 
+// Create main/game window
 bool SystemClass::InitMainWindow()
 {
 	WNDCLASS wc = {0};
@@ -182,6 +206,7 @@ bool SystemClass::InitMainWindow()
 	return true;
 }
 
+// Close main/game window
 void SystemClass::ShutdownMainWindow()
 {
 	DestroyWindow(mhMainWnd);
@@ -190,6 +215,7 @@ void SystemClass::ShutdownMainWindow()
 	UnregisterClass(mAppName, mhAppInstance);
 }
 
+// Create status window
 bool SystemClass::CreateStatusWindow()
 {
 	WNDCLASS wc = { 0 };
@@ -203,6 +229,7 @@ bool SystemClass::CreateStatusWindow()
 
 	if (!RegisterClass(&wc)) return false;
 
+	// Create status window
 	mStatusWnd = CreateWindow(L"EngineDemoStatusWnd", NULL, WS_VISIBLE | WS_OVERLAPPED, CW_USEDEFAULT, 0, 600, 300, NULL, NULL, mhAppInstance, NULL);
 
 	if (!mStatusWnd)
@@ -212,7 +239,7 @@ bool SystemClass::CreateStatusWindow()
 
 	RECT R;
 	GetClientRect(mStatusWnd, &R);
-
+	// Create edit control
 	mEdit = CreateWindow(WC_EDIT, L"    Status window initiated.", WS_VSCROLL | ES_READONLY | WS_HSCROLL | WS_VISIBLE | WS_CHILD | ES_MULTILINE, R.left, R.top, R.right, R.bottom, mStatusWnd, NULL, mhAppInstance, NULL);
 
 	ShowWindow(mStatusWnd, SW_SHOW);

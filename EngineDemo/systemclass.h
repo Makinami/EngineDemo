@@ -15,6 +15,10 @@
 #include "loggerclass.h"
 #include "d3dclass.h"
 
+/*
+	Main System Class:
+		Creates new game and status window (at least for now) and manages other subsystems
+*/
 class SystemClass
 {
 	public:
@@ -22,35 +26,49 @@ class SystemClass
 		SystemClass(const SystemClass&);
 		~SystemClass();
 
-		bool Init(std::string filename);
+		// Initiate all systems based on setting from file
+		bool Init(std::string filename = "settings.ini");
+		// Shutdown main system and shut down and delete all subsystems
 		void Shutdown();
+		// Initiate main loop
 		int Run();
 
+		// Message proc for main window
 		LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
+		// Message proc for status window
 		LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	private:
+		// Run each frame
 		bool Frame();
+
+		// Init/shutdown main window
 		bool InitMainWindow();
 		void ShutdownMainWindow();
 
+		// Create status window
 		bool CreateStatusWindow();
 
 	private:
+		// Application and main window properties
 		HINSTANCE	 mhAppInstance;
 		HWND		 mhMainWnd;
 		LPCWSTR		 mAppName;
 		std::wstring mWndCap;
 
-		std::shared_ptr<D3DClass> mD3D;
-
+		// Main window/game client size
 		int mClientWidth;
 		int mClientHeight;
 
-		std::shared_ptr<INIReader> Settings;
-		std::shared_ptr<LoggerClass> Logger;
-
+		// Logger windows handlers
 		HWND mStatusWnd;
 		HWND mEdit;
+
+		/*
+			Subsystems
+		*/
+		std::shared_ptr<D3DClass> mD3D; // Main DirectX 3D
+
+		std::shared_ptr<INIReader> Settings; // Setting
+		std::shared_ptr<LoggerClass> Logger; // Logger
 };

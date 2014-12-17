@@ -13,6 +13,7 @@
 
 #define SafeDelete(x) { delete x; x = 0; }
 
+
 #pragma comment(lib,  "d3d11.lib")
 
 #include <memory>
@@ -28,6 +29,11 @@
 #include "inih\cpp\INIReader.h"
 #include "loggerclass.h"
 
+/*
+	Main DirectX 3D class:
+		- Create device, context device, and other render specyfic subsystems
+		- Manage rendering process
+*/
 class D3DClass : public HasLogger
 {
 	public:
@@ -35,16 +41,25 @@ class D3DClass : public HasLogger
 		D3DClass(const D3DClass &other);
 		~D3DClass();
 
+		// Init devices and subsystems
 		bool Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::shared_ptr<INIReader> &Settings);
+		
+		// Change and recreate neccessery resources after window's resize
 		void OnResize(UINT mClientWidht, UINT mClientHeight);
+
+		// Close everything
 		void Shutdown();
 
+		// Render stages
 		void BeginScene();
 		void EndScene();
 
 	private:
-		UINT m4xMSAAQuality;
+		// Setting
+		bool mEnable4xMSAA;
+		UINT m4xMSAAQuality; // Maximum available 4xMSAA quality
 
+		// Subsystems and resources
 		ID3D11Device1* mDevice;
 		ID3D11DeviceContext1* mImmediateContext;
 		IDXGISwapChain1* mSwapChain;
@@ -52,6 +67,4 @@ class D3DClass : public HasLogger
 		ID3D11RenderTargetView* mRenderTargetView;
 		ID3D11DepthStencilView* mDepthStencilView;
 		D3D11_VIEWPORT mScreenViewport;
-		
-		bool mEnable4xMSAA;
 };

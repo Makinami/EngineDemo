@@ -1,5 +1,9 @@
 #include "d3dclass.h"
 
+// ------------------------------------------------------------------------
+//                           D3DClass definition
+// ------------------------------------------------------------------------
+
 D3DClass::D3DClass()
 : m4xMSAAQuality(0),
   
@@ -86,6 +90,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 	sd.Flags = 0;
 
+	// Get Factory used for creating device
 	IDXGIDevice2 *dxgiDevice;
 	mDevice->QueryInterface(__uuidof(IDXGIDevice2), (void**)&dxgiDevice);
 
@@ -95,6 +100,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	IDXGIFactory2 *dxgiFactory;
 	dxgiAdapter->GetParent(__uuidof(IDXGIFactory2), (void**)&dxgiFactory);
 
+	// Create swapchain
 	dxgiFactory->CreateSwapChainForHwnd(mDevice, hwnd, &sd, NULL, NULL, &mSwapChain);
 
 	ReleaseCOM(dxgiFactory);
@@ -107,6 +113,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	return true;
 }
 
+// Change and recreated necessery resources after window resize
 void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 {
 	assert(mDevice);
@@ -180,12 +187,14 @@ void D3DClass::Shutdown()
 	ReleaseCOM(mDevice);
 }
 
+// Clear back buffer and depth-stencil buffer
 void D3DClass::BeginScene()
 {
 	mImmediateContext->ClearRenderTargetView(mRenderTargetView, reinterpret_cast<const float*>(&DirectX::Colors::Black));
 	mImmediateContext->ClearDepthStencilView(mDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
+// Present frame
 void D3DClass::EndScene()
 {
 	mSwapChain->Present(0, 0);
