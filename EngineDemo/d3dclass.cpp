@@ -5,16 +5,16 @@
 // ------------------------------------------------------------------------
 
 D3DClass::D3DClass()
-: m4xMSAAQuality(0),
-  
-  mDevice(nullptr),
-  mImmediateContext(nullptr),
-  mSwapChain(nullptr),
-  mDepthStencilBuffer(nullptr),
-  mRenderTargetView(nullptr),
-  mDepthStencilView(nullptr),
+	: m4xMSAAQuality(0),
 
-  mEnable4xMSAA(true)
+	mDevice(nullptr),
+	mImmediateContext(nullptr),
+	mSwapChain(nullptr),
+	mDepthStencilBuffer(nullptr),
+	mRenderTargetView(nullptr),
+	mDepthStencilView(nullptr),
+
+	mEnable4xMSAA(true)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
 }
@@ -42,7 +42,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	D3D_FEATURE_LEVEL featureLevel;
 
 	HRESULT hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, createDeviceFlags, &targetFeatureLevels, 1,
-								   D3D11_SDK_VERSION, (ID3D11Device**)&mDevice, &featureLevel, (ID3D11DeviceContext**)&mImmediateContext);
+		D3D11_SDK_VERSION, (ID3D11Device**)&mDevice, &featureLevel, (ID3D11DeviceContext**)&mImmediateContext);
 	if (FAILED(hr))
 	{
 		MessageBox(0, L"D3D11CreateDevice Failed.", 0, 0);
@@ -71,7 +71,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	sd.Height = 0;
 	sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.Stereo = 0;
-	
+
 	if (mEnable4xMSAA)
 	{
 		sd.SampleDesc.Count = 4;
@@ -110,7 +110,9 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	// Rest of initialization can be done throught OnResize()
 	OnResize(mClientWidth, mClientHeight);
 
-	return true;
+	// temp
+	return InitEVERYTHING();
+	//return true;
 }
 
 // Change and recreated necessery resources after window resize
@@ -199,4 +201,174 @@ void D3DClass::EndScene()
 {
 	mSwapChain->Present(0, 0);
 }
- 
+
+
+// ------------------------------------------------------------------------
+//                           D3DClass definition 
+//                   temporal stuff for later refactoring
+// ------------------------------------------------------------------------
+
+bool D3DClass::Render()
+{
+	// view, world, projection matrixes
+	XMVECTOR pos = XMVectorSet(0, 1, -1, 1.0f);
+	XMVECTOR target = XMVectorSet(0, 0, 0, 1.0f);
+	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+
+	XMMATRIX V = XMMatrixLookAtLH(pos, target, up);
+	XMStoreFloat4x4(&mView, V);
+
+	XMMATRIX I = XMMatrixIdentity();
+	XMStoreFloat4x4(&mRoadWorld, I);
+
+	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV4, 1280.0f / 720.0f, 1.0f, 1000.0f);
+	XMStoreFloat4x4(&mProj, P);
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	// set index buffer
+	mImmediateContext->IASetIndexBuffer(mRoadIB, DXGI_FORMAT_R32_UINT, 0);
+	// set vertex buffer
+	mImmediateContext->IASetVertexBuffers(0, 1, &mRoadVB, &stride, &offset);
+	// set primitive type
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	// mapping constant buffers
+	D3D11_MAPPED_SUBRESOURCE mappedResources;
+	MastrixBufferType *dataPtr;
+
+	if (FAILED(mImmediateContext->Map(mMatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources))) return false;
+
+	dataPtr = (MastrixBufferType*)mappedResources.pData;
+
+	dataPtr->gWolrdViewProj = I*V*P;
+
+	mImmediateContext->Unmap(mMatrixBuffer, 0);
+
+	UINT bufferNumber = 0;
+
+	mImmediateContext->VSSetConstantBuffers(bufferNumber, 1, &mMatrixBuffer);
+
+	mImmediateContext->IASetInputLayout(mInputLayout);
+
+	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
+	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
+
+	mImmediateContext->DrawIndexed(mRoadIndexCount, 0, 0);
+
+	return true;
+}
+
+bool D3DClass::InitEVERYTHING()
+{
+	// create road vertex buffer
+	std::vector<Vertex> vertices(42);
+
+	for (int i = 0; i < 21; ++i)
+	{
+		vertices[2 * i].Pos = XMFLOAT3(i - 10, 0, 0.5f);
+		vertices[2 * i + 1].Pos = XMFLOAT3(i - 10, 0, -0.5f);
+	}
+	D3D11_BUFFER_DESC vbd;
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
+	vbd.ByteWidth = sizeof(Vertex) * 42;
+	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbd.CPUAccessFlags = 0;
+	vbd.MiscFlags = 0;
+	vbd.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA vinitData;
+	vinitData.pSysMem = &vertices[0];
+	mDevice->CreateBuffer(&vbd, &vinitData, &mRoadVB);
+
+	// create road index buffer
+	std::vector<UINT> indeces(42);
+	for (int i = 0; i < 42; ++i) indeces[i] = i;
+	mRoadIndexCount = indeces.size();
+
+	D3D11_BUFFER_DESC ibd;
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+	ibd.ByteWidth = sizeof(UINT) * 42;
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.CPUAccessFlags = 0;
+	ibd.MiscFlags = 0;
+	ibd.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA iinitData;
+	iinitData.pSysMem = &indeces[0];
+	mDevice->CreateBuffer(&ibd, &iinitData, &mRoadIB);
+
+	//initilize shaders
+	ifstream vs_stream, ps_stream;
+	size_t vs_size, ps_size;
+	char *vs_data, *ps_data;
+	int numElements;
+
+	D3D11_BUFFER_DESC matrixBufferDesc;
+
+	vs_stream.open("..\\Debug\\BasicVS.cso", ifstream::in | ifstream::binary);
+	if (vs_stream.good())
+	{
+		vs_stream.seekg(0, ios::end);
+		vs_size = size_t(vs_stream.tellg());
+		vs_data = new char[vs_size];
+		vs_stream.seekg(0, ios::beg);
+		vs_stream.read(&vs_data[0], vs_size);
+		vs_stream.close();
+
+		if (FAILED(mDevice->CreateVertexShader(vs_data, vs_size, 0, &mVertexShader)))
+		{
+			LogError(L"Failed to create Vertex Shader");
+			return false;
+		}
+	}
+	else
+	{
+		LogError(L"Failed to open BasicVS.cso file");
+		return false;
+	}
+
+	LogSuccess(L"Vertex Shader created.");
+
+	ps_stream.open("..\\Debug\\BasicPS.cso", ifstream::in | ifstream::binary);
+	if (ps_stream.good())
+	{
+		ps_stream.seekg(0, ios::end);
+		ps_size = size_t(ps_stream.tellg());
+		ps_data = new char[ps_size];
+		ps_stream.seekg(0, ios::beg);
+		ps_stream.read(&ps_data[0], ps_size);
+		ps_stream.close();
+
+		if (FAILED(mDevice->CreatePixelShader(ps_data, ps_size, 0, &mPixelShader))) return false;
+	}
+	else return false;
+
+	LogSuccess(L"Pixel Shader created");
+
+	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
+
+	if (FAILED(mDevice->CreateInputLayout(vertexDesc, numElements, vs_data, vs_size, &mInputLayout))) return false;
+
+	LogSuccess(L"Input Layout created");
+
+	delete[] vs_data;
+	delete[] ps_data;
+
+	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	matrixBufferDesc.ByteWidth = sizeof(MastrixBufferType);
+	matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	matrixBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	matrixBufferDesc.MiscFlags = 0;
+	matrixBufferDesc.StructureByteStride = 0;
+
+	if (FAILED(mDevice->CreateBuffer(&matrixBufferDesc, NULL, &mMatrixBuffer))) return false;
+
+	LogSuccess(L"Constant Buffer created");
+
+	return true;
+}

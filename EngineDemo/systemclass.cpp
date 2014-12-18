@@ -25,24 +25,23 @@ LRESULT CALLBACK StatusWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 // Set basic values
 SystemClass::SystemClass(HINSTANCE hInstance)
-: mhAppInstance(hInstance),
-  mhMainWnd(0),
-  mAppName(L"EngineDemo"),
-  mWndCap(L"EngineDemo"),
-  mClientHeight(720),
-  mClientWidth(1280)
+	: mhAppInstance(hInstance),
+	mhMainWnd(0),
+	mAppName(L"EngineDemo"),
+	mWndCap(L"EngineDemo"),
+	mClientHeight(720),
+	mClientWidth(1280)
 {
 	callbackSystem = this;
 }
 
 SystemClass::SystemClass(const SystemClass &)
-{
-}
+{}
 
 SystemClass::~SystemClass()
 {
-	// Close main/game window
-	ShutdownMainWindow();
+	// Shutdown system
+	Shutdown();
 
 	callbackSystem = nullptr;
 }
@@ -81,33 +80,35 @@ bool SystemClass::Init(std::string filename)
 		if (!mD3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	}
 	Logger->Success(L"DirectX initiated.");
-	
+
 	return true;
 }
 
 // Shut down everything
 void SystemClass::Shutdown()
 {
+	mD3D->Shutdown();
+
 	ShutdownMainWindow();
 }
 
 // Main loop (for now just outline)
 int SystemClass::Run()
 {
-	MSG msg = {0};
+	MSG msg = { 0 };
 
 	while (msg.message != WM_QUIT)
 	{
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
-			TranslateMessage( &msg );
-			DispatchMessage( &msg ); 
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 		else
 		{
 			mD3D->BeginScene();
+			mD3D->Render();
 			mD3D->EndScene();
-			Sleep(100);
 		}
 	}
 
@@ -137,14 +138,16 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	int mStatusWidth;
+	int mStatusHeight;
 	switch (msg)
 	{
 		case WM_SIZE:
 			// Keep edit control the same size as status window
-			mClientWidth = LOWORD(lParam);
-			mClientHeight = HIWORD(lParam);
+			mStatusWidth = LOWORD(lParam);
+			mStatusHeight = HIWORD(lParam);
 
-			SetWindowPos(mEdit, 0, 0, 0, mClientWidth, mClientHeight, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(mEdit, 0, 0, 0, mStatusWidth, mStatusHeight, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_SHOWWINDOW);
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		case WM_KEYDOWN:
 			// Hide status window
@@ -169,8 +172,8 @@ bool SystemClass::Frame()
 // Create main/game window
 bool SystemClass::InitMainWindow()
 {
-	WNDCLASS wc = {0};
-	wc.style = CS_HREDRAW|CS_VREDRAW;
+	WNDCLASS wc = { 0 };
+	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = MainWndProc;
 	wc.hInstance = mhAppInstance;
 	wc.hIcon = LoadCursor(NULL, IDI_WINLOGO);
