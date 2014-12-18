@@ -199,3 +199,4 @@ void D3DClass::EndScene()
 {
 	mSwapChain->Present(0, 0);
 }
+ 
