@@ -220,20 +220,10 @@ void D3DClass::EndScene()
 
 bool D3DClass::Render()
 {
-	// view, world, projection matrixes
-	XMVECTOR pos = XMVectorSet(0, 1, -1, 1.0f);
-	XMVECTOR target = XMVectorSet(0, 0, 0, 1.0f);
-	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
-	mCamera.SetPosition(mStartIndex, 0.0f, -2.0f);
-	mCamera.SetLookAt(mStartIndex, 0.0f, 0.0f);
-
-	XMMATRIX V = XMMatrixLookAtLH(pos, target, up);
-	//XMStoreFloat4x4(&mView, V);
-
 	XMMATRIX I = XMMatrixIdentity();
 	XMStoreFloat4x4(&mRoadWorld, I);
 
-	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV2, (float)mRenderWidth/(float)mRenderHeight, 1.0f, 10.0f);
+	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV2, (float)mRenderWidth/(float)mRenderHeight, 0.1f, 100.0f);
 	XMStoreFloat4x4(&mProj, P);
 
 	UINT stride = sizeof(Vertex);
@@ -253,14 +243,8 @@ bool D3DClass::Render()
 	if (FAILED(mImmediateContext->Map(mMatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources))) return false;
 
 	dataPtr = (MastrixBufferType*)mappedResources.pData;
-
-	XMMATRIX view = mCamera.GetViewMatrix();
 	
-	view = XMMatrixTranspose(view);
-	P = XMMatrixTranspose(P);
-
-	dataPtr->gView = view;
-	dataPtr->gProj = P;
+	dataPtr->gViewProj = XMMatrixTranspose(mView*P);
 
 	mImmediateContext->Unmap(mMatrixBuffer, 0);
 
@@ -273,48 +257,50 @@ bool D3DClass::Render()
 	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
 	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
 
-	//if (mStartIndex < 0) mStartIndex = 0;
-	//if (mStartIndex > 38) mStartIndex = 38;
-	mImmediateContext->DrawIndexed(3, 0, 0);
-	//mImmediateContext->Draw(3, 2);
+	mImmediateContext->DrawIndexed(42, 0, 0);
 
 	return true;
+}
+
+void D3DClass::SetViewMatrix(XMMATRIX & view)
+{
+	mView = view;
 }
 
 bool D3DClass::InitEVERYTHING()
 {
 	// create road vertex buffer
-	mRoadVertexCount = 6;
+	mRoadVertexCount = 42;
 	std::vector<Vertex> vertices(mRoadVertexCount);
 
 	/*for (int i = 0; i < 21; ++i)
 	{
-		vertices[2 * i].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, 5.0f);
+		vertices[2 * i].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, 0.5f);
 		vertices[2*i].Color = XMFLOAT4((float)(i%4)/4.0f, (float)((i+1) % 4) / 4.0f, (float)((i+2) % 4) / 4.0f, 1.0f);
 		
-		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -5.0f);
+		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -0.5f);
 		vertices[2 * i].Color = XMFLOAT4((float)((i+1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
 	}
 
-	for (int i = 0; i < vertices.size(); ++i)
+	/*for (int i = 0; i < vertices.size(); ++i)
 	{
 		LogNotice(std::to_wstring(vertices[i].Pos.z));
 	}*/
 
-	/*for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 21; ++i)
 	{
-		vertices[2 * i].Pos = XMFLOAT3((float)i - 1.0f, 0.0f, 5.0f);
+		vertices[2 * i].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -0.5f);
 		vertices[2 * i].Color = XMFLOAT4((float)(i % 4) / 4.0f, (float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, 1.0f);
 
-		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -5.0f);
-		vertices[2 * i].Color = XMFLOAT4((float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
-	}*/
-	vertices[0] = { XMFLOAT3(-1.0f, -0.5f, 2.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
-	vertices[1] = { XMFLOAT3(-1.0f,  0.5f, 2.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };
-	vertices[2] = { XMFLOAT3( 1.0f, -0.5f, 2.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
-	vertices[3] = { XMFLOAT3( 1.0f,  0.5f, 2.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
-	vertices[4] = { XMFLOAT3( 1.0f, -0.5f, 7.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
-	vertices[5] = { XMFLOAT3( 1.0f,  0.5f, 7.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };
+		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, 0.5f);
+		vertices[2 * i + 1].Color = XMFLOAT4((float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
+	}
+	/*vertices[0] = { XMFLOAT3(-1.0f, 0.0f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
+	vertices[1] = { XMFLOAT3(-1.0f, 0.0f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };
+	vertices[2] = { XMFLOAT3( 1.0f, 0.0f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
+	vertices[3] = { XMFLOAT3( 1.0f, 0.0f,  0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
+	vertices[4] = { XMFLOAT3( 1.0f, 0.0f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
+	vertices[5] = { XMFLOAT3( 1.0f, 0.0f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };*/
 
 
 	D3D11_BUFFER_DESC vbd;

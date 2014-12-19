@@ -63,6 +63,8 @@ class D3DClass : public HasLogger
 		// temp
 		bool Render();
 
+		void SetViewMatrix(XMMATRIX& view);
+
 		float mStartIndex;
 
 	private:
@@ -83,7 +85,7 @@ class D3DClass : public HasLogger
 		D3D11_VIEWPORT mScreenViewport;
 
 		// temp?
-		CameraClass mCamera;
+		XMMATRIX mView;
 
 		// temporal stuff for later refactoring
 		bool InitEVERYTHING();
@@ -106,8 +108,7 @@ class D3DClass : public HasLogger
 
 		struct MastrixBufferType
 		{
-			XMMATRIX gView;
-			XMMATRIX gProj;
+			XMMATRIX gViewProj;
 		};
 };
 

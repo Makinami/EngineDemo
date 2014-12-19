@@ -1,7 +1,6 @@
 cbuffer MatrixBuffer
 {
-	matrix gView;
-	matrix gProj;
+	matrix gViewProj;
 };
 
 struct VertexInputType
@@ -20,8 +19,7 @@ PixelInputType main(VertexInputType vin)
 {
 	PixelInputType vout;
 
-	vout.PosH = mul(float4(vin.Pos, 1.0f), gView);
-	vout.PosH = mul(vout.PosH, gProj);
+	vout.PosH = mul(float4(vin.Pos, 1.0f), gViewProj);
 	vout.Color = vin.Color;
 
 	return vout;

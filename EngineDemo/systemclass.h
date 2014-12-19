@@ -14,6 +14,8 @@
 
 #include "loggerclass.h"
 #include "d3dclass.h"
+#include "inputclass.h"
+#include "timerclass.h"
 
 /*
 Main System Class:
@@ -38,7 +40,7 @@ class SystemClass
 		// Message proc for status window
 		LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-		private:
+	private:
 		// Run each frame
 		bool Frame();
 
@@ -73,7 +75,10 @@ class SystemClass
 		/*
 		Subsystems
 		*/
-		std::shared_ptr<D3DClass> mD3D; // Main DirectX 3D
+		std::shared_ptr<D3DClass> D3D; // Main DirectX 3D
+		std::shared_ptr<CameraClass> Camera; // Camera
+		std::shared_ptr<InputClass> Input; // Input
+		std::shared_ptr<TimerClass> Timer;
 
 		std::shared_ptr<INIReader> Settings; // Setting
 		std::shared_ptr<LoggerClass> Logger; // Logger

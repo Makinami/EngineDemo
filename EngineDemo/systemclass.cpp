@@ -75,13 +75,25 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"Main window created.");
 
 	// Create D3D class
-	if (mD3D = std::make_shared<D3DClass>())
-	{
-		// Give D3D logger and initiate
-		mD3D->SetLogger(Logger);
-		if (!mD3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
-	}
+	D3D = std::make_shared<D3DClass>();
+	
+	// Give D3D logger and initiate
+	D3D->SetLogger(Logger);
+	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	Logger->Success(L"DirectX initiated.");
+
+	Input = std::make_shared<InputClass>();
+	
+	if (!Input->Init(mhAppInstance, mhMainWnd, mClientWidth, mClientHeight))
+	{
+		Logger->Error(L"Failed to initiate input");
+		return false;
+	}
+	Logger->Success(L"Input initiated");
+
+	Camera = std::make_shared<CameraClass>();
+
+	Timer = std::make_shared<TimerClass>();
 
 	return true;
 }
@@ -89,7 +101,7 @@ bool SystemClass::Init(std::string filename)
 // Shut down everything
 void SystemClass::Shutdown()
 {
-	mD3D->Shutdown();
+	D3D->Shutdown();
 
 	ShutdownMainWindow();
 }
@@ -97,6 +109,8 @@ void SystemClass::Shutdown()
 // Main loop (for now just outline)
 int SystemClass::Run()
 {
+	Timer->Reset();
+
 	MSG msg = { 0 };
 
 	while (msg.message != WM_QUIT)
@@ -110,9 +124,8 @@ int SystemClass::Run()
 		{
 			if ( !mAppPaused )
 			{
-				mD3D->BeginScene();
-				mD3D->Render();
-				mD3D->EndScene();
+				Timer->Tick();
+				if (!Frame()) SendMessage(mhMainWnd, WM_QUIT, 0, 0);
 			}
 			else
 			{
@@ -141,7 +154,7 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_SIZE:
 			mClientWidth = LOWORD(lParam);
 			mClientHeight = HIWORD(lParam);
-			if ( mD3D )
+			if ( D3D )
 			{
 				if ( wParam == SIZE_MINIMIZED )
 				{
@@ -162,7 +175,7 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					{
 						mAppPaused = false;
 						mWndState = WndStateNormal;
-						mD3D->OnResize(mClientWidth, mClientHeight);
+						D3D->OnResize(mClientWidth, mClientHeight);
 						//timer
 					}
 					// Restoring from maximized
@@ -170,7 +183,7 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					{
 						mAppPaused = false;
 						mWndState = WndStateNormal;
-						mD3D->OnResize(mClientWidth, mClientHeight);
+						D3D->OnResize(mClientWidth, mClientHeight);
 					}
 					else if ( mWndState == WndStateResizing )
 					{
@@ -178,7 +191,7 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						mD3D->OnResize(mClientWidth, mClientHeight);
+						D3D->OnResize(mClientWidth, mClientHeight);
 					}
 				}
 			}
@@ -192,7 +205,7 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			mAppPaused = false;
 			mWndState = WndStateNormal;
 			// timer
-			mD3D->OnResize(mClientWidth, mClientHeight);
+			D3D->OnResize(mClientWidth, mClientHeight);
 			return 0;
 		
 		// Limit window size
@@ -238,7 +251,27 @@ LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 // Run every frame
 bool SystemClass::Frame()
 {
-	return false;
+	float dt = Timer->DeltaTime();
+	Input->Capture();
+
+	float dpx = (Input->IsKeyPressed(DIK_D)-Input->IsKeyPressed(DIK_A))*dt;
+	float dpy = (Input->IsKeyPressed(DIK_W)-Input->IsKeyPressed(DIK_S))*dt;
+
+	float dvx = (Input->IsKeyPressed(DIK_RIGHT)-Input->IsKeyPressed(DIK_LEFT))*dt;
+	float dvy = (Input->IsKeyPressed(DIK_UP)-Input->IsKeyPressed(DIK_DOWN))*dt;
+
+	float dpz = (Input->IsKeyPressed(DIK_NUMPADPLUS)-Input->IsKeyPressed(DIK_NUMPADMINUS))*dt;
+
+	Camera->ChangePosition(dpx+dvx, dpy+dvy, dpz);
+	Camera->ChangeLookAt(dpx, dpy, 0);
+
+	D3D->SetViewMatrix(Camera->GetViewMatrix());
+
+	D3D->BeginScene();
+	D3D->Render();
+	D3D->EndScene();
+
+	return true;
 }
 
 // Create main/game window

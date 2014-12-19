@@ -18,6 +18,10 @@ class CameraClass
 		void SetLookAt(float x, float y, float z);
 		void SetUp(float x, float y, float z);
 
+		void ChangePosition(float x, float y, float z);
+		void ChangeLookAt(float x, float y, float z);
+		void ChangeUp(float x, float y, float z);
+
 		XMMATRIX GetViewMatrix();
 
 	private:
