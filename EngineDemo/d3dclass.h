@@ -16,12 +16,6 @@
 
 #pragma comment(lib,  "d3d11.lib")
 
-#if defined(DEBUG) | defined(_DEBUG)
-#pragma comment(lib, "Effects11\\Effects11d.lib")
-#else
-#pragma comment(lib, "Effects11\\Effects11.lib")
-#endif
-
 #include <d3d11_1.h>
 
 #pragma warning(disable:4838)
@@ -32,6 +26,9 @@
 
 #include "inih\cpp\INIReader.h"
 #include "loggerclass.h"
+
+// temp?
+#include "cameraclass.h"
 
 //temp
 #include <vector>
@@ -46,68 +43,74 @@ Main DirectX 3D class:
 class D3DClass : public HasLogger
 {
 	public:
-	D3DClass();
-	D3DClass(const D3DClass &other);
-	~D3DClass();
+		D3DClass();
+		D3DClass(const D3DClass &other);
+		~D3DClass();
 
-	// Init devices and subsystems
-	bool Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::shared_ptr<INIReader> &Settings);
+		// Init devices and subsystems
+		bool Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::shared_ptr<INIReader> &Settings);
 
-	// Change and recreate neccessery resources after window's resize
-	void OnResize(UINT mClientWidht, UINT mClientHeight);
+		// Change and recreate neccessery resources after window's resize
+		void OnResize(UINT mClientWidht, UINT mClientHeight);
 
-	// Close everything
-	void Shutdown();
+		// Close everything
+		void Shutdown();
 
-	// Render stages
-	void BeginScene();
-	void EndScene();
+		// Render stages
+		void BeginScene();
+		void EndScene();
 
-	// temp
-	bool Render();
+		// temp
+		bool Render();
+
+		float mStartIndex;
 
 	private:
-	// Setting
-	bool mEnable4xMSAA;
-	UINT m4xMSAAQuality; // Maximum available 4xMSAA quality
+		// Setting
+		bool mEnable4xMSAA;
+		UINT m4xMSAAQuality; // Maximum available 4xMSAA quality
 
-						 // Subsystems and resources
-	ID3D11Device1* mDevice;
-	ID3D11DeviceContext1* mImmediateContext;
-	IDXGISwapChain1* mSwapChain;
-	ID3D11Texture2D* mDepthStencilBuffer;
-	ID3D11RenderTargetView* mRenderTargetView;
-	ID3D11DepthStencilView* mDepthStencilView;
-	D3D11_VIEWPORT mScreenViewport;
+							 // Subsystems and resources
+		ID3D11Device1* mDevice;
+		ID3D11DeviceContext1* mImmediateContext;
+		IDXGISwapChain1* mSwapChain;
+		ID3D11Texture2D* mDepthStencilBuffer;
+		ID3D11RenderTargetView* mRenderTargetView;
+		ID3D11DepthStencilView* mDepthStencilView;
+		D3D11_VIEWPORT mScreenViewport;
 
-	// temporal stuff for later refactoring
-	bool InitEVERYTHING();
+		// temp?
+		CameraClass mCamera;
 
-	ID3D11Buffer *mRoadVB;
-	ID3D11Buffer *mRoadIB;
+		// temporal stuff for later refactoring
+		bool InitEVERYTHING();
 
-	UINT mRoadVertexCount;
-	UINT mRoadIndexCount;
+		ID3D11Buffer *mRoadVB;
+		ID3D11Buffer *mRoadIB;
 
-	ID3D11VertexShader* mVertexShader;
-	ID3D11PixelShader* mPixelShader;
-	ID3D11Buffer* mMatrixBuffer;
+		UINT mRoadVertexCount;
+		UINT mRoadIndexCount;
 
-	ID3D11InputLayout *mInputLayout;
+		ID3D11VertexShader* mVertexShader;
+		ID3D11PixelShader* mPixelShader;
+		ID3D11Buffer* mMatrixBuffer;
 
-	XMFLOAT4X4 mView;
-	XMFLOAT4X4 mProj;
+		ID3D11InputLayout *mInputLayout;
 
-	XMFLOAT4X4 mRoadWorld;
+		XMFLOAT4X4 mProj;
 
-	struct MastrixBufferType
-	{
-		XMMATRIX gWolrdViewProj;
-	};
+		XMFLOAT4X4 mRoadWorld;
+
+		struct MastrixBufferType
+		{
+			XMMATRIX gView;
+			XMMATRIX gProj;
+		};
 };
 
 // temp
 struct Vertex
 {
 	XMFLOAT3 Pos;
+	XMFLOAT4 Color;
 };

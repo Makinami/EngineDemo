@@ -17,6 +17,9 @@ D3DClass::D3DClass()
 	mEnable4xMSAA(true)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
+
+	// temp
+	mStartIndex = 0.0f;
 }
 
 D3DClass::D3DClass(const D3DClass& other)
@@ -214,14 +217,16 @@ bool D3DClass::Render()
 	XMVECTOR pos = XMVectorSet(0, 1, -1, 1.0f);
 	XMVECTOR target = XMVectorSet(0, 0, 0, 1.0f);
 	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+	mCamera.SetPosition(mStartIndex, 0.0f, -2.0f);
+	mCamera.SetLookAt(mStartIndex, 0.0f, 0.0f);
 
 	XMMATRIX V = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&mView, V);
+	//XMStoreFloat4x4(&mView, V);
 
 	XMMATRIX I = XMMatrixIdentity();
 	XMStoreFloat4x4(&mRoadWorld, I);
 
-	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV4, 1280.0f / 720.0f, 1.0f, 1000.0f);
+	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.6f, 1.0f, 10.0f);
 	XMStoreFloat4x4(&mProj, P);
 
 	UINT stride = sizeof(Vertex);
@@ -242,7 +247,13 @@ bool D3DClass::Render()
 
 	dataPtr = (MastrixBufferType*)mappedResources.pData;
 
-	dataPtr->gWolrdViewProj = I*V*P;
+	XMMATRIX view = mCamera.GetViewMatrix();
+	
+	view = XMMatrixTranspose(view);
+	P = XMMatrixTranspose(P);
+
+	dataPtr->gView = view;
+	dataPtr->gProj = P;
 
 	mImmediateContext->Unmap(mMatrixBuffer, 0);
 
@@ -255,7 +266,10 @@ bool D3DClass::Render()
 	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
 	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
 
-	mImmediateContext->DrawIndexed(mRoadIndexCount, 0, 0);
+	//if (mStartIndex < 0) mStartIndex = 0;
+	//if (mStartIndex > 38) mStartIndex = 38;
+	mImmediateContext->DrawIndexed(3, 0, 0);
+	//mImmediateContext->Draw(3, 2);
 
 	return true;
 }
@@ -263,16 +277,42 @@ bool D3DClass::Render()
 bool D3DClass::InitEVERYTHING()
 {
 	// create road vertex buffer
-	std::vector<Vertex> vertices(42);
+	mRoadVertexCount = 6;
+	std::vector<Vertex> vertices(mRoadVertexCount);
 
-	for (int i = 0; i < 21; ++i)
+	/*for (int i = 0; i < 21; ++i)
 	{
-		vertices[2 * i].Pos = XMFLOAT3(i - 10, 0, 0.5f);
-		vertices[2 * i + 1].Pos = XMFLOAT3(i - 10, 0, -0.5f);
+		vertices[2 * i].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, 5.0f);
+		vertices[2*i].Color = XMFLOAT4((float)(i%4)/4.0f, (float)((i+1) % 4) / 4.0f, (float)((i+2) % 4) / 4.0f, 1.0f);
+		
+		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -5.0f);
+		vertices[2 * i].Color = XMFLOAT4((float)((i+1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
 	}
+
+	for (int i = 0; i < vertices.size(); ++i)
+	{
+		LogNotice(std::to_wstring(vertices[i].Pos.z));
+	}*/
+
+	/*for (int i = 0; i < 3; ++i)
+	{
+		vertices[2 * i].Pos = XMFLOAT3((float)i - 1.0f, 0.0f, 5.0f);
+		vertices[2 * i].Color = XMFLOAT4((float)(i % 4) / 4.0f, (float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, 1.0f);
+
+		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -5.0f);
+		vertices[2 * i].Color = XMFLOAT4((float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
+	}*/
+	vertices[0] = { XMFLOAT3(-1.0f, -0.5f, 2.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
+	vertices[1] = { XMFLOAT3(-1.0f,  0.5f, 2.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };
+	vertices[2] = { XMFLOAT3( 1.0f, -0.5f, 2.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
+	vertices[3] = { XMFLOAT3( 1.0f,  0.5f, 2.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
+	vertices[4] = { XMFLOAT3( 1.0f, -0.5f, 7.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
+	vertices[5] = { XMFLOAT3( 1.0f,  0.5f, 7.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };
+
+
 	D3D11_BUFFER_DESC vbd;
 	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(Vertex) * 42;
+	vbd.ByteWidth = sizeof(Vertex) * mRoadVertexCount;
 	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vbd.CPUAccessFlags = 0;
 	vbd.MiscFlags = 0;
@@ -288,7 +328,7 @@ bool D3DClass::InitEVERYTHING()
 
 	D3D11_BUFFER_DESC ibd;
 	ibd.Usage = D3D11_USAGE_IMMUTABLE;
-	ibd.ByteWidth = sizeof(UINT) * 42;
+	ibd.ByteWidth = sizeof(UINT) * indeces.size();
 	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	ibd.CPUAccessFlags = 0;
 	ibd.MiscFlags = 0;
@@ -347,7 +387,8 @@ bool D3DClass::InitEVERYTHING()
 
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
