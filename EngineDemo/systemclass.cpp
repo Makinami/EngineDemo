@@ -95,6 +95,12 @@ bool SystemClass::Init(std::string filename)
 
 	Timer = std::make_shared<TimerClass>();
 
+	// temp
+	mLootAtPosition = XMFLOAT3(0, 0, 0);
+	mPhi = XM_PIDIV4;
+	mTheta = XM_PIDIV2;
+	mRadius = 5;
+
 	return true;
 }
 
@@ -213,6 +219,19 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			((MINMAXINFO*)lParam)->ptMinTrackSize.x = 600;
 			((MINMAXINFO*)lParam)->ptMinTrackSize.y = 400;
 			return 0;
+		case WM_LBUTTONDOWN:
+		case WM_MBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+			OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			return 0;
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:
+			OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			return 0;
+		case WM_MOUSEMOVE:
+			OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -254,18 +273,21 @@ bool SystemClass::Frame()
 	float dt = Timer->DeltaTime();
 	Input->Capture();
 
-	float dpx = (Input->IsKeyPressed(DIK_D)-Input->IsKeyPressed(DIK_A))*dt;
-	float dpy = (Input->IsKeyPressed(DIK_W)-Input->IsKeyPressed(DIK_S))*dt;
+	// Convert Spherical to Cartesian coordinates.
+	float x = mRadius*sinf(mPhi)*cosf(mTheta);
+	float z = mRadius*sinf(mPhi)*sinf(mTheta);
+	float y = mRadius*cosf(mPhi);
 
-	float dvx = (Input->IsKeyPressed(DIK_RIGHT)-Input->IsKeyPressed(DIK_LEFT))*dt;
-	float dvy = (Input->IsKeyPressed(DIK_UP)-Input->IsKeyPressed(DIK_DOWN))*dt;
+	if (GetAsyncKeyState('W') & 0x8000) mLootAtPosition.y += 5*dt;
+	if (GetAsyncKeyState('S') & 0x8000) mLootAtPosition.y -= 5*dt;
+	if (GetAsyncKeyState('A') & 0x8000) mLootAtPosition.x -= 5*dt;
+	if (GetAsyncKeyState('D') & 0x8000) mLootAtPosition.x += 5*dt;
 
-	float dpz = (Input->IsKeyPressed(DIK_NUMPADPLUS)-Input->IsKeyPressed(DIK_NUMPADMINUS))*dt;
+	XMVECTOR pos = XMVectorSet(x+mLootAtPosition.x, y+mLootAtPosition.y, z+mLootAtPosition.z, 1.0f);
+	XMVECTOR target = XMVectorSet(mLootAtPosition.x, mLootAtPosition.y, mLootAtPosition.z, 0.0f);
+	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
-	Camera->ChangePosition(dpx+dvx, dpy+dvy, dpz);
-	Camera->ChangeLookAt(dpx, dpy, 0);
-
-	D3D->SetViewMatrix(Camera->GetViewMatrix());
+	D3D->SetViewMatrix(XMMatrixLookAtLH(pos, target, up));
 
 	D3D->BeginScene();
 	D3D->Render();
@@ -354,4 +376,43 @@ bool SystemClass::CreateStatusWindow()
 	UpdateWindow(mStatusWnd);
 
 	return true;
+}
+
+void SystemClass::OnMouseDown(WPARAM btnState, int x, int y)
+{
+	mLastMousePos.x = x;
+	mLastMousePos.y = y;
+
+	SetCapture(mhMainWnd);
+}
+
+void SystemClass::OnMouseUp(WPARAM btnState, int x, int y)
+{
+	ReleaseCapture();
+}
+
+void SystemClass::OnMouseMove(WPARAM btnState, int x, int y)
+{
+	if ((btnState & MK_LBUTTON) != 0)
+	{
+		float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
+		float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
+
+		mTheta += dx;
+		mPhi += dy;
+
+		mPhi = min(max(mPhi, 0.1f), XM_PI - 0.1f);
+	}
+	else if ((btnState & MK_RBUTTON) != 0)
+	{
+		float dx = 0.05f*static_cast<float>(x - mLastMousePos.x);
+		float dy = 0.05f*static_cast<float>(y - mLastMousePos.y);
+
+		mRadius += dx - dy;
+
+		mRadius = min(max(mRadius, 3.0f), 150.0f);
+	}
+
+	mLastMousePos.x = x;
+	mLastMousePos.y = y;
 }

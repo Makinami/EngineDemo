@@ -51,6 +51,11 @@ class SystemClass
 		// Create status window
 		bool CreateStatusWindow();
 
+		// temp
+		void OnMouseDown(WPARAM btnState, int x, int y);
+		void OnMouseUp(WPARAM btnState, int x, int y);
+		void OnMouseMove(WPARAM btnState, int x, int y);
+
 	private:
 		// Application and main window properties
 		HINSTANCE	 mhAppInstance;
@@ -82,4 +87,9 @@ class SystemClass
 
 		std::shared_ptr<INIReader> Settings; // Setting
 		std::shared_ptr<LoggerClass> Logger; // Logger
+
+		// temp
+		POINT mLastMousePos;
+		float mTheta, mPhi, mRadius;
+		XMFLOAT3 mLootAtPosition;
 };
