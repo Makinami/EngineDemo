@@ -25,12 +25,14 @@ LRESULT CALLBACK StatusWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 // Set basic values
 SystemClass::SystemClass(HINSTANCE hInstance)
-	: mhAppInstance(hInstance),
-	mhMainWnd(0),
-	mAppName(L"EngineDemo"),
-	mWndCap(L"EngineDemo"),
-	mClientHeight(720),
-	mClientWidth(1280)
+: mhAppInstance(hInstance),
+  mhMainWnd(0),
+  mAppName(L"EngineDemo"),
+  mWndCap(L"EngineDemo"),
+  mClientHeight(720),
+  mClientWidth(1280),
+  mAppPaused(false),
+  mWndState(WndStateNormal)
 {
 	callbackSystem = this;
 }
@@ -106,9 +108,17 @@ int SystemClass::Run()
 		}
 		else
 		{
-			mD3D->BeginScene();
-			mD3D->Render();
-			mD3D->EndScene();
+			if ( !mAppPaused )
+			{
+				mD3D->BeginScene();
+				mD3D->Render();
+				mD3D->EndScene();
+			}
+			else
+			{
+				Sleep(100);
+			}
+			
 		}
 	}
 
@@ -127,6 +137,68 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				if (IsWindowVisible(mStatusWnd)) ShowWindow(mStatusWnd, SW_HIDE);
 				else ShowWindow(mStatusWnd, SW_SHOWNA);
 			}
+			return 0;
+		case WM_SIZE:
+			mClientWidth = LOWORD(lParam);
+			mClientHeight = HIWORD(lParam);
+			if ( mD3D )
+			{
+				if ( wParam == SIZE_MINIMIZED )
+				{
+					mAppPaused = true;
+					mWndState = WndStateMinimized;
+					// timer
+				}
+				else if ( wParam == SIZE_MAXIMIZED )
+				{
+					mAppPaused = false;
+					mWndState = WndStateMaximized;
+					// timer
+				}
+				else if ( wParam == SIZE_RESTORED )
+				{
+					// Restoring from minimized
+					if ( mWndState == WndStateMinimized )
+					{
+						mAppPaused = false;
+						mWndState = WndStateNormal;
+						mD3D->OnResize(mClientWidth, mClientHeight);
+						//timer
+					}
+					// Restoring from maximized
+					else if ( mWndState == WndStateMaximized )
+					{
+						mAppPaused = false;
+						mWndState = WndStateNormal;
+						mD3D->OnResize(mClientWidth, mClientHeight);
+					}
+					else if ( mWndState == WndStateResizing )
+					{
+						// Dropedl; served at the end in WM_EXITMOVE
+					}
+					else
+					{
+						mD3D->OnResize(mClientWidth, mClientHeight);
+					}
+				}
+			}
+			break;
+		case WM_ENTERSIZEMOVE:
+			mAppPaused = true;
+			mWndState = WndStateResizing;
+			// timer
+			return 0;
+		case WM_EXITSIZEMOVE:
+			mAppPaused = false;
+			mWndState = WndStateNormal;
+			// timer
+			mD3D->OnResize(mClientWidth, mClientHeight);
+			return 0;
+		
+		// Limit window size
+		case WM_GETMINMAXINFO:
+			((MINMAXINFO*)lParam)->ptMinTrackSize.x = 600;
+			((MINMAXINFO*)lParam)->ptMinTrackSize.y = 400;
 			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);

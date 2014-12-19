@@ -14,7 +14,10 @@ D3DClass::D3DClass()
 	mRenderTargetView(nullptr),
 	mDepthStencilView(nullptr),
 
-	mEnable4xMSAA(true)
+	mEnable4xMSAA(true),
+
+	mRenderHeight(0),
+	mRenderWidth(0)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
 
@@ -130,6 +133,10 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 	ReleaseCOM(mDepthStencilBuffer);
 	ReleaseCOM(mDepthStencilView);
 
+	// Set client size
+	mRenderWidth = mClientWidth;
+	mRenderHeight = mClientHeight;
+
 	// Resize swap chain and (re)create render target
 	mSwapChain->ResizeBuffers(1, mClientWidth, mClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
 	ID3D11Texture2D* backBuffer;
@@ -226,7 +233,7 @@ bool D3DClass::Render()
 	XMMATRIX I = XMMatrixIdentity();
 	XMStoreFloat4x4(&mRoadWorld, I);
 
-	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.6f, 1.0f, 10.0f);
+	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV2, (float)mRenderWidth/(float)mRenderHeight, 1.0f, 10.0f);
 	XMStoreFloat4x4(&mProj, P);
 
 	UINT stride = sizeof(Vertex);

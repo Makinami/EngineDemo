@@ -22,53 +22,59 @@ Creates new game and status window (at least for now) and manages other subsyste
 class SystemClass
 {
 	public:
-	SystemClass(HINSTANCE hInstance);
-	SystemClass(const SystemClass&);
-	~SystemClass();
+		SystemClass(HINSTANCE hInstance);
+		SystemClass(const SystemClass&);
+		~SystemClass();
 
-	// Initiate all systems based on setting from file
-	bool Init(std::string filename = "settings.ini");
-	// Shutdown main system and shut down and delete all subsystems
-	void Shutdown();
-	// Initiate main loop
-	int Run();
+		// Initiate all systems based on setting from file
+		bool Init(std::string filename = "settings.ini");
+		// Shutdown main system and shut down and delete all subsystems
+		void Shutdown();
+		// Initiate main loop
+		int Run();
 
-	// Message proc for main window
-	LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-	// Message proc for status window
-	LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// Message proc for main window
+		LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// Message proc for status window
+		LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+		private:
+		// Run each frame
+		bool Frame();
+
+		// Init/shutdown main window
+		bool InitMainWindow();
+		void ShutdownMainWindow();
+
+		// Create status window
+		bool CreateStatusWindow();
 
 	private:
-	// Run each frame
-	bool Frame();
+		// Application and main window properties
+		HINSTANCE	 mhAppInstance;
+		HWND		 mhMainWnd;
+		LPCWSTR		 mAppName;
+		std::wstring mWndCap;
+		bool		 mAppPaused;
 
-	// Init/shutdown main window
-	bool InitMainWindow();
-	void ShutdownMainWindow();
+		enum
+		{
+			WndStateNormal, WndStateMaximized, WndStateFullScreen, WndStateMinimized, WndStateResizing
+		} mWndState;
 
-	// Create status window
-	bool CreateStatusWindow();
+		// Main window/game client size
+		int mClientWidth;
+		int mClientHeight;
 
-	private:
-	// Application and main window properties
-	HINSTANCE	 mhAppInstance;
-	HWND		 mhMainWnd;
-	LPCWSTR		 mAppName;
-	std::wstring mWndCap;
+		// Logger windows handlers
+		HWND mStatusWnd;
+		HWND mEdit;
 
-	// Main window/game client size
-	int mClientWidth;
-	int mClientHeight;
+		/*
+		Subsystems
+		*/
+		std::shared_ptr<D3DClass> mD3D; // Main DirectX 3D
 
-	// Logger windows handlers
-	HWND mStatusWnd;
-	HWND mEdit;
-
-	/*
-	Subsystems
-	*/
-	std::shared_ptr<D3DClass> mD3D; // Main DirectX 3D
-
-	std::shared_ptr<INIReader> Settings; // Setting
-	std::shared_ptr<LoggerClass> Logger; // Logger
+		std::shared_ptr<INIReader> Settings; // Setting
+		std::shared_ptr<LoggerClass> Logger; // Logger
 };

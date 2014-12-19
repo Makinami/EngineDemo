@@ -70,7 +70,10 @@ class D3DClass : public HasLogger
 		bool mEnable4xMSAA;
 		UINT m4xMSAAQuality; // Maximum available 4xMSAA quality
 
-							 // Subsystems and resources
+		UINT mRenderWidth;
+		UINT mRenderHeight;
+
+		// Subsystems and resources
 		ID3D11Device1* mDevice;
 		ID3D11DeviceContext1* mImmediateContext;
 		IDXGISwapChain1* mSwapChain;
