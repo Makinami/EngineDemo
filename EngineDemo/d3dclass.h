@@ -27,7 +27,7 @@
 #include "inih\cpp\INIReader.h"
 #include "loggerclass.h"
 
-// temp?
+// temp?	
 #include "cameraclass.h"
 
 //temp

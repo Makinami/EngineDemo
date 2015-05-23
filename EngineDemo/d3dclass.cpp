@@ -244,7 +244,7 @@ bool D3DClass::Render()
 
 	dataPtr = (MastrixBufferType*)mappedResources.pData;
 	
-	dataPtr->gViewProj = XMMatrixTranspose(mView*P);
+	dataPtr->gViewProj = XMMatrixTranspose((XMMATRIX)mView*(XMMATRIX)P);
 
 	mImmediateContext->Unmap(mMatrixBuffer, 0);
 

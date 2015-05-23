@@ -232,6 +232,9 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_MOUSEMOVE:
 			OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			return 0;
+		case WM_MOUSEWHEEL:
+			Input->PassZDelta(GET_WHEEL_DELTA_WPARAM(wParam)/WHEEL_DELTA);
+			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -273,11 +276,27 @@ bool SystemClass::Frame()
 	float dt = Timer->DeltaTime();
 	Input->Capture();
 
+	if (Input->IsDrag())
+	{
+		POINT mDrag = Input->GetDragDelta();
+		float dx = XMConvertToRadians(0.25f*static_cast<float>(mDrag.x));
+		float dy = XMConvertToRadians(0.25f*static_cast<float>(mDrag.y));
+
+		mTheta += dx;
+		mPhi += dy;
+
+		mPhi = min(max(mPhi, 0.1f), XM_PI - 0.1f);
+	}
+
+	mRadius -= Input->GetWheel()*0.25f;
+
+	mRadius = min(max(mRadius, 3.0f), 150.0f);
+
 	// Convert Spherical to Cartesian coordinates.
 	float x = mRadius*sinf(mPhi)*cosf(mTheta);
 	float z = mRadius*sinf(mPhi)*sinf(mTheta);
 	float y = mRadius*cosf(mPhi);
-
+	
 	if (GetAsyncKeyState('W') & 0x8000) mLootAtPosition.y += 5*dt;
 	if (GetAsyncKeyState('S') & 0x8000) mLootAtPosition.y -= 5*dt;
 	if (GetAsyncKeyState('A') & 0x8000) mLootAtPosition.x -= 5*dt;
@@ -408,7 +427,7 @@ void SystemClass::OnMouseMove(WPARAM btnState, int x, int y)
 		float dx = 0.05f*static_cast<float>(x - mLastMousePos.x);
 		float dy = 0.05f*static_cast<float>(y - mLastMousePos.y);
 
-		mRadius += dx - dy;
+		//mRadius += dx - dy;
 
 		mRadius = min(max(mRadius, 3.0f), 150.0f);
 	}

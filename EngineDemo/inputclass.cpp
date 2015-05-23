@@ -3,9 +3,15 @@
 InputClass::InputClass()
 : mDirectInput(0),
   mKeyboard(0),
-  mMouse(0)
+  mMouse(0),
+  mIsDraged(0),
+  mlZ(0),
+  mPrevlZ(0),
+  mlZAcc(0)
 {
-
+	ZeroMemory(&mMouseState, sizeof(mMouseState));
+	ZeroMemory(&mPrevMouseState, sizeof(mPrevMouseState));
+	mDragStart = {-1,-1};
 }
 
 InputClass::~InputClass()
@@ -46,17 +52,29 @@ bool InputClass::Init(HINSTANCE hInstance, HWND hWnd, int screenWidth, int scree
 
 void InputClass::Shutdown()
 {
-	mMouse->Unacquire();
-	ReleaseCOM(mMouse);
+	if (mMouse)
+	{
+		mMouse->Unacquire();
+		ReleaseCOM(mMouse);
+	}
 
-	mKeyboard->Unacquire();
-	ReleaseCOM(mKeyboard);
+	if (mKeyboard)
+	{
+		mKeyboard->Unacquire();
+		ReleaseCOM(mKeyboard);
+	}
 
 	ReleaseCOM(mDirectInput);
 }
 
 bool InputClass::Capture()
 {
+	mPrevMousePos = mMousePos;
+	mPrevMouseState = mMouseState;
+	mPrevlZ = mlZ;
+	mlZ = mlZAcc;
+	mlZAcc = 0;
+
 	if (!ReadKeyboard()) return false;
 
 	if (!ReadMouse()) return false;
@@ -89,7 +107,7 @@ bool InputClass::ReadMouse()
 {
 	HRESULT hr;
 
-	if (FAILED(hr = mMouse->GetDeviceState(sizeof(DIMOUSESTATE2), (LPVOID)&mMouseState)))
+	if (FAILED(hr = mMouse->GetDeviceState(sizeof(DIMOUSESTATE), (LPVOID)&mMouseState)))
 	{
 		if (hr == DIERR_INPUTLOST || hr == DIERR_NOTACQUIRED) mMouse->Acquire();
 		else return false;
@@ -108,10 +126,73 @@ void InputClass::ProcessInput()
 
 	if (mMousePos.x > mScreenWidth) mMousePos.y = mScreenWidth;
 	if (mMousePos.y > mScreenHeight) mMousePos.y = mScreenHeight;
+
+	mClick = false;
+
+	if (!mPrevMouseState.rgbButtons[0] && mMouseState.rgbButtons[0])
+	{
+		mDragStart = mMousePos;
+	}
+	else if (mPrevMouseState.rgbButtons[0] && mMouseState.rgbButtons[0])
+	{
+		mIsDraged = 1;
+	}
+	else if (mPrevMouseState.rgbButtons[0] && !mMouseState.rgbButtons[0])
+	{
+		if (mDragStart.x == mMousePos.x && mDragStart.y == mMousePos.y)
+		{
+			mClick = true;
+		}
+		else
+		{
+			mIsDraged = -1;
+		}
+	}
+	else
+	{
+		mIsDraged = 0;
+		mDragStart = {-1,-1};
+	}
 }
 
 bool InputClass::IsKeyPressed(SHORT key)
 {
 	if (mKeyboardState[key] & 0x80) return true;
 	else return false;
+}
+
+POINT InputClass::GetClick()
+{
+	if (mClick) return mMousePos;
+	else return POINT{-1, -1};
+}
+
+bool InputClass::IsClick()
+{
+	return mClick;
+}
+
+SHORT InputClass::IsDrag()
+{
+	return mIsDraged;
+}
+
+POINT InputClass::GetDragDelta()
+{
+	return POINT{mMousePos.x - mPrevMousePos.x, mMousePos.y - mPrevMousePos.y};
+}
+
+RECT InputClass::GetDragWhole()
+{
+	return RECT{mDragStart.x, mDragStart.y, mMousePos.x, mMousePos.y};
+}
+
+void InputClass::PassZDelta(SHORT zDelta)
+{
+	mlZAcc += zDelta;
+}
+
+LONG InputClass::GetWheel()
+{
+	return mlZ;
 }

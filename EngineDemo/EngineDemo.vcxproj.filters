@@ -22,6 +22,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{8463eb14-e9d2-4100-8d1c-a68ba0f90bd5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Terrain">
+      <UniqueIdentifier>{0407ce10-63c3-4c96-adb5-ccff0e9e647a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -51,6 +54,9 @@
     <ClCompile Include="inputclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="terrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -77,6 +83,9 @@
     <ClInclude Include="inputclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -85,5 +94,20 @@
     <FxCompile Include="BasicVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="TerrainVS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainHS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainDS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainPS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="settings.ini" />
   </ItemGroup>
 </Project>

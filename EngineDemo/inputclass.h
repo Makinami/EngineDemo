@@ -30,6 +30,16 @@ class InputClass
 
 		bool IsKeyPressed(SHORT key);
 
+		POINT GetClick();
+		bool IsClick();
+
+		SHORT IsDrag();
+		POINT GetDragDelta();
+		RECT GetDragWhole();
+
+		void PassZDelta(SHORT zDelta);
+		LONG GetWheel();
+
 	private:
 		bool ReadKeyboard();
 		bool ReadMouse();
@@ -40,8 +50,17 @@ class InputClass
 		IDirectInputDevice8* mMouse;
 
 		unsigned char mKeyboardState[256];
-		DIMOUSESTATE2 mMouseState;
+		DIMOUSESTATE mMouseState;
+		LONG mlZ;
 
 		int mScreenWidth, mScreenHeight;
 		POINT mMousePos;
+		LONG mlZAcc;
+
+		DIMOUSESTATE mPrevMouseState;
+		LONG mPrevlZ;
+		POINT mPrevMousePos;
+		POINT mDragStart;
+		SHORT mIsDraged;
+		bool mClick;
 };
