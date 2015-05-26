@@ -1,7 +1,7 @@
-Texture2D gHeightMap;
-Texture2D gBlendMap;
-Texture2DArray gLayerMapArray;
-
+Texture2D gHeightMap : register(t0);
+Texture2D gBlendMap : register(t1);
+Texture2DArray gLayerMapArray : register(t2);
+/*
 struct DirectionalLight
 {
 	float4 Ambient;
@@ -9,36 +9,25 @@ struct DirectionalLight
 	float4 Specular;
 	float3 Direction;
 	float pad;
-};
-
-cbuffer cbPerFrame
+};*/
+/*
+cbuffer cbPerFramePS
 {
-	DirectionalLight gDirLights[3];
+	float4x4 gViewProj;
+
+	//DirectionalLight gDirLights[3];
 	float3 gEyePosW;
-}
 
-SamplerState samHeightmap
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-
-	AddressU = CLAMP;
-	AddressV = CLAMP;
-};
-
-SamplerState samLinear
-{
-	Filter = MIN_MAG_MIP_LINEAR;
-
-	AddressU = WRAP;
-	AddressV = WRAP;
-};
-
-cbuffer cbPerFrame
-{
 	float gTexelCellSpaceU;
 	float gTexelCellSpaceV;
 	float gWorldCellSpace;
-}
+
+	float2 padding;
+}*/
+
+SamplerState samHeightmap : register(s0);
+
+SamplerState samLinear : register(s1);
 
 struct DomainOut
 {
@@ -51,7 +40,7 @@ struct DomainOut
 float4 main(DomainOut pin) : SV_TARGET
 {
 	// Estimate normal and tangent using central differences.
-	float2 leftTex = pin.Tex + float2(-gTexelCellSpaceU, 0.0f);
+	/*float2 leftTex = pin.Tex + float2(-gTexelCellSpaceU, 0.0f);
 	float2 rightTex = pin.Tex + float2(gTexelCellSpaceU, 0.0f);
 	float2 bottomTex = pin.Tex + float2(0.0f, gTexelCellSpaceV);
 	float2 topTex = pin.Tex + float2(0.0f, -gTexelCellSpaceV);
@@ -72,7 +61,7 @@ float4 main(DomainOut pin) : SV_TARGET
 	float disToEye = length(toEye);
 
 	// Normalize.
-	toEye /= disToEye;
+	toEye /= disToEye;*/
 
 	/* Texturing */
 

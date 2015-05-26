@@ -16,6 +16,7 @@
 #include "d3dclass.h"
 #include "inputclass.h"
 #include "timerclass.h"
+#include "terrain.h"
 
 /*
 Main System Class:
@@ -87,6 +88,11 @@ class SystemClass
 
 		std::shared_ptr<INIReader> Settings; // Setting
 		std::shared_ptr<LoggerClass> Logger; // Logger
+
+		/*
+		World
+		*/
+		std::unique_ptr<TerrainClass> Terrain; // Terrain object
 
 		// temp
 		POINT mLastMousePos;

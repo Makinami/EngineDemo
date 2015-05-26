@@ -60,10 +60,13 @@ class D3DClass : public HasLogger
 		void BeginScene();
 		void EndScene();
 
+		ID3D11Device1* GetDevice() const;
+		ID3D11DeviceContext1* GetDeviceContext() const;
+
 		// temp
 		bool Render();
 
-		void SetViewMatrix(XMMATRIX& view);
+		void SetViewMatrix(CXMMATRIX view);
 
 		float mStartIndex;
 
@@ -85,7 +88,7 @@ class D3DClass : public HasLogger
 		D3D11_VIEWPORT mScreenViewport;
 
 		// temp?
-		XMMATRIX mView;
+		XMFLOAT4X4 mView;
 
 		// temporal stuff for later refactoring
 		bool InitEVERYTHING();

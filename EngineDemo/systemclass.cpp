@@ -95,11 +95,37 @@ bool SystemClass::Init(std::string filename)
 
 	Timer = std::make_shared<TimerClass>();
 
+	/*
+	World
+	*/
+	Terrain = std::make_unique<TerrainClass>();
+	Terrain->SetLogger(Logger);
+
+	TerrainClass::InitInfo tii;
+	tii.HeightMapFilename = L"Textures/terrain.raw";
+	tii.LayerMapFilename0 = L"Textures/grass.dds";
+	tii.LayerMapFilename1 = L"Textures/darkdirt.dds";
+	tii.LayerMapFilename2 = L"Textures/stone.dds";
+	tii.LayerMapFilename3 = L"Textures/lightdirt.dds";
+	tii.LayerMapFilename4 = L"Textures/snow.dds";
+	tii.BlendMapFilename = L"Textures/blend.dds";
+	tii.HeightScale = 50.0f;
+	tii.HeightmapWidth = 2049;
+	tii.HeightmapHeight = 2049;
+	tii.CellSpacing = 0.5f;
+
+	if (!Terrain->Init(D3D->GetDevice(), D3D->GetDeviceContext(), tii))
+	{
+		Logger->Error(L"Failed to initiate terrain");
+		return false;
+	}
+	Logger->Success(L"Terrain initiated");
+
 	// temp
 	mLootAtPosition = XMFLOAT3(0, 0, 0);
 	mPhi = XM_PIDIV4;
 	mTheta = XM_PIDIV2;
-	mRadius = 5;
+	mRadius = 100;
 
 	return true;
 }
@@ -116,7 +142,7 @@ void SystemClass::Shutdown()
 int SystemClass::Run()
 {
 	Timer->Reset();
-
+	
 	MSG msg = { 0 };
 
 	while (msg.message != WM_QUIT)
@@ -290,7 +316,7 @@ bool SystemClass::Frame()
 
 	mRadius -= Input->GetWheel()*0.25f;
 
-	mRadius = min(max(mRadius, 3.0f), 150.0f);
+	mRadius = min(max(mRadius, 3.0f), 5000.0f);
 
 	// Convert Spherical to Cartesian coordinates.
 	float x = mRadius*sinf(mPhi)*cosf(mTheta);
@@ -305,11 +331,12 @@ bool SystemClass::Frame()
 	XMVECTOR pos = XMVectorSet(x+mLootAtPosition.x, y+mLootAtPosition.y, z+mLootAtPosition.z, 1.0f);
 	XMVECTOR target = XMVectorSet(mLootAtPosition.x, mLootAtPosition.y, mLootAtPosition.z, 0.0f);
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
+	
 	D3D->SetViewMatrix(XMMatrixLookAtLH(pos, target, up));
 
 	D3D->BeginScene();
-	D3D->Render();
+	//D3D->Render();
+	Terrain->Draw(D3D->GetDeviceContext(), XMMatrixLookAtLH(pos, target, up), pos);
 	D3D->EndScene();
 
 	return true;
@@ -429,7 +456,7 @@ void SystemClass::OnMouseMove(WPARAM btnState, int x, int y)
 
 		//mRadius += dx - dy;
 
-		mRadius = min(max(mRadius, 3.0f), 150.0f);
+		mRadius = min(max(mRadius, 3.0f), 500.0f);
 	}
 
 	mLastMousePos.x = x;

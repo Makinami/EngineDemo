@@ -26,7 +26,6 @@ struct HullOut
 {
 	float3 PosW : POSITION;
 	float2 Tex : TEXCOORD0;
-	float2 BoundsY : TEXCOORD1;
 };
 
 // Output patch constant data.
@@ -38,7 +37,7 @@ struct TessSettings
 
 #define NUM_CONTROL_POINTS 4
 
-float gTexScale = 50.0f;
+#define gTexScale 50.0f;
 
 [domain("quad")]
 DomainOut main(

@@ -212,6 +212,16 @@ void D3DClass::EndScene()
 	mSwapChain->Present(0, 0);
 }
 
+ID3D11Device1* D3DClass::GetDevice() const
+{
+	return mDevice;
+}
+
+ID3D11DeviceContext1* D3DClass::GetDeviceContext() const
+{
+	return mImmediateContext;
+}
+
 
 // ------------------------------------------------------------------------
 //                           D3DClass definition 
@@ -244,7 +254,9 @@ bool D3DClass::Render()
 
 	dataPtr = (MastrixBufferType*)mappedResources.pData;
 	
-	dataPtr->gViewProj = XMMatrixTranspose((XMMATRIX)mView*(XMMATRIX)P);
+	XMMATRIX view = XMLoadFloat4x4(&mView);
+
+	dataPtr->gViewProj = XMMatrixTranspose((XMMATRIX)view*(XMMATRIX)P);
 
 	mImmediateContext->Unmap(mMatrixBuffer, 0);
 
@@ -262,9 +274,9 @@ bool D3DClass::Render()
 	return true;
 }
 
-void D3DClass::SetViewMatrix(XMMATRIX & view)
+void D3DClass::SetViewMatrix(CXMMATRIX view)
 {
-	mView = view;
+	XMStoreFloat4x4(&mView, view);
 }
 
 bool D3DClass::InitEVERYTHING()

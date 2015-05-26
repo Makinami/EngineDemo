@@ -21,11 +21,14 @@
 #include <vector>
 #include <algorithm>
 
+#include "loggerclass.h"
+
 using namespace std;
 using namespace DirectX;
 
 
-class TerrainClass {
+class TerrainClass : public HasLogger
+{
 public:
 	struct InitInfo
 	{
@@ -33,12 +36,12 @@ public:
 		wstring HeightMapFilename;
 
 		//Texture filenames used for texturing the terrain.
-		wstring LayarMapFilename0;
-		wstring LayarMapFilename1;
-		wstring LayarMapFilename2;
-		wstring LayarMapFilename3;
-		wstring LayarMapFilename4;
-		wstring BlandMapFilename;
+		wstring LayerMapFilename0;
+		wstring LayerMapFilename1;
+		wstring LayerMapFilename2;
+		wstring LayerMapFilename3;
+		wstring LayerMapFilename4;
+		wstring BlendMapFilename;
 
 		// Scale to apply to heights after they have been loaded from the heightmap.
 		float HeightScale;
@@ -58,9 +61,60 @@ public:
 		XMFLOAT2 BoundsY;
 	};
 
+public:
+	TerrainClass();
+	~TerrainClass();
+
 	float GetWidth() const;
 	float GetDepth() const;
-	
+
+	XMMATRIX GetWorld() const;
+	void SetWorld(CXMMATRIX M);
+
+	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const InitInfo& initInfo);
+
+	void Draw(ID3D11DeviceContext1* dc, CXMMATRIX cam, XMVECTOR pos);
+
+private:
+	struct MatrixBufferType
+	{
+		XMMATRIX gWorldProj;
+	};
+
+	struct cbPerFrameHSType
+	{
+		XMFLOAT4 gWorldFrustumPlanes[6];
+
+		XMFLOAT3 gEyePosW;
+
+		// When distance is minimum, the tessellation is maximum.
+		// When distance is maximum, the tessellation is minimum.
+		float gMinDist;
+		float gMaxDist;
+
+		// Exponents for power of 2 tessellation.  The tessellation
+		// range is [2^(gMinTess), 2^(gMaxTess)].  Since the maximum
+		// tessellation is 64, this means gMaxTess can be at most 6
+		// since 2^6 = 64.
+		float gMinTess;
+		float gMaxTess;
+
+		float padding[1];
+	};
+
+	struct cbPerFramePSType
+	{
+		XMMATRIX gViewProj;
+
+		//DirectionalLight gDirLights[3];
+		XMFLOAT3 gEyePosW;
+
+		float gTexelCellSpaceU;
+		float gTexelCellSpaceV;
+		float gWorldCellSpace;
+
+		float padding[2];
+	};
 private:
 	void LoadHeighMap();
 	void Smooth();
@@ -69,73 +123,50 @@ private:
 	void CalcAllPatchBoundsY();
 	void CalcPatchBoundsY(UINT i, UINT j);
 	void BuildQuadPatchVB(ID3D11Device1* device);
-	void BuildQuadPatchIB(ID3D11Device1* device);
+	bool BuildQuadPatchIB(ID3D11Device1* device);
 	void BuildHeightmapSRV(ID3D11Device1* device);
+	bool CreateInputLayoutAndShaders(ID3D11Device1* device);
 
 	static const int CellsPerPatch = 64;
 
 	ID3D11Buffer* mQuadPatchVB;
 	ID3D11Buffer* mQuadPatchIB;
 
+	ID3D11Buffer* cbPerFrameHS;
+	ID3D11Buffer* MatrixBuffer;
+	ID3D11Buffer* cbPerFramePS;
+
+	ID3D11ShaderResourceView* mLayerMapArraySRV;
+	ID3D11ShaderResourceView* mBlendMapSRV;
 	ID3D11ShaderResourceView* mHeightmapSRV;
+
+	ID3D11InputLayout* mInputLayout;
+	ID3D11VertexShader* mVertexShader;
+	ID3D11HullShader* mHullShader;
+	ID3D11DomainShader* mDomainShader;
+	ID3D11PixelShader* mPixelShader;
+
+	ID3D11RasterizerState* mRastState;
+	ID3D11SamplerState** mSamplerStates;
 
 	InitInfo mInfo;
 
+	UINT mNumPatchVertices;
 	UINT mNumPatchQuadFaces;
 
 	UINT mNumPatchVertRows;
 	UINT mNumPatchVertCols;
 
+	XMFLOAT4X4 mWorld;
+
 	vector<XMFLOAT2> mPatchBoundsY;
 	vector<float> mHeightmap;
 };
 
-// temp
-void ExtractFrustrumPlanes(XMFLOAT4 planes[6], CXMMATRIX M)
-{
-	XMFLOAT4X4 matrix;
-	XMStoreFloat4x4(&matrix, M);
 
-	// Left
-	planes[0].x = matrix._14 + matrix._11;
-	planes[0].y = matrix._24 + matrix._21;
-	planes[0].z = matrix._34 + matrix._31;
-	planes[0].w = matrix._44 + matrix._41;
+//temp
+void ExtractFrustrumPlanes(XMFLOAT4 planes[6], CXMMATRIX M);
 
-	// Right
-	planes[1].x = matrix._14 - matrix._11;
-	planes[1].y = matrix._24 - matrix._21;
-	planes[1].z = matrix._34 - matrix._31;
-	planes[1].w = matrix._44 - matrix._41;
-
-	// Bottom
-	planes[2].x = matrix._14 + matrix._12;
-	planes[2].y = matrix._24 + matrix._22;
-	planes[2].z = matrix._34 + matrix._32;
-	planes[2].w = matrix._44 + matrix._42;
-
-	// Top
-	planes[3].x = matrix._14 - matrix._12;
-	planes[3].y = matrix._24 - matrix._22;
-	planes[3].z = matrix._34 - matrix._32;
-	planes[3].w = matrix._44 - matrix._42;
-
-	// Near
-	planes[4].x = matrix._13;
-	planes[4].y = matrix._23;
-	planes[4].z = matrix._33;
-	planes[4].w = matrix._43;
-
-	// Left
-	planes[5].x = matrix._14 - matrix._13;
-	planes[5].y = matrix._24 - matrix._23;
-	planes[5].z = matrix._34 - matrix._33;
-	planes[5].w = matrix._44 - matrix._43;
-
-	// Normalize the plane equations.
-	for (int i = 0; i < 6; ++i)
-	{
-		XMVECTOR v = XMPlaneNormalize(XMLoadFloat4(&planes[i]));
-		XMStoreFloat4(&planes[i], v);
-	}
-}
+ID3D11ShaderResourceView* CreateTexture2DArraySRV(
+	ID3D11Device1* device, ID3D11DeviceContext1* context,
+	std::vector<std::wstring>& filenames);

@@ -1,5 +1,10 @@
 Texture2D gHeightMap;
 
+cbuffer MatrixBuffer
+{
+	matrix gViewProj;
+};
+
 SamplerState samHeightmap
 {
 	Filter = MIN_MAG_LINEAR_MIP_POINT;
@@ -12,7 +17,7 @@ struct VertexIn
 {
 	float3 PosL : POSITION;
 	float2 Tex : TEXCOORD0;
-	float2 BoundsY : TEXCOOR1;
+	float2 BoundsY : TEXCOORD1;
 };
 
 struct VertexOut
@@ -29,7 +34,7 @@ VertexOut main( VertexIn vin )
 	vout.PosW = vin.PosL;
 
 	vout.PosW.y = gHeightMap.SampleLevel(samHeightmap, vin.Tex, 0).r;
-
+	
 	vout.Tex = vin.Tex;
 	vout.BoundsY = vin.BoundsY;
 

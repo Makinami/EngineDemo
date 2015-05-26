@@ -1,5 +1,7 @@
-cbuffer cbPerFrame
+cbuffer cbPerFrameHS
 {
+	float4 gWorldFrustumPlanes[6];
+
 	float3 gEyePosW;
 
 	// When distance is minimum, the tessellation is maximum.
@@ -14,7 +16,7 @@ cbuffer cbPerFrame
 	float gMinTess;
 	float gMaxTess;
 
-	float4 gWorldFrustumPlanes[6];
+	float padding;
 }
 
 // Input control point
@@ -30,7 +32,6 @@ struct HSVertexOut
 {
 	float3 PosW : POSITION;
 	float2 Tex : TEXCOORD0;
-	float2 BoundY : TEXCOORD1;
 };
 
 // Output patch constant data.
@@ -134,7 +135,8 @@ HSVertexOut main(
 	HSVertexOut Output;
 
 	// Insert code to compute Output here
-	Output = ip[i];
+	Output.PosW = ip[i].PosW;
+	Output.Tex = ip[i].Tex;
 
 	return Output;
 }
