@@ -1,6 +1,6 @@
 #include "systemclass.h"
 
-// Hack for inability to set class member function as window proc
+// 'Hack for inability to set class member function as window proc
 namespace
 {
 	SystemClass* callbackSystem = nullptr;
@@ -92,6 +92,7 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"Input initiated");
 
 	Camera = std::make_shared<CameraClass>();
+	Camera->SetLens(XM_PIDIV4, mClientWidth / mClientHeight, 0.5f, 1000.0f);
 
 	Timer = std::make_shared<TimerClass>();
 
@@ -302,41 +303,48 @@ bool SystemClass::Frame()
 	float dt = Timer->DeltaTime();
 	Input->Capture();
 
+	//TODO Use new/changed camera class
 	if (Input->IsDrag())
 	{
 		POINT mDrag = Input->GetDragDelta();
 		float dx = XMConvertToRadians(0.25f*static_cast<float>(mDrag.x));
 		float dy = XMConvertToRadians(0.25f*static_cast<float>(mDrag.y));
-
-		mTheta += dx;
-		mPhi += dy;
-
-		mPhi = min(max(mPhi, 0.1f), XM_PI - 0.1f);
+		
+		Camera->RotateY(dx);
+		Camera->Pitch(dy);
 	}
-
-	mRadius -= Input->GetWheel()*0.25f;
-
-	mRadius = min(max(mRadius, 3.0f), 5000.0f);
-
-	// Convert Spherical to Cartesian coordinates.
-	float x = mRadius*sinf(mPhi)*cosf(mTheta);
-	float z = mRadius*sinf(mPhi)*sinf(mTheta);
-	float y = mRadius*cosf(mPhi);
 	
-	if (GetAsyncKeyState('W') & 0x8000) mLootAtPosition.y += 5*dt;
-	if (GetAsyncKeyState('S') & 0x8000) mLootAtPosition.y -= 5*dt;
-	if (GetAsyncKeyState('A') & 0x8000) mLootAtPosition.x -= 5*dt;
-	if (GetAsyncKeyState('D') & 0x8000) mLootAtPosition.x += 5*dt;
-
-	XMVECTOR pos = XMVectorSet(x+mLootAtPosition.x, y+mLootAtPosition.y, z+mLootAtPosition.z, 1.0f);
-	XMVECTOR target = XMVectorSet(mLootAtPosition.x, mLootAtPosition.y, mLootAtPosition.z, 0.0f);
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMFLOAT3 deltaX = { 0.0f, 0.0f, 0.0f };
 	
-	D3D->SetViewMatrix(XMMatrixLookAtLH(pos, target, up));
+	if (GetAsyncKeyState('W') & 0x8000)	deltaX.z += 1;
+	if (GetAsyncKeyState('S') & 0x8000) deltaX.z -= 1;
+	if (GetAsyncKeyState('A') & 0x8000) deltaX.x -= 1;
+	if (GetAsyncKeyState('D') & 0x8000) deltaX.x += 1;
+	
+	XMVECTOR Ahead = Camera->GetAhead();
+	XMVECTOR Right = Camera->GetRight();
+	XMVECTOR Position = Camera->GetPosition();
+	XMStoreFloat3(&deltaX, 2.0f*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
+	XMVECTOR w = XMVectorReplicate(deltaX.z);
+	XMVECTOR d = XMVectorReplicate(deltaX.x);
+
+	XMVECTOR PosTemp = XMVectorMultiplyAdd(w, Ahead, Position);
+	PosTemp = XMVectorMultiplyAdd(d, Right, PosTemp);
+	XMFLOAT3 fPos, fPosTemp;
+	XMStoreFloat3(&fPos, Position);
+	XMStoreFloat3(&fPosTemp, PosTemp);
+	deltaX.x = fPosTemp.x - fPos.x;
+	deltaX.z = fPosTemp.z - fPos.z;
+	deltaX.y = Terrain->GetHeight(fPosTemp.x, fPosTemp.z) - Terrain->GetHeight(fPos.x, fPos.z);
+	XMStoreFloat3(&deltaX, 2.0f*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
+	fPos.x = fPos.x + deltaX.x;
+	fPos.z = fPos.z + deltaX.z;
+	fPos.y = Terrain->GetHeight(fPos.x + deltaX.x, fPos.z + deltaX.z) + 1.7f;
+	Camera->SetPosition(fPos.x + deltaX.x, Terrain->GetHeight(fPos.x + deltaX.x, fPos.z + deltaX.z) + 1.7f, fPos.z + deltaX.z);
 
 	D3D->BeginScene();
 	//D3D->Render();
-	Terrain->Draw(D3D->GetDeviceContext(), XMMatrixLookAtLH(pos, target, up), pos);
+	Terrain->Draw(D3D->GetDeviceContext(), Camera);
 	D3D->EndScene();
 
 	return true;

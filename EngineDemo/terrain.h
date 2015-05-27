@@ -22,6 +22,7 @@
 #include <algorithm>
 
 #include "loggerclass.h"
+#include "cameraclass.h"
 
 using namespace std;
 using namespace DirectX;
@@ -67,13 +68,14 @@ public:
 
 	float GetWidth() const;
 	float GetDepth() const;
+	float GetHeight(float x, float y) const;
 
 	XMMATRIX GetWorld() const;
 	void SetWorld(CXMMATRIX M);
 
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const InitInfo& initInfo);
 
-	void Draw(ID3D11DeviceContext1* dc, CXMMATRIX cam, XMVECTOR pos);
+	void Draw(ID3D11DeviceContext1* dc, std::shared_ptr<CameraClass> Camera);
 
 private:
 	struct MatrixBufferType

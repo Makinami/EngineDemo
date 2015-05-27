@@ -30,6 +30,36 @@ float TerrainClass::GetDepth() const
 	return (mInfo.HeightmapHeight - 1)*mInfo.CellSpacing;
 }
 
+float TerrainClass::GetHeight(float x, float y) const
+{
+	float c = (x + 0.5f*GetWidth()) / mInfo.CellSpacing;
+	float d = (y - 0.5f*GetDepth()) / -mInfo.CellSpacing;
+
+	int row = (int)floorf(d);
+	int col = (int)floorf(c);
+
+	float A = mHeightmap[row*mInfo.HeightmapWidth + col];
+	float B = mHeightmap[row*mInfo.HeightmapWidth + col + 1];
+	float C = mHeightmap[(row + 1)*mInfo.HeightmapWidth + col];
+	float D = mHeightmap[(row + 1)*mInfo.HeightmapWidth + col + 1];
+
+	float s = c - (float)col;
+	float t = d - (float)row;
+
+	if (s + t <= 1.0f)
+	{
+		float uy = B - A;
+		float vy = C - A;
+		return A + s*uy + t*vy;
+	}
+	else
+	{
+		float uy = C - D;
+		float vy = B - D;
+		return D + (1.0f - s)*uy + (1.0f - t)*vy;
+	}
+}
+
 XMMATRIX TerrainClass::GetWorld() const
 {
 	return XMLoadFloat4x4(&mWorld);
@@ -51,7 +81,7 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	mNumPatchQuadFaces = (mNumPatchVertRows - 1)*(mNumPatchVertCols - 1);
 	
 	LoadHeighMap();
-	Smooth();
+	//Smooth();
 	CalcAllPatchBoundsY();
 	
 	BuildQuadPatchVB(device);
@@ -141,15 +171,18 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	return true;
 }
 
-void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, CXMMATRIX cam, XMVECTOR pos)
+//TODO: After system, change to use camera class
+void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
 	XMMATRIX Proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, 16.0f/ 9.0f, 1.0f, 1000.0f);
+
+	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
 	
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
 	XMFLOAT4 worldPlanes[6];
-	ExtractFrustrumPlanes(worldPlanes, cam*Proj);
+	ExtractFrustrumPlanes(worldPlanes, Camera->GetViewProjMatrix());
 	
 	
 	// PS
@@ -186,7 +219,7 @@ void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, CXMMATRIX cam, 
 	mImmediateContext->Map(MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResourceDS);
 	dataPtrDS = (MatrixBufferType*)mappedResourceDS.pData;
 
-	dataPtrDS->gWorldProj = XMMatrixTranspose(cam*Proj);
+	dataPtrDS->gWorldProj = ViewProjTrans;
 
 	mImmediateContext->Unmap(MatrixBuffer, 0);
 
@@ -202,7 +235,7 @@ void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, CXMMATRIX cam, 
 	mImmediateContext->Map(cbPerFrameHS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResourceHS);
 	dataPtrHS = (cbPerFrameHSType*)mappedResourceHS.pData;
 
-	XMStoreFloat3(&(dataPtrHS->gEyePosW), pos);
+	XMStoreFloat3(&(dataPtrHS->gEyePosW), Camera->GetPosition());
 	dataPtrHS->gMaxDist = 500.0f;
 	dataPtrHS->gMinDist = 20.0f;
 	dataPtrHS->gMaxTess = 6.0f;
@@ -224,7 +257,7 @@ void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, CXMMATRIX cam, 
 
 	dataPtr = (MatrixBufferType*)mappedResources.pData;
 
-	dataPtr->gWorldProj = XMMatrixTranspose((XMMATRIX)cam*(XMMATRIX)Proj);
+	dataPtr->gWorldProj = ViewProjTrans;
 
 	mImmediateContext->Unmap(MatrixBuffer, 0);
 
