@@ -20,9 +20,6 @@ D3DClass::D3DClass()
 	mRenderWidth(0)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
-
-	// temp
-	mStartIndex = 0.0f;
 }
 
 D3DClass::D3DClass(const D3DClass& other)
@@ -55,6 +52,10 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 		LogError(L"D3D11CreateDevice failed. Exiting...");
 		return false;
 	}
+
+#if defined(DEBUG) || defined(_DEBUG)
+	mDevice->QueryInterface(IID_PPV_ARGS(&mDebug));
+#endif
 
 	if (mDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
 	{
@@ -116,9 +117,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	// Rest of initialization can be done throught OnResize()
 	OnResize(mClientWidth, mClientHeight);
 
-	// temp
-	return InitEVERYTHING();
-	//return true;
+	return true;
 }
 
 // Change and recreated necessery resources after window resize
@@ -196,6 +195,14 @@ void D3DClass::Shutdown()
 	if (mImmediateContext) mImmediateContext->ClearState();
 
 	ReleaseCOM(mImmediateContext);
+#if defined(DEBUG) || defined(_DEBUG)
+	if (mDebug)
+	{
+		Sleep(500);
+		mDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+		ReleaseCOM(mDebug);
+	}
+#endif
 	ReleaseCOM(mDevice);
 }
 
@@ -220,201 +227,4 @@ ID3D11Device1* D3DClass::GetDevice() const
 ID3D11DeviceContext1* D3DClass::GetDeviceContext() const
 {
 	return mImmediateContext;
-}
-
-
-// ------------------------------------------------------------------------
-//                           D3DClass definition 
-//                   temporal stuff for later refactoring
-// ------------------------------------------------------------------------
-
-bool D3DClass::Render()
-{
-	XMMATRIX I = XMMatrixIdentity();
-	XMStoreFloat4x4(&mRoadWorld, I);
-
-	XMMATRIX P = XMMatrixPerspectiveFovLH(XM_PIDIV2, (float)mRenderWidth/(float)mRenderHeight, 0.1f, 100.0f);
-	XMStoreFloat4x4(&mProj, P);
-
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-
-	// set index buffer
-	mImmediateContext->IASetIndexBuffer(mRoadIB, DXGI_FORMAT_R32_UINT, 0);
-	// set vertex buffer
-	mImmediateContext->IASetVertexBuffers(0, 1, &mRoadVB, &stride, &offset);
-	// set primitive type
-	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	// mapping constant buffers
-	D3D11_MAPPED_SUBRESOURCE mappedResources;
-	MastrixBufferType *dataPtr;
-
-	if (FAILED(mImmediateContext->Map(mMatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources))) return false;
-
-	dataPtr = (MastrixBufferType*)mappedResources.pData;
-	
-	XMMATRIX view = XMLoadFloat4x4(&mView);
-
-	dataPtr->gViewProj = XMMatrixTranspose((XMMATRIX)view*(XMMATRIX)P);
-
-	mImmediateContext->Unmap(mMatrixBuffer, 0);
-
-	UINT bufferNumber = 0;
-
-	mImmediateContext->VSSetConstantBuffers(bufferNumber, 1, &mMatrixBuffer);
-
-	mImmediateContext->IASetInputLayout(mInputLayout);
-
-	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
-	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
-
-	mImmediateContext->DrawIndexed(42, 0, 0);
-
-	return true;
-}
-
-void D3DClass::SetViewMatrix(CXMMATRIX view)
-{
-	XMStoreFloat4x4(&mView, view);
-}
-
-bool D3DClass::InitEVERYTHING()
-{
-	// create road vertex buffer
-	mRoadVertexCount = 42;
-	std::vector<Vertex> vertices(mRoadVertexCount);
-
-	/*for (int i = 0; i < 21; ++i)
-	{
-		vertices[2 * i].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, 0.5f);
-		vertices[2*i].Color = XMFLOAT4((float)(i%4)/4.0f, (float)((i+1) % 4) / 4.0f, (float)((i+2) % 4) / 4.0f, 1.0f);
-		
-		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -0.5f);
-		vertices[2 * i].Color = XMFLOAT4((float)((i+1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
-	}
-
-	/*for (int i = 0; i < vertices.size(); ++i)
-	{
-		LogNotice(std::to_wstring(vertices[i].Pos.z));
-	}*/
-
-	for (int i = 0; i < 21; ++i)
-	{
-		vertices[2 * i].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, -0.5f);
-		vertices[2 * i].Color = XMFLOAT4((float)(i % 4) / 4.0f, (float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, 1.0f);
-
-		vertices[2 * i + 1].Pos = XMFLOAT3((float)i - 10.0f, 0.0f, 0.5f);
-		vertices[2 * i + 1].Color = XMFLOAT4((float)((i + 1) % 4) / 4.0f, (float)((i + 2) % 4) / 4.0f, (float)((i + 3) % 4) / 4.0f, 1.0f);
-	}
-	/*vertices[0] = { XMFLOAT3(-1.0f, 0.0f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
-	vertices[1] = { XMFLOAT3(-1.0f, 0.0f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };
-	vertices[2] = { XMFLOAT3( 1.0f, 0.0f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
-	vertices[3] = { XMFLOAT3( 1.0f, 0.0f,  0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) };
-	vertices[4] = { XMFLOAT3( 1.0f, 0.0f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) };
-	vertices[5] = { XMFLOAT3( 1.0f, 0.0f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) };*/
-
-
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(Vertex) * mRoadVertexCount;
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-	vbd.MiscFlags = 0;
-	vbd.StructureByteStride = 0;
-	D3D11_SUBRESOURCE_DATA vinitData;
-	vinitData.pSysMem = &vertices[0];
-	mDevice->CreateBuffer(&vbd, &vinitData, &mRoadVB);
-
-	// create road index buffer
-	std::vector<UINT> indeces(42);
-	for (int i = 0; i < 42; ++i) indeces[i] = i;
-	mRoadIndexCount = indeces.size();
-
-	D3D11_BUFFER_DESC ibd;
-	ibd.Usage = D3D11_USAGE_IMMUTABLE;
-	ibd.ByteWidth = sizeof(UINT) * indeces.size();
-	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	ibd.CPUAccessFlags = 0;
-	ibd.MiscFlags = 0;
-	ibd.StructureByteStride = 0;
-	D3D11_SUBRESOURCE_DATA iinitData;
-	iinitData.pSysMem = &indeces[0];
-	mDevice->CreateBuffer(&ibd, &iinitData, &mRoadIB);
-
-	//initilize shaders
-	ifstream vs_stream, ps_stream;
-	size_t vs_size, ps_size;
-	char *vs_data, *ps_data;
-	int numElements;
-
-	D3D11_BUFFER_DESC matrixBufferDesc;
-
-	vs_stream.open("..\\Debug\\BasicVS.cso", ifstream::in | ifstream::binary);
-	if (vs_stream.good())
-	{
-		vs_stream.seekg(0, ios::end);
-		vs_size = size_t(vs_stream.tellg());
-		vs_data = new char[vs_size];
-		vs_stream.seekg(0, ios::beg);
-		vs_stream.read(&vs_data[0], vs_size);
-		vs_stream.close();
-
-		if (FAILED(mDevice->CreateVertexShader(vs_data, vs_size, 0, &mVertexShader)))
-		{
-			LogError(L"Failed to create Vertex Shader");
-			return false;
-		}
-	}
-	else
-	{
-		LogError(L"Failed to open BasicVS.cso file");
-		return false;
-	}
-
-	LogSuccess(L"Vertex Shader created.");
-
-	ps_stream.open("..\\Debug\\BasicPS.cso", ifstream::in | ifstream::binary);
-	if (ps_stream.good())
-	{
-		ps_stream.seekg(0, ios::end);
-		ps_size = size_t(ps_stream.tellg());
-		ps_data = new char[ps_size];
-		ps_stream.seekg(0, ios::beg);
-		ps_stream.read(&ps_data[0], ps_size);
-		ps_stream.close();
-
-		if (FAILED(mDevice->CreatePixelShader(ps_data, ps_size, 0, &mPixelShader))) return false;
-	}
-	else return false;
-
-	LogSuccess(L"Pixel Shader created");
-
-	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
-
-	if (FAILED(mDevice->CreateInputLayout(vertexDesc, numElements, vs_data, vs_size, &mInputLayout))) return false;
-
-	LogSuccess(L"Input Layout created");
-
-	delete[] vs_data;
-	delete[] ps_data;
-
-	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	matrixBufferDesc.ByteWidth = sizeof(MastrixBufferType);
-	matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	matrixBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	matrixBufferDesc.MiscFlags = 0;
-	matrixBufferDesc.StructureByteStride = 0;
-
-	if (FAILED(mDevice->CreateBuffer(&matrixBufferDesc, NULL, &mMatrixBuffer))) return false;
-
-	LogSuccess(L"Constant Buffer created");
-
-	return true;
 }

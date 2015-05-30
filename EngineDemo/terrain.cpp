@@ -17,7 +17,25 @@ TerrainClass::~TerrainClass()
 {
 	ReleaseCOM(mQuadPatchIB);
 	ReleaseCOM(mQuadPatchVB);
+
+	ReleaseCOM(cbPerFrameHS);
+	ReleaseCOM(MatrixBuffer);
+	ReleaseCOM(cbPerFramePS);
+
+	ReleaseCOM(mLayerMapArraySRV);
+	ReleaseCOM(mBlendMapSRV);
 	ReleaseCOM(mHeightmapSRV);
+
+	ReleaseCOM(mInputLayout);
+	ReleaseCOM(mVertexShader);
+	ReleaseCOM(mHullShader);
+	ReleaseCOM(mDomainShader);
+	ReleaseCOM(mPixelShader);
+
+	ReleaseCOM(mRastState);
+	ReleaseCOM(mSamplerStates[0]);
+	ReleaseCOM(mSamplerStates[1]);
+	delete[] mSamplerStates;
 }
 
 float TerrainClass::GetWidth() const
@@ -308,8 +326,8 @@ void TerrainClass::Smooth()
 {
 	vector<float> dest(mHeightmap.size());
 
-	for (int i = 0; i < mInfo.HeightmapHeight; ++i)
-		for (int j = 0; j < mInfo.HeightmapWidth; ++j)
+	for (UINT i = 0; i < mInfo.HeightmapHeight; ++i)
+		for (UINT j = 0; j < mInfo.HeightmapWidth; ++j)
 			dest[i*mInfo.HeightmapWidth + j] = Avarage(i, j);
 
 	mHeightmap = dest;
@@ -390,7 +408,7 @@ void TerrainClass::BuildQuadPatchVB(ID3D11Device1* device)
 	float patchDepth = GetDepth() / (mNumPatchVertRows - 1);
 	float du = 1.0f / (mNumPatchVertCols - 1);
 	float dv = 1.0f / (mNumPatchVertRows - 1);
-	srand(time(NULL));
+	
 	for (UINT i = 0; i < mNumPatchVertRows; ++i)
 	{
 		float z = halfDepth - i*patchDepth;
@@ -452,6 +470,8 @@ bool TerrainClass::BuildQuadPatchIB(ID3D11Device1* device)
 	D3D11_SUBRESOURCE_DATA iinitData;
 	iinitData.pSysMem = &indices[0];
 	if (FAILED(device->CreateBuffer(&ibd, &iinitData, &mQuadPatchIB))) return false;
+
+	return true;
 }
 
 void TerrainClass::BuildHeightmapSRV(ID3D11Device1* device)
@@ -598,7 +618,7 @@ bool TerrainClass::CreateInputLayoutAndShaders(ID3D11Device1* device)
 	}
 
 	LogSuccess(L"Vertex Shader created.");
-
+	
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -676,7 +696,7 @@ ID3D11ShaderResourceView* CreateTexture2DArraySRV(ID3D11Device1* device, ID3D11D
 	UINT size = filenames.size();
 
 	std::vector<ID3D11Texture2D*> srcTex(size);
-	for (int i = 0; i < size; ++i)
+	for (UINT i = 0; i < size; ++i)
 	{
 		CreateDDSTextureFromFileEx(device, filenames[i].c_str(), 0, D3D11_USAGE_STAGING, 0, D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE, 0, false, (ID3D11Resource**)&srcTex[i], NULL);
 	}

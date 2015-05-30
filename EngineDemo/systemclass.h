@@ -1,5 +1,9 @@
 #pragma once
 
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #if defined(DEBUG) || defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -17,6 +21,7 @@
 #include "inputclass.h"
 #include "timerclass.h"
 #include "terrain.h"
+#include "playerclass.h"
 
 /*
 Main System Class:
@@ -89,10 +94,12 @@ class SystemClass
 		std::shared_ptr<INIReader> Settings; // Setting
 		std::shared_ptr<LoggerClass> Logger; // Logger
 
+		std::shared_ptr<PlayerClass> Player;
+
 		/*
 		World
 		*/
-		std::unique_ptr<TerrainClass> Terrain; // Terrain object
+		std::shared_ptr<TerrainClass> Terrain; // Terrain object
 
 		// temp
 		POINT mLastMousePos;

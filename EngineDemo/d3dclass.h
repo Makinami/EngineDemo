@@ -1,17 +1,21 @@
 #pragma once
 
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 /* temp */
 //---------------------------------------------------------------------------------------
 // Convenience macro for releasing COM objects.
 //---------------------------------------------------------------------------------------
 
-#define ReleaseCOM(x) { if(x){ x->Release(); x = 0; } }
+#define ReleaseCOM(x) { if(x){ x->Release(); x = nullptr; } }
 
 //---------------------------------------------------------------------------------------
 // Convenience macro for deleting objects.
 //---------------------------------------------------------------------------------------
 
-#define SafeDelete(x) { delete x; x = 0; }
+#define SafeDelete(x) { delete x; x = nullptr; }
 
 
 #pragma comment(lib,  "d3d11.lib")
@@ -63,13 +67,6 @@ class D3DClass : public HasLogger
 		ID3D11Device1* GetDevice() const;
 		ID3D11DeviceContext1* GetDeviceContext() const;
 
-		// temp
-		bool Render();
-
-		void SetViewMatrix(CXMMATRIX view);
-
-		float mStartIndex;
-
 	private:
 		// Setting
 		bool mEnable4xMSAA;
@@ -87,32 +84,9 @@ class D3DClass : public HasLogger
 		ID3D11DepthStencilView* mDepthStencilView;
 		D3D11_VIEWPORT mScreenViewport;
 
-		// temp?
-		XMFLOAT4X4 mView;
-
-		// temporal stuff for later refactoring
-		bool InitEVERYTHING();
-
-		ID3D11Buffer *mRoadVB;
-		ID3D11Buffer *mRoadIB;
-
-		UINT mRoadVertexCount;
-		UINT mRoadIndexCount;
-
-		ID3D11VertexShader* mVertexShader;
-		ID3D11PixelShader* mPixelShader;
-		ID3D11Buffer* mMatrixBuffer;
-
-		ID3D11InputLayout *mInputLayout;
-
-		XMFLOAT4X4 mProj;
-
-		XMFLOAT4X4 mRoadWorld;
-
-		struct MastrixBufferType
-		{
-			XMMATRIX gViewProj;
-		};
+#if defined(DEBUG) || defined(_DEBUG)
+		ID3D11Debug* mDebug;
+#endif
 };
 
 // temp

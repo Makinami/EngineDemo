@@ -1,5 +1,9 @@
 #pragma once
 
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
@@ -8,7 +12,9 @@
 // Convenience macro for releasing COM objects.
 //---------------------------------------------------------------------------------------
 
-#define ReleaseCOM(x) { if(x){ x->Release(); x = 0; } }
+#define ReleaseCOM(x) { if(x){ x->Release(); x = nullptr; } }
+
+#include <queue>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -19,12 +25,24 @@
 class InputClass
 {
 	public:
+		struct ClickEvent
+		{
+			WPARAM btnState;
+			POINT Pos;
+			float time;
+		};
+
+	public:
 		InputClass();
 		~InputClass();
 
 		bool Init(HINSTANCE hInstance, HWND hWnd, int screenWidth, int screenHeight);
 		void Shutdown();
 		bool Capture();
+
+		void OnMouseDown(WPARAM btnState, int x, int y, float time);
+		void OnMouseUp(WPARAM btnState, int x, int y, float time);
+		void OnMouseMove(WPARAM btnState, int x, int y);
 
 		POINT GetMouseLocation();
 
@@ -41,6 +59,24 @@ class InputClass
 		LONG GetWheel();
 
 	private:
+		POINT mLastMousePos;
+		POINT mCapturedMousePos;
+		POINT mDrag;
+		POINT mCapturedDrag;
+		POINT mWholeDrag;
+
+		float mLeftDownTime;
+		float mRightDownTime;
+
+		bool mLeftDown;
+		bool mRightDown;
+
+		HWND mhWnd;
+
+		std::queue<ClickEvent> mClicks;
+
+
+		// unnecesary
 		bool ReadKeyboard();
 		bool ReadMouse();
 		void ProcessInput();

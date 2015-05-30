@@ -32,7 +32,8 @@ SystemClass::SystemClass(HINSTANCE hInstance)
   mClientHeight(720),
   mClientWidth(1280),
   mAppPaused(false),
-  mWndState(WndStateNormal)
+  mWndState(WndStateNormal),
+  Input(nullptr)
 {
 	callbackSystem = this;
 }
@@ -92,14 +93,14 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"Input initiated");
 
 	Camera = std::make_shared<CameraClass>();
-	Camera->SetLens(XM_PIDIV4, mClientWidth / mClientHeight, 0.5f, 1000.0f);
+	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.5f, 1000.0f);
 
 	Timer = std::make_shared<TimerClass>();
-
+	
 	/*
 	World
 	*/
-	Terrain = std::make_unique<TerrainClass>();
+	Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
 	TerrainClass::InitInfo tii;
@@ -110,7 +111,7 @@ bool SystemClass::Init(std::string filename)
 	tii.LayerMapFilename3 = L"Textures/lightdirt.dds";
 	tii.LayerMapFilename4 = L"Textures/snow.dds";
 	tii.BlendMapFilename = L"Textures/blend.dds";
-	tii.HeightScale = 50.0f;
+	tii.HeightScale = 100.0f;
 	tii.HeightmapWidth = 2049;
 	tii.HeightmapHeight = 2049;
 	tii.CellSpacing = 0.5f;
@@ -121,6 +122,15 @@ bool SystemClass::Init(std::string filename)
 		return false;
 	}
 	Logger->Success(L"Terrain initiated");
+	
+	/*
+	Player
+	*/
+	Player = std::make_shared<PlayerClass>();
+	Player->SetTerrain(Terrain);
+	Player->SetCamera(Camera);
+	Player->SetInput(Input);
+	Player->Init();
 
 	// temp
 	mLootAtPosition = XMFLOAT3(0, 0, 0);
@@ -249,18 +259,18 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_LBUTTONDOWN:
 		case WM_MBUTTONDOWN:
 		case WM_RBUTTONDOWN:
-			OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			if (Input) Input->OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), Timer->TotalTime());
 			return 0;
 		case WM_LBUTTONUP:
 		case WM_MBUTTONUP:
 		case WM_RBUTTONUP:
-			OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			if (Input) Input->OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), Timer->TotalTime());
 			return 0;
 		case WM_MOUSEMOVE:
-			OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			if (Input) Input->OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			return 0;
 		case WM_MOUSEWHEEL:
-			Input->PassZDelta(GET_WHEEL_DELTA_WPARAM(wParam)/WHEEL_DELTA);
+			if (Input) Input->PassZDelta(GET_WHEEL_DELTA_WPARAM(wParam)/WHEEL_DELTA);
 			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);
@@ -303,48 +313,12 @@ bool SystemClass::Frame()
 	float dt = Timer->DeltaTime();
 	Input->Capture();
 
-	//TODO Use new/changed camera class
-	if (Input->IsDrag())
-	{
-		POINT mDrag = Input->GetDragDelta();
-		float dx = XMConvertToRadians(0.25f*static_cast<float>(mDrag.x));
-		float dy = XMConvertToRadians(0.25f*static_cast<float>(mDrag.y));
-		
-		Camera->RotateY(dx);
-		Camera->Pitch(dy);
-	}
+	Player->React(dt);	
 	
-	XMFLOAT3 deltaX = { 0.0f, 0.0f, 0.0f };
-	
-	if (GetAsyncKeyState('W') & 0x8000)	deltaX.z += 1;
-	if (GetAsyncKeyState('S') & 0x8000) deltaX.z -= 1;
-	if (GetAsyncKeyState('A') & 0x8000) deltaX.x -= 1;
-	if (GetAsyncKeyState('D') & 0x8000) deltaX.x += 1;
-	
-	XMVECTOR Ahead = Camera->GetAhead();
-	XMVECTOR Right = Camera->GetRight();
-	XMVECTOR Position = Camera->GetPosition();
-	XMStoreFloat3(&deltaX, 2.0f*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
-	XMVECTOR w = XMVectorReplicate(deltaX.z);
-	XMVECTOR d = XMVectorReplicate(deltaX.x);
-
-	XMVECTOR PosTemp = XMVectorMultiplyAdd(w, Ahead, Position);
-	PosTemp = XMVectorMultiplyAdd(d, Right, PosTemp);
-	XMFLOAT3 fPos, fPosTemp;
-	XMStoreFloat3(&fPos, Position);
-	XMStoreFloat3(&fPosTemp, PosTemp);
-	deltaX.x = fPosTemp.x - fPos.x;
-	deltaX.z = fPosTemp.z - fPos.z;
-	deltaX.y = Terrain->GetHeight(fPosTemp.x, fPosTemp.z) - Terrain->GetHeight(fPos.x, fPos.z);
-	XMStoreFloat3(&deltaX, 2.0f*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
-	fPos.x = fPos.x + deltaX.x;
-	fPos.z = fPos.z + deltaX.z;
-	fPos.y = Terrain->GetHeight(fPos.x + deltaX.x, fPos.z + deltaX.z) + 1.7f;
-	Camera->SetPosition(fPos.x + deltaX.x, Terrain->GetHeight(fPos.x + deltaX.x, fPos.z + deltaX.z) + 1.7f, fPos.z + deltaX.z);
-
 	D3D->BeginScene();
-	//D3D->Render();
+
 	Terrain->Draw(D3D->GetDeviceContext(), Camera);
+
 	D3D->EndScene();
 
 	return true;

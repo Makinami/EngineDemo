@@ -1,5 +1,9 @@
 #pragma once
 
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
@@ -12,9 +16,9 @@
 #include <DirectXPackedVector.h>
 
 // Convenience macro for releasing COM objects.
-#define ReleaseCOM(x) { if(x){ x->Release(); x = 0; } }
+#define ReleaseCOM(x) { if(x){ x->Release(); x = nullptr; } }
 // Convenience macro for deleting objects.
-#define SafeDelete(x) { delete x; x = 0; }
+#define SafeDelete(x) { delete x; x = nullptr; }
 
 #include <string>
 #include <fstream>

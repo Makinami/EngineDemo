@@ -11,12 +11,12 @@ TimerClass::TimerClass()
 
 float TimerClass::TotalTime() const
 {
-	return (float)mTotalTime*mSecondsPerCount;
+	return static_cast<float>(static_cast<double>(mTotalTime)*mSecondsPerCount);
 }
 
 float TimerClass::DeltaTime() const
 {
-	return mDeltaTime;
+	return static_cast<float>(mDeltaTime);
 }
 
 void TimerClass::Reset()

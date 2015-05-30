@@ -150,6 +150,7 @@
     <ClCompile Include="inputclass.cpp" />
     <ClCompile Include="loggerclass.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="playerclass.cpp" />
     <ClCompile Include="systemclass.cpp" />
     <ClCompile Include="terrain.cpp" />
     <ClCompile Include="timerclass.cpp" />
@@ -161,6 +162,7 @@
     <ClInclude Include="inih\ini.h" />
     <ClInclude Include="inputclass.h" />
     <ClInclude Include="loggerclass.h" />
+    <ClInclude Include="playerclass.h" />
     <ClInclude Include="systemclass.h" />
     <ClInclude Include="terrain.h" />
     <ClInclude Include="timerclass.h" />

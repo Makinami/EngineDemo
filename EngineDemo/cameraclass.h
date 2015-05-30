@@ -1,5 +1,9 @@
 #pragma once
 
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <d3d11_1.h>
 
 #pragma warning(disable:4838)
