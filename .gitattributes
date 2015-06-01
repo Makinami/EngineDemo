@@ -61,3 +61,10 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+
+# CUSTOM
+
+*.fx linguist-language=HLSL
+DirectXTK/* linguist-vendored
+EngineDemo/inih/* linguist-vendored
