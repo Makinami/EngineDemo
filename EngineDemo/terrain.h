@@ -1,8 +1,10 @@
 #pragma once
 
+#if defined(DEBUG) | defined(_DEBUG)
 #define CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
+#endif
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -55,7 +57,7 @@ public:
 		UINT HeightmapWidth;
 		UINT HeightmapHeight; // height
 
-							  // The cell spacing along the x- and z-axes.
+		// The cell spacing along the x- and z-axes.
 		float CellSpacing;
 	};
 

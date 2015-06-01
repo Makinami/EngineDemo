@@ -12,9 +12,9 @@
 
 #include "cameraclass.h"
 #include "inputclass.h"
-#include "terrain.h"
+#include "map.h"
 
-class PlayerClass
+class PlayerClass : public HasLogger
 {
 public:
 	PlayerClass::PlayerClass();
@@ -22,7 +22,7 @@ public:
 
 	void Init();
 
-	void SetTerrain(std::shared_ptr<TerrainClass> iMap);
+	void SetMap(std::shared_ptr<MapClass> iMap);
 	void SetCamera(std::shared_ptr<CameraClass> iCamera);
 	void SetInput(std::shared_ptr<InputClass> iInput);
 
@@ -31,10 +31,10 @@ public:
 private:
 	XMFLOAT3 mPosition;
 
-	float WalkV = 2.0f;
-	float RunV = 5.0f;
+	const float WalkV = 2.0f;
+	const float RunV = 50.0f;
 
 	std::shared_ptr<CameraClass> Camera;
 	std::shared_ptr<InputClass> Input;
-	std::shared_ptr<TerrainClass> Terrain; //temp: later map
+	std::shared_ptr<MapClass> Map;
 };

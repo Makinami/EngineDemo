@@ -1,9 +1,5 @@
 #pragma once
 
-#define CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-
 #if defined(DEBUG) || defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -20,8 +16,8 @@
 #include "d3dclass.h"
 #include "inputclass.h"
 #include "timerclass.h"
-#include "terrain.h"
 #include "playerclass.h"
+#include "map.h"
 
 /*
 Main System Class:
@@ -56,11 +52,6 @@ class SystemClass
 
 		// Create status window
 		bool CreateStatusWindow();
-
-		// temp
-		void OnMouseDown(WPARAM btnState, int x, int y);
-		void OnMouseUp(WPARAM btnState, int x, int y);
-		void OnMouseMove(WPARAM btnState, int x, int y);
 
 	private:
 		// Application and main window properties
@@ -99,10 +90,5 @@ class SystemClass
 		/*
 		World
 		*/
-		std::shared_ptr<TerrainClass> Terrain; // Terrain object
-
-		// temp
-		POINT mLastMousePos;
-		float mTheta, mPhi, mRadius;
-		XMFLOAT3 mLootAtPosition;
+		std::shared_ptr<MapClass> Map; // Map object
 };

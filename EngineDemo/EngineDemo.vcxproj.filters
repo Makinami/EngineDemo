@@ -25,6 +25,9 @@
     <Filter Include="Shaders\Terrain">
       <UniqueIdentifier>{0407ce10-63c3-4c96-adb5-ccff0e9e647a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Watter">
+      <UniqueIdentifier>{0a3c58ff-999b-48d9-bc4b-37915ba4c3c7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -60,6 +63,12 @@
     <ClCompile Include="playerclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="water.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="map.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -92,6 +101,12 @@
     <ClInclude Include="playerclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="water.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="map.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -112,8 +127,19 @@
     <FxCompile Include="TerrainPS.hlsl">
       <Filter>Shaders\Terrain</Filter>
     </FxCompile>
+    <FxCompile Include="WaterVS.hlsl">
+      <Filter>Shaders\Watter</Filter>
+    </FxCompile>
+    <FxCompile Include="WaterPS.hlsl">
+      <Filter>Shaders\Watter</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Textures\TerrainHeightMap.DDS">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

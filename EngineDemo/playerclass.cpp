@@ -9,14 +9,14 @@ PlayerClass::~PlayerClass()
 {
 }
 
-void PlayerClass::SetTerrain(std::shared_ptr<TerrainClass> iMap)
+void PlayerClass::SetMap(std::shared_ptr<MapClass> iMap)
 {
-	Terrain = iMap;
+	Map = iMap;
 }
 
 void PlayerClass::Init()
 {
-	mPosition.y = Terrain->GetHeight(mPosition.x, mPosition.z);
+	mPosition.y = Map->GetHeight(mPosition.x, mPosition.z);
 	Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);
 }
 
@@ -66,11 +66,11 @@ void PlayerClass::React(float dt)
 		XMStoreFloat3(&fPosTemp, PosTemp);
 		deltaX.x = fPosTemp.x - mPosition.x;
 		deltaX.z = fPosTemp.z - mPosition.z;
-		deltaX.y = Terrain->GetHeight(fPosTemp.x, fPosTemp.z) - Terrain->GetHeight(mPosition.x, mPosition.z);
+		deltaX.y = Map->GetHeight(fPosTemp.x, fPosTemp.z) - Map->GetHeight(mPosition.x, mPosition.z);
 		XMStoreFloat3(&deltaX, speed*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
 		mPosition.x += deltaX.x;
 		mPosition.z += deltaX.z;
-		mPosition.y = Terrain->GetHeight(mPosition.x, mPosition.z);
+		mPosition.y = Map->GetHeight(mPosition.x, mPosition.z);
 		Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);
 	}
 }

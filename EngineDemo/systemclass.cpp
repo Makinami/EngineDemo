@@ -100,43 +100,19 @@ bool SystemClass::Init(std::string filename)
 	/*
 	World
 	*/
-	Terrain = std::make_shared<TerrainClass>();
-	Terrain->SetLogger(Logger);
-
-	TerrainClass::InitInfo tii;
-	tii.HeightMapFilename = L"Textures/terrain.raw";
-	tii.LayerMapFilename0 = L"Textures/grass.dds";
-	tii.LayerMapFilename1 = L"Textures/darkdirt.dds";
-	tii.LayerMapFilename2 = L"Textures/stone.dds";
-	tii.LayerMapFilename3 = L"Textures/lightdirt.dds";
-	tii.LayerMapFilename4 = L"Textures/snow.dds";
-	tii.BlendMapFilename = L"Textures/blend.dds";
-	tii.HeightScale = 100.0f;
-	tii.HeightmapWidth = 2049;
-	tii.HeightmapHeight = 2049;
-	tii.CellSpacing = 0.5f;
-
-	if (!Terrain->Init(D3D->GetDevice(), D3D->GetDeviceContext(), tii))
-	{
-		Logger->Error(L"Failed to initiate terrain");
-		return false;
-	}
-	Logger->Success(L"Terrain initiated");
+	Map = std::make_shared<MapClass>();
+	Map->SetLogger(Logger);
+	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
 	
 	/*
 	Player
 	*/
 	Player = std::make_shared<PlayerClass>();
-	Player->SetTerrain(Terrain);
+	Player->SetMap(Map);
 	Player->SetCamera(Camera);
 	Player->SetInput(Input);
+	Player->SetLogger(Logger);
 	Player->Init();
-
-	// temp
-	mLootAtPosition = XMFLOAT3(0, 0, 0);
-	mPhi = XM_PIDIV4;
-	mTheta = XM_PIDIV2;
-	mRadius = 100;
 
 	return true;
 }
@@ -317,7 +293,7 @@ bool SystemClass::Frame()
 	
 	D3D->BeginScene();
 
-	Terrain->Draw(D3D->GetDeviceContext(), Camera);
+	Map->Draw(D3D->GetDeviceContext(), Camera);
 
 	D3D->EndScene();
 
@@ -404,43 +380,4 @@ bool SystemClass::CreateStatusWindow()
 	UpdateWindow(mStatusWnd);
 
 	return true;
-}
-
-void SystemClass::OnMouseDown(WPARAM btnState, int x, int y)
-{
-	mLastMousePos.x = x;
-	mLastMousePos.y = y;
-
-	SetCapture(mhMainWnd);
-}
-
-void SystemClass::OnMouseUp(WPARAM btnState, int x, int y)
-{
-	ReleaseCapture();
-}
-
-void SystemClass::OnMouseMove(WPARAM btnState, int x, int y)
-{
-	if ((btnState & MK_LBUTTON) != 0)
-	{
-		float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
-		float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
-
-		mTheta += dx;
-		mPhi += dy;
-
-		mPhi = min(max(mPhi, 0.1f), XM_PI - 0.1f);
-	}
-	else if ((btnState & MK_RBUTTON) != 0)
-	{
-		float dx = 0.05f*static_cast<float>(x - mLastMousePos.x);
-		float dy = 0.05f*static_cast<float>(y - mLastMousePos.y);
-
-		//mRadius += dx - dy;
-
-		mRadius = min(max(mRadius, 3.0f), 500.0f);
-	}
-
-	mLastMousePos.x = x;
-	mLastMousePos.y = y;
 }

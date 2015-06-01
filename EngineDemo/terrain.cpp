@@ -189,11 +189,8 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	return true;
 }
 
-//TODO: After system, change to use camera class
 void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	XMMATRIX Proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, 16.0f/ 9.0f, 1.0f, 1000.0f);
-
 	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
 	
 	UINT stride = sizeof(Vertex);
