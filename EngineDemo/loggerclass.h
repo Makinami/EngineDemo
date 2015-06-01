@@ -1,5 +1,9 @@
 #pragma once
 
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <CommCtrl.h>

@@ -28,9 +28,10 @@ int LoggerClass::SetFile(const wstring &fileName)
 	{
 		mFileName = fileName;
 		time_t timestamp = time(nullptr);
-		auto timeinfo = localtime(&timestamp);
+		tm timeinfo;
+		localtime_s(&timeinfo, &timestamp);
 		wchar_t date[50];
-		wcsftime(date, 50, L"%x %X", timeinfo);
+		wcsftime(date, 50, L"%x %X", &timeinfo);
 		WriteFileRaw(L"    Logging initiated at: " + std::wstring(date) + L"\n\n");
 		return true;
 	}
@@ -87,9 +88,10 @@ int LoggerClass::Write(wstring msg, DWORD output)
 	{
 		// Add current time to the beggining of the message
 		time_t timestamp = time(nullptr);
-		auto timeinfo = localtime(&timestamp);
+		tm timeinfo;
+		localtime_s(&timeinfo, &timestamp);
 		wchar_t date[50];
-		wcsftime(date, 50, L"%X", timeinfo);
+		wcsftime(date, 50, L"%X", &timeinfo);
 		std::wstring text = std::wstring(date) + L" : " + msg + L"\n";
 		// Write to file
 		WriteFileRaw(text);

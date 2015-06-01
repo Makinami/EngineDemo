@@ -19,6 +19,15 @@
     <Filter Include="3rd-party\inih">
       <UniqueIdentifier>{ab81de17-d228-4b3e-b0f6-e7fd1de71615}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{8463eb14-e9d2-4100-8d1c-a68ba0f90bd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Terrain">
+      <UniqueIdentifier>{0407ce10-63c3-4c96-adb5-ccff0e9e647a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Watter">
+      <UniqueIdentifier>{0a3c58ff-999b-48d9-bc4b-37915ba4c3c7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -39,6 +48,27 @@
     <ClCompile Include="loggerclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cameraclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="timerclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="inputclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="terrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="playerclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="water.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="map.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -56,5 +86,60 @@
     <ClInclude Include="loggerclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cameraclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timerclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inputclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="playerclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="water.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="map.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="BasicPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="BasicVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainVS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainHS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainDS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="TerrainPS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="WaterVS.hlsl">
+      <Filter>Shaders\Watter</Filter>
+    </FxCompile>
+    <FxCompile Include="WaterPS.hlsl">
+      <Filter>Shaders\Watter</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="settings.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Textures\TerrainHeightMap.DDS">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

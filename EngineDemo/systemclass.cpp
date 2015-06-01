@@ -1,6 +1,6 @@
 #include "systemclass.h"
 
-// Hack for inability to set class member function as window proc
+// 'Hack for inability to set class member function as window proc
 namespace
 {
 	SystemClass* callbackSystem = nullptr;
@@ -30,19 +30,21 @@ SystemClass::SystemClass(HINSTANCE hInstance)
   mAppName(L"EngineDemo"),
   mWndCap(L"EngineDemo"),
   mClientHeight(720),
-  mClientWidth(1280)
+  mClientWidth(1280),
+  mAppPaused(false),
+  mWndState(WndStateNormal),
+  Input(nullptr)
 {
 	callbackSystem = this;
 }
 
 SystemClass::SystemClass(const SystemClass &)
-{
-}
+{}
 
 SystemClass::~SystemClass()
 {
-	// Close main/game window
-	ShutdownMainWindow();
+	// Shutdown system
+	Shutdown();
 
 	callbackSystem = nullptr;
 }
@@ -74,40 +76,81 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"Main window created.");
 
 	// Create D3D class
-	if (mD3D = std::make_shared<D3DClass>())
-	{
-		// Give D3D logger and initiate
-		mD3D->SetLogger(Logger);
-		if (!mD3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
-	}
-	Logger->Success(L"DirectX initiated.");
+	D3D = std::make_shared<D3DClass>();
 	
+	// Give D3D logger and initiate
+	D3D->SetLogger(Logger);
+	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
+	Logger->Success(L"DirectX initiated.");
+
+	Input = std::make_shared<InputClass>();
+	
+	if (!Input->Init(mhAppInstance, mhMainWnd, mClientWidth, mClientHeight))
+	{
+		Logger->Error(L"Failed to initiate input");
+		return false;
+	}
+	Logger->Success(L"Input initiated");
+
+	Camera = std::make_shared<CameraClass>();
+	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.5f, 1000.0f);
+
+	Timer = std::make_shared<TimerClass>();
+	
+	/*
+	World
+	*/
+	Map = std::make_shared<MapClass>();
+	Map->SetLogger(Logger);
+	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
+	
+	/*
+	Player
+	*/
+	Player = std::make_shared<PlayerClass>();
+	Player->SetMap(Map);
+	Player->SetCamera(Camera);
+	Player->SetInput(Input);
+	Player->SetLogger(Logger);
+	Player->Init();
+
 	return true;
 }
 
 // Shut down everything
 void SystemClass::Shutdown()
 {
+	D3D->Shutdown();
+
 	ShutdownMainWindow();
 }
 
 // Main loop (for now just outline)
 int SystemClass::Run()
 {
-	MSG msg = {0};
+	Timer->Reset();
+	
+	MSG msg = { 0 };
 
 	while (msg.message != WM_QUIT)
 	{
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
-			TranslateMessage( &msg );
-			DispatchMessage( &msg ); 
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 		else
 		{
-			mD3D->BeginScene();
-			mD3D->EndScene();
-			Sleep(100);
+			if ( !mAppPaused )
+			{
+				Timer->Tick();
+				if (!Frame()) SendMessage(mhMainWnd, WM_QUIT, 0, 0);
+			}
+			else
+			{
+				Sleep(100);
+			}
+			
 		}
 	}
 
@@ -127,6 +170,84 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				else ShowWindow(mStatusWnd, SW_SHOWNA);
 			}
 			return 0;
+		case WM_SIZE:
+			mClientWidth = LOWORD(lParam);
+			mClientHeight = HIWORD(lParam);
+			if ( D3D )
+			{
+				if ( wParam == SIZE_MINIMIZED )
+				{
+					mAppPaused = true;
+					mWndState = WndStateMinimized;
+					// timer
+				}
+				else if ( wParam == SIZE_MAXIMIZED )
+				{
+					mAppPaused = false;
+					mWndState = WndStateMaximized;
+					// timer
+				}
+				else if ( wParam == SIZE_RESTORED )
+				{
+					// Restoring from minimized
+					if ( mWndState == WndStateMinimized )
+					{
+						mAppPaused = false;
+						mWndState = WndStateNormal;
+						D3D->OnResize(mClientWidth, mClientHeight);
+						//timer
+					}
+					// Restoring from maximized
+					else if ( mWndState == WndStateMaximized )
+					{
+						mAppPaused = false;
+						mWndState = WndStateNormal;
+						D3D->OnResize(mClientWidth, mClientHeight);
+					}
+					else if ( mWndState == WndStateResizing )
+					{
+						// Dropedl; served at the end in WM_EXITMOVE
+					}
+					else
+					{
+						D3D->OnResize(mClientWidth, mClientHeight);
+					}
+				}
+			}
+			break;
+		case WM_ENTERSIZEMOVE:
+			mAppPaused = true;
+			mWndState = WndStateResizing;
+			// timer
+			return 0;
+		case WM_EXITSIZEMOVE:
+			mAppPaused = false;
+			mWndState = WndStateNormal;
+			// timer
+			D3D->OnResize(mClientWidth, mClientHeight);
+			return 0;
+		
+		// Limit window size
+		case WM_GETMINMAXINFO:
+			((MINMAXINFO*)lParam)->ptMinTrackSize.x = 600;
+			((MINMAXINFO*)lParam)->ptMinTrackSize.y = 400;
+			return 0;
+		case WM_LBUTTONDOWN:
+		case WM_MBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+			if (Input) Input->OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), Timer->TotalTime());
+			return 0;
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:
+			if (Input) Input->OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), Timer->TotalTime());
+			return 0;
+		case WM_MOUSEMOVE:
+			if (Input) Input->OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			return 0;
+		case WM_MOUSEWHEEL:
+			if (Input) Input->PassZDelta(GET_WHEEL_DELTA_WPARAM(wParam)/WHEEL_DELTA);
+			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -137,14 +258,16 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	int mStatusWidth;
+	int mStatusHeight;
 	switch (msg)
 	{
 		case WM_SIZE:
 			// Keep edit control the same size as status window
-			mClientWidth = LOWORD(lParam);
-			mClientHeight = HIWORD(lParam);
+			mStatusWidth = LOWORD(lParam);
+			mStatusHeight = HIWORD(lParam);
 
-			SetWindowPos(mEdit, 0, 0, 0, mClientWidth, mClientHeight, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(mEdit, 0, 0, 0, mStatusWidth, mStatusHeight, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_SHOWWINDOW);
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		case WM_KEYDOWN:
 			// Hide status window
@@ -163,14 +286,25 @@ LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 // Run every frame
 bool SystemClass::Frame()
 {
-	return false;
+	float dt = Timer->DeltaTime();
+	Input->Capture();
+
+	Player->React(dt);	
+	
+	D3D->BeginScene();
+
+	Map->Draw(D3D->GetDeviceContext(), Camera);
+
+	D3D->EndScene();
+
+	return true;
 }
 
 // Create main/game window
 bool SystemClass::InitMainWindow()
 {
-	WNDCLASS wc = {0};
-	wc.style = CS_HREDRAW|CS_VREDRAW;
+	WNDCLASS wc = { 0 };
+	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = MainWndProc;
 	wc.hInstance = mhAppInstance;
 	wc.hIcon = LoadCursor(NULL, IDI_WINLOGO);

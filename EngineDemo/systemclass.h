@@ -14,10 +14,14 @@
 
 #include "loggerclass.h"
 #include "d3dclass.h"
+#include "inputclass.h"
+#include "timerclass.h"
+#include "playerclass.h"
+#include "map.h"
 
 /*
-	Main System Class:
-		Creates new game and status window (at least for now) and manages other subsystems
+Main System Class:
+Creates new game and status window (at least for now) and manages other subsystems
 */
 class SystemClass
 {
@@ -55,6 +59,12 @@ class SystemClass
 		HWND		 mhMainWnd;
 		LPCWSTR		 mAppName;
 		std::wstring mWndCap;
+		bool		 mAppPaused;
+
+		enum
+		{
+			WndStateNormal, WndStateMaximized, WndStateFullScreen, WndStateMinimized, WndStateResizing
+		} mWndState;
 
 		// Main window/game client size
 		int mClientWidth;
@@ -65,10 +75,20 @@ class SystemClass
 		HWND mEdit;
 
 		/*
-			Subsystems
+		Subsystems
 		*/
-		std::shared_ptr<D3DClass> mD3D; // Main DirectX 3D
+		std::shared_ptr<D3DClass> D3D; // Main DirectX 3D
+		std::shared_ptr<CameraClass> Camera; // Camera
+		std::shared_ptr<InputClass> Input; // Input
+		std::shared_ptr<TimerClass> Timer;
 
 		std::shared_ptr<INIReader> Settings; // Setting
 		std::shared_ptr<LoggerClass> Logger; // Logger
+
+		std::shared_ptr<PlayerClass> Player;
+
+		/*
+		World
+		*/
+		std::shared_ptr<MapClass> Map; // Map object
 };

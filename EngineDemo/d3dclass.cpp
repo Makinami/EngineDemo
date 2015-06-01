@@ -5,16 +5,19 @@
 // ------------------------------------------------------------------------
 
 D3DClass::D3DClass()
-: m4xMSAAQuality(0),
-  
-  mDevice(nullptr),
-  mImmediateContext(nullptr),
-  mSwapChain(nullptr),
-  mDepthStencilBuffer(nullptr),
-  mRenderTargetView(nullptr),
-  mDepthStencilView(nullptr),
+	: m4xMSAAQuality(0),
 
-  mEnable4xMSAA(true)
+	mDevice(nullptr),
+	mImmediateContext(nullptr),
+	mSwapChain(nullptr),
+	mDepthStencilBuffer(nullptr),
+	mRenderTargetView(nullptr),
+	mDepthStencilView(nullptr),
+
+	mEnable4xMSAA(true),
+
+	mRenderHeight(0),
+	mRenderWidth(0)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
 }
@@ -42,13 +45,17 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	D3D_FEATURE_LEVEL featureLevel;
 
 	HRESULT hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, createDeviceFlags, &targetFeatureLevels, 1,
-								   D3D11_SDK_VERSION, (ID3D11Device**)&mDevice, &featureLevel, (ID3D11DeviceContext**)&mImmediateContext);
+		D3D11_SDK_VERSION, (ID3D11Device**)&mDevice, &featureLevel, (ID3D11DeviceContext**)&mImmediateContext);
 	if (FAILED(hr))
 	{
 		MessageBox(0, L"D3D11CreateDevice Failed.", 0, 0);
 		LogError(L"D3D11CreateDevice failed. Exiting...");
 		return false;
 	}
+
+#if defined(DEBUG) || defined(_DEBUG)
+	mDevice->QueryInterface(IID_PPV_ARGS(&mDebug));
+#endif
 
 	if (mDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
 	{
@@ -71,7 +78,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	sd.Height = 0;
 	sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.Stereo = 0;
-	
+
 	if (mEnable4xMSAA)
 	{
 		sd.SampleDesc.Count = 4;
@@ -124,6 +131,10 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 	ReleaseCOM(mRenderTargetView);
 	ReleaseCOM(mDepthStencilBuffer);
 	ReleaseCOM(mDepthStencilView);
+
+	// Set client size
+	mRenderWidth = mClientWidth;
+	mRenderHeight = mClientHeight;
 
 	// Resize swap chain and (re)create render target
 	mSwapChain->ResizeBuffers(1, mClientWidth, mClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
@@ -184,6 +195,14 @@ void D3DClass::Shutdown()
 	if (mImmediateContext) mImmediateContext->ClearState();
 
 	ReleaseCOM(mImmediateContext);
+#if defined(DEBUG) || defined(_DEBUG)
+	if (mDebug)
+	{
+		Sleep(500);
+		mDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+		ReleaseCOM(mDebug);
+	}
+#endif
 	ReleaseCOM(mDevice);
 }
 
@@ -198,4 +217,14 @@ void D3DClass::BeginScene()
 void D3DClass::EndScene()
 {
 	mSwapChain->Present(0, 0);
+}
+
+ID3D11Device1* D3DClass::GetDevice() const
+{
+	return mDevice;
+}
+
+ID3D11DeviceContext1* D3DClass::GetDeviceContext() const
+{
+	return mImmediateContext;
 }
