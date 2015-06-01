@@ -65,6 +65,6 @@
 
 # CUSTOM
 
-*.fx linguist-language=HLSL
+*.hlsl linguist-language=HLSL
 DirectXTK/* linguist-vendored
 EngineDemo/inih/* linguist-vendored
