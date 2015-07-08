@@ -1,5 +1,10 @@
 #include "d3dclass.h"
 
+std::stack< std::pair<UINT, ID3D11RenderTargetView**> > RenderTargetStack::Targetviews;
+std::stack< ID3D11DepthStencilView** > RenderTargetStack::DepthStencilDSV;
+
+std::stack< std::pair<UINT, D3D11_VIEWPORT*> > ViewportStack::Viewports;
+
 // ------------------------------------------------------------------------
 //                           D3DClass definition
 // ------------------------------------------------------------------------
@@ -20,21 +25,7 @@ D3DClass::D3DClass()
 	mRenderWidth(0)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
-}
 
-D3DClass::D3DClass(const D3DClass& other)
-{
-
-}
-
-D3DClass::~D3DClass()
-{
-	Shutdown();
-}
-
-// Init device, device context, and swap chain
-bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::shared_ptr<INIReader> &Settings)
-{
 	// Create device and device context.
 	UINT createDeviceFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)
@@ -50,7 +41,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	{
 		MessageBox(0, L"D3D11CreateDevice Failed.", 0, 0);
 		LogError(L"D3D11CreateDevice failed. Exiting...");
-		return false;
+		return;
 	}
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -61,12 +52,35 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	{
 		MessageBox(0, L"Direct3D Feature Level 11 unsupported.", 0, 0);
 		LogSuccess(L"Direct3D Feature Level 11 unsupported. Exiting...");
-		return false;
+		ReleaseCOM(mImmediateContext);
+		ReleaseCOM(mDevice);
+		return;
 	}
 	else if (mDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
 	{
 		MessageBox(0, L"Direct3D in feature level 11_0. Possible unexpected behavior.", 0, 0);
 		LogNotice(L"Direct3D in feature level 11_0. Possible unexpected behavior.");
+	}
+}
+
+D3DClass::D3DClass(const D3DClass& other)
+{
+
+}
+
+D3DClass::~D3DClass()
+{
+	Shutdown();
+}
+
+// Init device, device context, and swap chain
+bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::shared_ptr<INIReader> &Settings)
+{
+	if (!mDevice || !mImmediateContext)
+	{
+		MessageBox(0, L"D3D Init failed. Device is not created.", 0, 0);
+		LogError(L"D3D Init failed. Device is not created.");
+		return false;
 	}
 
 	// Check 4xMSAA quality support for back buffer format.
@@ -171,8 +185,8 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 	mDevice->CreateTexture2D(&depthStencilDesc, 0, &mDepthStencilBuffer);
 	mDevice->CreateDepthStencilView(mDepthStencilBuffer, 0, &mDepthStencilView);
 
-	// Bind to the pipeline
-	mImmediateContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
+	if (RenderTargetStack::Empty()) RenderTargetStack::Push(mImmediateContext, &mRenderTargetView, &mDepthStencilView);
+	else RenderTargetStack::Update(mImmediateContext, &mRenderTargetView, &mDepthStencilView);
 
 	// Set viewport
 	mScreenViewport.TopLeftX = 0;
@@ -182,7 +196,8 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 	mScreenViewport.MinDepth = 0.0f;
 	mScreenViewport.MaxDepth = 1.0f;
 
-	mImmediateContext->RSSetViewports(1, &mScreenViewport);
+	if (ViewportStack::Empty()) ViewportStack::Push(mImmediateContext, &mScreenViewport);
+	else ViewportStack::Update(mImmediateContext, &mScreenViewport);
 }
 
 void D3DClass::Shutdown()

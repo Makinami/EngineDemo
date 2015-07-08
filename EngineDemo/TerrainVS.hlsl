@@ -1,17 +1,6 @@
 Texture2D gHeightMap;
 
-cbuffer MatrixBuffer
-{
-	matrix gViewProj;
-};
-
-SamplerState samHeightmap
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-
-	AddressU = CLAMP;
-	AddressV = CLAMP;
-};
+SamplerState samHeightmap : register(s0);
 
 struct VertexIn
 {

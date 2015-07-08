@@ -77,6 +77,40 @@ void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<
 	mImmediateContext->DrawIndexed(4, 0, 0);
 }
 
+void WaterClass::DrawWithShadow(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, ID3D11ShaderResourceView * shadowmap)
+{
+	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
+	mImmediateContext->PSSetShaderResources(0, 1, &shadowmap);
+
+	D3D11_MAPPED_SUBRESOURCE mappedResources;
+	MatrixBufferType *dataPtr;
+
+	mImmediateContext->Map(MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
+
+	dataPtr = (MatrixBufferType*)mappedResources.pData;
+
+	dataPtr->gWorld = ViewProjTrans*XMMatrixTranspose(XMMatrixTranslation(0.0f, 15.0f, 0.0f));
+
+	mImmediateContext->Unmap(MatrixBuffer, 0);
+
+	mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
+
+	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
+
+	mImmediateContext->IASetInputLayout(mInputLayout);
+
+	mImmediateContext->IASetIndexBuffer(mQuadPatchIB, DXGI_FORMAT_R16_UINT, 0);
+	mImmediateContext->IASetVertexBuffers(0, 1, &mQuadPatchVB, &stride, &offset);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	mImmediateContext->DrawIndexed(4, 0, 0);
+}
+
 void WaterClass::BuildQuadPatchVB(ID3D11Device1 * device)
 {
 	vector<Vertex> patchVertices;

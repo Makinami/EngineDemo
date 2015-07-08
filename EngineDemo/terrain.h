@@ -29,6 +29,7 @@
 
 #include "loggerclass.h"
 #include "cameraclass.h"
+#include "Lights.h"
 
 using namespace std;
 using namespace DirectX;
@@ -81,12 +82,13 @@ public:
 
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const InitInfo& initInfo);
 
-	void Draw(ID3D11DeviceContext1* dc, std::shared_ptr<CameraClass> Camera);
+	void Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap = nullptr);
 
 private:
 	struct MatrixBufferType
 	{
 		XMMATRIX gWorldProj;
+		XMMATRIX gShadowTrans;
 	};
 
 	struct cbPerFrameHSType
@@ -107,14 +109,14 @@ private:
 		float gMinTess;
 		float gMaxTess;
 
-		float padding[1];
+		int gFrustumCull;
 	};
 
 	struct cbPerFramePSType
 	{
 		XMMATRIX gViewProj;
 
-		//DirectionalLight gDirLights[3];
+		DirectionalLightStruct gDirLight;
 		XMFLOAT3 gEyePosW;
 
 		float gTexelCellSpaceU;
@@ -154,7 +156,8 @@ private:
 	ID3D11DomainShader* mDomainShader;
 	ID3D11PixelShader* mPixelShader;
 
-	ID3D11RasterizerState* mRastState;
+	ID3D11RasterizerState* mRastStateBasic;
+	ID3D11RasterizerState* mRastStateShadow;
 	ID3D11SamplerState** mSamplerStates;
 
 	InitInfo mInfo;

@@ -31,11 +31,7 @@
 #include "inih\cpp\INIReader.h"
 #include "loggerclass.h"
 
-// temp?	
-#include "cameraclass.h"
-
-//temp
-#include <vector>
+#include "Utilities\RenderViewTargetStack.h"
 
 using namespace DirectX;
 
@@ -87,11 +83,4 @@ class D3DClass : public HasLogger
 #if defined(DEBUG) || defined(_DEBUG)
 		ID3D11Debug* mDebug;
 #endif
-};
-
-// temp
-struct Vertex
-{
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
 };

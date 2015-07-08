@@ -148,10 +148,12 @@
     <ClCompile Include="inih\cpp\INIReader.cpp" />
     <ClCompile Include="inih\ini.c" />
     <ClCompile Include="inputclass.cpp" />
+    <ClCompile Include="Lights.cpp" />
     <ClCompile Include="loggerclass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="map.cpp" />
     <ClCompile Include="playerclass.cpp" />
+    <ClCompile Include="shadowmapclass.cpp" />
     <ClCompile Include="systemclass.cpp" />
     <ClCompile Include="terrain.cpp" />
     <ClCompile Include="timerclass.cpp" />
@@ -163,12 +165,15 @@
     <ClInclude Include="inih\cpp\INIReader.h" />
     <ClInclude Include="inih\ini.h" />
     <ClInclude Include="inputclass.h" />
+    <ClInclude Include="Lights.h" />
     <ClInclude Include="loggerclass.h" />
     <ClInclude Include="map.h" />
     <ClInclude Include="playerclass.h" />
+    <ClInclude Include="shadowmapclass.h" />
     <ClInclude Include="systemclass.h" />
     <ClInclude Include="terrain.h" />
     <ClInclude Include="timerclass.h" />
+    <ClInclude Include="Utilities\RenderViewTargetStack.h" />
     <ClInclude Include="water.h" />
   </ItemGroup>
   <ItemGroup>
@@ -179,6 +184,18 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="BasicVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="DebugPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="DebugVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>

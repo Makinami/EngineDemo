@@ -16,7 +16,7 @@ cbuffer cbPerFrameHS
 	float gMinTess;
 	float gMaxTess;
 
-	float padding;
+	bool gFrustumCull;
 }
 
 // Input control point
@@ -90,7 +90,8 @@ TessSettings CalcHSPatchConstants(
 	float3 boxCentre = 0.5f*(vMin + vMax);
 	float3 boxExtents = 0.5f*(vMax - vMin);
 
-	if (AabbOutsideFrustumTest(boxCentre, boxExtents, gWorldFrustumPlanes))
+	// TEMP: Which is faster?
+	/*if (gFrustumCull == 0)
 	{
 		pt.EdgeTess[0] = 0.0f;
 		pt.EdgeTess[1] = 0.0f;
@@ -104,22 +105,37 @@ TessSettings CalcHSPatchConstants(
 	}
 	else
 	{
-		float3 e0 = 0.5f*(patch[0].PosW + patch[2].PosW);
-		float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
-		float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
-		float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
-		float3 c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
+		if (AabbOutsideFrustumTest(boxCentre, boxExtents, gWorldFrustumPlanes))
+		{
+			pt.EdgeTess[0] = 0.0f;
+			pt.EdgeTess[1] = 0.0f;
+			pt.EdgeTess[2] = 0.0f;
+			pt.EdgeTess[3] = 0.0f;
 
-		pt.EdgeTess[0] = CalcTessFactor(e0);
-		pt.EdgeTess[1] = CalcTessFactor(e1);
-		pt.EdgeTess[2] = CalcTessFactor(e2);
-		pt.EdgeTess[3] = CalcTessFactor(e3);
+			pt.InsideTess[0] = 0.0f;
+			pt.InsideTess[1] = 0.0f;
 
-		pt.InsideTess[0] = CalcTessFactor(c);
-		pt.InsideTess[1] = pt.InsideTess[0];
+			return pt;
+		}
+		else
+		{*/
+			float3 e0 = 0.5f*(patch[0].PosW + patch[2].PosW);
+			float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
+			float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
+			float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
+			float3 c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
 
-		return pt;
-	}
+			pt.EdgeTess[0] = CalcTessFactor(e0);
+			pt.EdgeTess[1] = CalcTessFactor(e1);
+			pt.EdgeTess[2] = CalcTessFactor(e2);
+			pt.EdgeTess[3] = CalcTessFactor(e3);
+
+			pt.InsideTess[0] = CalcTessFactor(c);
+			pt.InsideTess[1] = pt.InsideTess[0];
+
+			return pt;
+		/*}
+	}*/
 }
 
 [domain("quad")]

@@ -40,6 +40,7 @@ public:
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
+	void DrawWithShadow(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, ID3D11ShaderResourceView* shadowmap);
 
 private:
 	struct MatrixBufferType

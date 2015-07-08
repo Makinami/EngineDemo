@@ -3,22 +3,18 @@ Texture2D gHeightMap;
 cbuffer MatrixBuffer
 {
 	matrix gViewProj;
+	matrix gShadowTrans;
 };
 
-SamplerState samHeightmap
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-
-	AddressU = CLAMP;
-	AddressV = CLAMP;
-};
+SamplerState samHeightmap : register(s0);
 
 struct DomainOut
 {
 	float4 PosH : SV_POSITION;
-	float3 PosW : POSITION;
+	float3 PosW : POSITION0;
 	float2 Tex : TEXCOORD0;
 	float2 TiledTex : TEXCOORD1;
+	float4 ShadowPosH : POSITION1;
 };
 
 // Output control point
@@ -62,6 +58,8 @@ DomainOut main(
 	dout.PosW.y = gHeightMap.SampleLevel(samHeightmap, dout.Tex, 0).r;
 
 	dout.PosH = mul(float4(dout.PosW, 1.0f), gViewProj);
+
+	dout.ShadowPosH = mul(float4(dout.PosW, 1.0f), gShadowTrans);
 
 	return dout;
 }

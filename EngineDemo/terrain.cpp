@@ -32,9 +32,11 @@ TerrainClass::~TerrainClass()
 	ReleaseCOM(mDomainShader);
 	ReleaseCOM(mPixelShader);
 
-	ReleaseCOM(mRastState);
+	ReleaseCOM(mRastStateBasic);
+	ReleaseCOM(mRastStateShadow);
 	ReleaseCOM(mSamplerStates[0]);
 	ReleaseCOM(mSamplerStates[1]);
+	ReleaseCOM(mSamplerStates[2]);
 	delete[] mSamplerStates;
 }
 
@@ -99,7 +101,7 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	mNumPatchQuadFaces = (mNumPatchVertRows - 1)*(mNumPatchVertCols - 1);
 	
 	LoadHeighMap();
-	//Smooth();
+	Smooth();
 	CalcAllPatchBoundsY();
 	
 	BuildQuadPatchVB(device);
@@ -153,21 +155,27 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 
 	D3D11_RASTERIZER_DESC rastDesc;
 	ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
-	rastDesc.FillMode = D3D11_FILL_WIREFRAME;
-	rastDesc.CullMode = D3D11_CULL_NONE;
+	rastDesc.FillMode = D3D11_FILL_SOLID;
+	rastDesc.CullMode = D3D11_CULL_BACK;
 	rastDesc.FrontCounterClockwise = false;
 	rastDesc.DepthClipEnable = true;
 
-	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastState))) return false;
+	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateBasic))) return false;
 
-	mSamplerStates = new ID3D11SamplerState*[2];
+	rastDesc.DepthBias = 100000;
+	rastDesc.DepthBiasClamp = 0.0f;
+	rastDesc.SlopeScaledDepthBias = 1.0f;
+
+	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateShadow))) return false;
+
+	mSamplerStates = new ID3D11SamplerState*[3];
 
 	D3D11_SAMPLER_DESC samplerDesc;
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.BorderColor[0] = 1.0f;
-	samplerDesc.BorderColor[1] = 1.0f;
-	samplerDesc.BorderColor[2] = 1.0f;
-	samplerDesc.BorderColor[3] = 1.0f;
+	samplerDesc.BorderColor[0] = 0.0f;
+	samplerDesc.BorderColor[1] = 0.0f;
+	samplerDesc.BorderColor[2] = 0.0f;
+	samplerDesc.BorderColor[3] = 0.0f;
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	samplerDesc.MaxAnisotropy = 1;
 	samplerDesc.MaxLOD = FLT_MAX;
@@ -186,46 +194,61 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 
 	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[1]))) return false;
 
+	samplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+
+	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[2]))) return false;
+
 	return true;
 }
 
-void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera)
+void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
+	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();//XMMatrixTranspose(V*P);
+	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();//XMMatrixTranspose(V*P*T);
+
 	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
-	
+
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
 	XMFLOAT4 worldPlanes[6];
 	ExtractFrustrumPlanes(worldPlanes, Camera->GetViewProjMatrix());
-	
-	
+
 	// PS
-	/*D3D11_MAPPED_SUBRESOURCE mappedResourcePS;
-	cbPerFramePSType* dataPtrPS;
+	if (ShadowMap)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResourcePS;
+		cbPerFramePSType* dataPtrPS;
 
-	mImmediateContext->Map(cbPerFramePS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResourcePS);
-	dataPtrPS = (cbPerFramePSType*)mappedResourcePS.pData;
+		mImmediateContext->Map(cbPerFramePS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResourcePS);
+		dataPtrPS = (cbPerFramePSType*)mappedResourcePS.pData;
 
-	XMStoreFloat3(&(dataPtrPS->gEyePosW), pos);
-	dataPtrPS->gTexelCellSpaceU = 1.0f / mInfo.HeightmapWidth;
-	dataPtrPS->gTexelCellSpaceV = 1.0f / mInfo.HeightmapHeight;
-	dataPtrPS->gWorldCellSpace = mInfo.CellSpacing;
-	dataPtrPS->gViewProj = XMMatrixTranspose(cam*Proj);
+		XMStoreFloat3(&(dataPtrPS->gEyePosW), Camera->GetPosition());
+		dataPtrPS->gTexelCellSpaceU = 1.0f / mInfo.HeightmapWidth;
+		dataPtrPS->gTexelCellSpaceV = 1.0f / mInfo.HeightmapHeight;
+		dataPtrPS->gWorldCellSpace = mInfo.CellSpacing;
+		dataPtrPS->gDirLight = light.LightParams();
+		dataPtrPS->gViewProj = Camera->GetViewProjTransMatrix();
 
-	mImmediateContext->Unmap(cbPerFramePS, 0);
+		mImmediateContext->Unmap(cbPerFramePS, 0);
 
-	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);*/
-	
-	mImmediateContext->PSSetShaderResources(0, 1, &mHeightmapSRV);
-	mImmediateContext->PSSetShaderResources(1, 1, &mBlendMapSRV);
-	mImmediateContext->PSSetShaderResources(2, 1, &mLayerMapArraySRV);
-	mImmediateContext->PSSetSamplers(0, 2, mSamplerStates);
-	
+		mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 
-	mImmediateContext->IASetIndexBuffer(mQuadPatchIB, DXGI_FORMAT_R16_UINT, 0);
-	mImmediateContext->IASetVertexBuffers(0, 1, &mQuadPatchVB, &stride, &offset);
-	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+		mImmediateContext->PSSetShaderResources(0, 1, &mHeightmapSRV);
+		mImmediateContext->PSSetShaderResources(1, 1, &mBlendMapSRV);
+		mImmediateContext->PSSetShaderResources(2, 1, &mLayerMapArraySRV);
+		mImmediateContext->PSSetShaderResources(3, 1, &ShadowMap);
+		mImmediateContext->PSSetSamplers(0, 3, mSamplerStates);
+
+		mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
+	}
+	else
+	{
+		mImmediateContext->PSSetShader(NULL, NULL, 0);
+	}
 
 	// DS
 	D3D11_MAPPED_SUBRESOURCE mappedResourceDS;
@@ -234,12 +257,16 @@ void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr
 	mImmediateContext->Map(MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResourceDS);
 	dataPtrDS = (MatrixBufferType*)mappedResourceDS.pData;
 
-	dataPtrDS->gWorldProj = ViewProjTrans;
+	if (ShadowMap) dataPtrDS->gWorldProj = Camera->GetViewProjTransMatrix();
+	else dataPtrDS->gWorldProj = ShadowViewProjTrans;
+	dataPtrDS->gShadowTrans = ShadowMapProjTrans;
 
 	mImmediateContext->Unmap(MatrixBuffer, 0);
 
 	mImmediateContext->DSSetConstantBuffers(0, 1, &MatrixBuffer);
 	mImmediateContext->DSSetShaderResources(0, 1, &mHeightmapSRV);
+
+	mImmediateContext->DSSetSamplers(0, 1, &mSamplerStates[0]);
 
 	mImmediateContext->DSSetShader(mDomainShader, NULL, 0);
 
@@ -257,6 +284,8 @@ void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr
 	dataPtrHS->gMinTess = 0.0f;
 	for (int i = 0; i < 6; ++i)
 		dataPtrHS->gWorldFrustumPlanes[i] = worldPlanes[i];
+	if (ShadowMap) dataPtrHS->gFrustumCull = 1;
+	else dataPtrHS->gFrustumCull = 0;
 
 	mImmediateContext->Unmap(cbPerFrameHS, 0);
 
@@ -265,34 +294,30 @@ void TerrainClass::Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr
 	mImmediateContext->HSSetShader(mHullShader, NULL, 0);
 
 	// VS
-	D3D11_MAPPED_SUBRESOURCE mappedResources;
-	MatrixBufferType *dataPtr;
-
-	mImmediateContext->Map(MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
-
-	dataPtr = (MatrixBufferType*)mappedResources.pData;
-
-	dataPtr->gWorldProj = ViewProjTrans;
-
-	mImmediateContext->Unmap(MatrixBuffer, 0);
-
 	mImmediateContext->VSSetShaderResources(0, 1, &mHeightmapSRV);
 
-	mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
+	mImmediateContext->VSSetSamplers(0, 1, &mSamplerStates[0]);
 
 	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
 
+	// IA
+	mImmediateContext->IASetIndexBuffer(mQuadPatchIB, DXGI_FORMAT_R16_UINT, 0);
+	mImmediateContext->IASetVertexBuffers(0, 1, &mQuadPatchVB, &stride, &offset);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
 
 	mImmediateContext->IASetInputLayout(mInputLayout);
 
-	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
-
-	//mImmediateContext->RSSetState(mRastState);
+	if (ShadowMap) mImmediateContext->RSSetState(mRastStateBasic);
+	else mImmediateContext->RSSetState(mRastStateShadow);
 
 	mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
 
 	mImmediateContext->HSSetShader(0, 0, 0);
 	mImmediateContext->DSSetShader(0, 0, 0);
+
+	ID3D11ShaderResourceView* NULLRes = NULL;
+	mImmediateContext->PSSetShaderResources(0, 1, &NULLRes);
+	mImmediateContext->PSSetShaderResources(3, 1, &NULLRes);
 }
 
 void TerrainClass::LoadHeighMap()
@@ -488,6 +513,59 @@ void TerrainClass::BuildHeightmapSRV(ID3D11Device1* device)
 
 	vector<PackedVector::HALF> hmap(mHeightmap.size());
 	transform(mHeightmap.begin(), mHeightmap.end(), hmap.begin(), PackedVector::XMConvertFloatToHalf);
+
+	/*
+	vector< vector<XMFLOAT3> > vNormals[2];
+	for (int i = 0; i < 2; ++i) vNormals[i] = vector< vector<XMFLOAT3> >(mInfo.HeightmapWidth - 1, vector<XMFLOAT3>(mInfo.HeightmapHeight - 1));
+
+	for (int row = 0; row < mInfo.HeightmapHeight-1; ++row)
+	{
+	for (int col = 0; col < mInfo.HeightmapWidth-1; ++col)
+	{
+	float A = mHeightmap[row*mInfo.HeightmapWidth + col];
+	float B = mHeightmap[row*mInfo.HeightmapWidth + col + 1];
+	float C = mHeightmap[(row + 1)*mInfo.HeightmapWidth + col];
+	float D = mHeightmap[(row + 1)*mInfo.HeightmapWidth + col + 1];
+
+	XMFLOAT3 AC = { 0.0f, C - A, 1.0f },
+	AB = { 1.0f, B - A, 0.0f },
+	DB = { 0.0f, B - D, -1.0f },
+	DC = { -1.0f, C - D, 0.0f };
+
+	XMStoreFloat3(&vNormals[0][row][col], XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&AC), XMLoadFloat3(&AB))));
+	XMStoreFloat3(&vNormals[1][row][col], XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&DB), XMLoadFloat3(&DC))));
+	}
+	}
+
+	vector<PackedVector::XMHALF4> hmap(mHeightmap.size());
+	XMFLOAT3 Normal;
+	for (int row = 0; row < mInfo.HeightmapHeight; ++row)
+	{
+	for (int col = 0; col < mInfo.HeightmapWidth; ++col)
+	{
+	Normal = { 0.0f, 0.0f, 0.0f };
+
+	if (row && col) XMStoreFloat3(&Normal, XMLoadFloat3(&Normal) + XMLoadFloat3(&vNormals[1][row - 1][col - 1]));
+
+	if (row && col < mInfo.HeightmapWidth-1)
+	for (int i = 0; i < 2; ++i)
+	XMStoreFloat3(&Normal, XMLoadFloat3(&Normal) + XMLoadFloat3(&vNormals[1][row - 1][col]));
+
+	if (row < mInfo.HeightmapHeight-1 && col)
+	for (int i = 0; i < 2; ++i)
+	XMStoreFloat3(&Normal, XMLoadFloat3(&Normal) + XMLoadFloat3(&vNormals[1][row][col-1]));
+
+	if (row < mInfo.HeightmapHeight-1 && col < mInfo.HeightmapWidth) XMStoreFloat3(&Normal, XMLoadFloat3(&Normal) + XMLoadFloat3(&vNormals[1][row][col]));
+
+	XMStoreFloat3(&Normal, XMVector3Normalize(XMLoadFloat3(&Normal)));
+
+	hmap[row*mInfo.HeightmapWidth + col] = { PackedVector::XMConvertFloatToHalf(Normal.x),
+	PackedVector::XMConvertFloatToHalf(Normal.y),
+	PackedVector::XMConvertFloatToHalf(Normal.z),
+	PackedVector::XMConvertFloatToHalf(mHeightmap[row*mInfo.HeightmapWidth + col]) };
+	}
+	}
+	*/
 
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = &hmap[0];

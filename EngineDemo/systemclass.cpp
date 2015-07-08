@@ -120,6 +120,9 @@ bool SystemClass::Init(std::string filename)
 // Shut down everything
 void SystemClass::Shutdown()
 {
+	//RenderTargetStack::Shutdown(D3D->GetDeviceContext());
+	//ViewportStack::Shutdown(D3D->GetDeviceContext());
+
 	D3D->Shutdown();
 
 	ShutdownMainWindow();
@@ -294,6 +297,8 @@ bool SystemClass::Frame()
 	D3D->BeginScene();
 
 	Map->Draw(D3D->GetDeviceContext(), Camera);
+	
+	//Map->Draw20(D3D->GetDeviceContext(), Camera);
 
 	D3D->EndScene();
 
