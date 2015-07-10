@@ -293,6 +293,7 @@ bool SystemClass::Frame()
 	Input->Capture();
 
 	Player->React(dt);	
+	Map->Update(dt);
 	
 	D3D->BeginScene();
 

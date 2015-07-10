@@ -190,11 +190,16 @@ void MapClass::Shutdown()
 	ReleaseCOM(MatrixBuffer);
 }
 
+void MapClass::Update(float dt)
+{
+	Water->evaluateWavesFFT(dt);
+}
+
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
 	light.SetLitWorld(XMFLOAT3(-513.0f, 0.0f, -513.0f), XMFLOAT3(513.0f, 100.0f, 513.0f));
 
-	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
+	/*ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
 	ShadowMap->ClearDepthMap(mImmediateContext);
 
 	Terrain->Draw(mImmediateContext, Camera, light);
@@ -202,10 +207,10 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
 
-	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
-	DrawDebug(mImmediateContext);
-
+	//DrawDebug(mImmediateContext);
+	*/
 	Water->Draw(mImmediateContext, Camera);
 }
 

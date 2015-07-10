@@ -33,6 +33,8 @@ public:
 
 	void Shutdown();
 
+	void Update(float dt);
+
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 	void Draw20(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 
