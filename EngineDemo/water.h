@@ -27,6 +27,7 @@
 
 #include "loggerclass.h"
 #include "cameraclass.h"
+#include "Lights.h"
 
 using namespace std;
 using namespace DirectX;
@@ -37,6 +38,7 @@ public:
 	struct Vertex
 	{
 		XMFLOAT3 Pos;
+		XMFLOAT2 Tex;
 	};
 
 public:
@@ -45,14 +47,55 @@ public:
 
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc);
 
-	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
+	void Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap);
 
 	void evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateContext);
 
 private:
-	struct MatrixBufferType
+	struct cbPerFrameVSType
 	{
 		XMMATRIX gWorld;
+	};
+
+	struct cbPerFrameDSType
+	{
+		XMMATRIX gViewProj;
+		XMMATRIX gShadowTrans;
+	};
+
+	struct cbPerFrameHSType
+	{
+		XMFLOAT4 gWorldFrustumPlanes[6];
+
+		XMFLOAT3 gEyePosW;
+
+		// When distance is minimum, the tessellation is maximum.
+		// When distance is maximum, the tessellation is minimum.
+		float gMinDist;
+		float gMaxDist;
+
+		// Exponents for power of 2 tessellation.  The tessellation
+		// range is [2^(gMinTess), 2^(gMaxTess)].  Since the maximum
+		// tessellation is 64, this means gMaxTess can be at most 6
+		// since 2^6 = 64.
+		float gMinTess;
+		float gMaxTess;
+
+		int gFrustumCull;
+	};
+
+	struct cbPerFramePSType
+	{
+		XMMATRIX gViewProj;
+
+		//DirectionalLightStruct gDirLight;
+		XMFLOAT3 gEyePosW;
+
+		float gTexelCellSpaceU;
+		float gTexelCellSpaceV;
+		float gWorldCellSpace;
+
+		float padding[2];
 	};
 
 	struct FFTInitialType
@@ -81,7 +124,10 @@ private:
 	ID3D11Buffer* mQuadPatchVB;
 	ID3D11Buffer* mQuadPatchIB;
 
-	ID3D11Buffer* MatrixBuffer;
+	ID3D11Buffer* cbPerFrameHS;
+	ID3D11Buffer* cbPerFrameDS;
+	ID3D11Buffer* cbPerFramePS;
+	ID3D11Buffer* cbPerFrameVS;
 	ID3D11Buffer* FFTPrepBuffer;
 	ID3D11Buffer* FFTBuffer;
 
@@ -93,8 +139,16 @@ private:
 
 	ID3D11InputLayout* mInputLayout;
 	ID3D11VertexShader* mVertexShader;
+	ID3D11HullShader* mHullShader;
+	ID3D11DomainShader* mDomainShader;
 	ID3D11PixelShader* mPixelShader;
 	vector<ID3D11ComputeShader*> mComputeShader;
+
+	UINT mNumPatchVertices;
+	UINT mNumPatchQuadFaces;
+
+	UINT mNumPatchVertRows;
+	UINT mNumPatchVertCols;
 
 	XMFLOAT4X4 mWorld;
 
@@ -110,6 +164,7 @@ private:
 	float time;
 
 	ID3D11RasterizerState* mRastStateFrame;
+	ID3D11SamplerState** mSamplerStates;
 
 	vector<Vertex> vertices;
 	vector<UINT> indices;
@@ -120,3 +175,6 @@ private:
 	complex<float> hTilde_0(int n, int m);
 	float Dispersion(int n, int m);
 };
+
+// TEMP
+void ExtractFrustrumPlanes(XMFLOAT4 planes[6], CXMMATRIX M);

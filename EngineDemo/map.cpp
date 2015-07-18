@@ -1,6 +1,7 @@
 #include "map.h"
 
 #include  "Utilities\RenderViewTargetStack.h"
+#include "Utilities\CreateShader.h"
 
 MapClass::MapClass() :
 	Terrain(nullptr),
@@ -94,61 +95,10 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	iinitData.pSysMem = &indices[0];
 	if (FAILED(device->CreateBuffer(&ibd, &iinitData, &mScreenQuadIB))) return false;
 
-	ifstream stream;
-	size_t size;;
-	char* data;
-
 	// pixel
-	stream.open("..\\Debug\\DebugPS.cso", ifstream::in | ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreatePixelShader(data, size, 0, &mDebugPS)))
-		{
-			LogError(L"Failed to create Pixel Shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open TerrainPS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Pixel Shader created.");
-
+	CreatePSFromFile(L"..\\Debug\\DebugPS.cso", device, mDebugPS);
+	
 	// vertex
-	stream.open("..\\Debug\\DebugVS.cso", ifstream::in | ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateVertexShader(data, size, 0, &mDebugVS)))
-		{
-			LogError(L"Failed to create Vertex Shader");
-			return false;
-		}
-	}
-	else
-	{
-		LogError(L"Failed to open TerrainVS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Vertex Shader created.");
-
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -158,9 +108,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 
 	int numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
 
-	if (FAILED(device->CreateInputLayout(vertexDesc, numElements, data, size, &mDebugIL))) return false;
-
-	delete[] data;
+	CreateVSAndInputLayout(L"..\\Debug\\DebugVS.cso", device, mDebugVS, vertexDesc, numElements, mDebugIL);
 
 	// DS
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -197,7 +145,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 {
 	light.SetLitWorld(XMFLOAT3(-513.0f, 0.0f, -513.0f), XMFLOAT3(513.0f, 100.0f, 513.0f));
 
-	/*ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
+	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
 	ShadowMap->ClearDepthMap(mImmediateContext);
 
 	Terrain->Draw(mImmediateContext, Camera, light);
@@ -205,12 +153,11 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
 
-	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	//DrawDebug(mImmediateContext);
-	*/
-	//Water->Draw(mImmediateContext, Camera);
-	Water->Draw(mImmediateContext, Camera);
+	
+	Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)

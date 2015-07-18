@@ -1,9 +1,10 @@
-#include "water.h"
+#include "Water.h"
+
+#include "Utilities\CreateShader.h"
 
 WaterClass::WaterClass() :
 	mQuadPatchVB(nullptr),
 	mQuadPatchIB(nullptr),
-	MatrixBuffer(nullptr),
 	mInputLayout(nullptr),
 	mVertexShader(nullptr),
 	mPixelShader(nullptr),
@@ -17,7 +18,7 @@ WaterClass::~WaterClass()
 	ReleaseCOM(mQuadPatchIB);
 	ReleaseCOM(mQuadPatchVB);
 
-	ReleaseCOM(MatrixBuffer);
+	ReleaseCOM(cbPerFrameDS);
 
 	ReleaseCOM(mInputLayout);
 	ReleaseCOM(mVertexShader);
@@ -32,16 +33,26 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 {
 	if (!CreateInputLayoutAndShaders(device)) return false;
 
+	mNumPatchVertRows = 32 + 1;
+	mNumPatchVertCols = 32 + 1;
+
+	mNumPatchVertices = mNumPatchVertRows*mNumPatchVertCols;
+	mNumPatchQuadFaces = (mNumPatchVertRows - 1)*(mNumPatchVertCols - 1);
+
 	// Matrix buffers
 	D3D11_BUFFER_DESC constantBufferDesc;
 	constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	constantBufferDesc.ByteWidth = sizeof(MatrixBufferType);
+	constantBufferDesc.ByteWidth = sizeof(cbPerFrameDSType);
 	constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	constantBufferDesc.MiscFlags = 0;
 	constantBufferDesc.StructureByteStride = 0;
 
-	if (FAILED(device->CreateBuffer(&constantBufferDesc, NULL, &MatrixBuffer))) return false;
+	if (FAILED(device->CreateBuffer(&constantBufferDesc, NULL, &cbPerFrameDS))) return false;
+
+	constantBufferDesc.ByteWidth = sizeof(cbPerFrameVSType);
+
+	if (FAILED(device->CreateBuffer(&constantBufferDesc, NULL, &cbPerFrameVS))) return false;
 
 	constantBufferDesc.ByteWidth = sizeof(TimeBufferCS);
 
@@ -50,12 +61,20 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 	constantBufferDesc.ByteWidth = sizeof(FFTParameters);
 
 	if (FAILED(device->CreateBuffer(&constantBufferDesc, NULL, &FFTBuffer))) return false;
+
+	constantBufferDesc.ByteWidth = sizeof(cbPerFrameHSType);
+
+	if (FAILED(device->CreateBuffer(&constantBufferDesc, NULL, &cbPerFrameHS))) return false;
+
+	constantBufferDesc.ByteWidth = sizeof(cbPerFramePSType);
+
+	if (FAILED(device->CreateBuffer(&constantBufferDesc, NULL, &cbPerFramePS))) return false;
 	
 	N = 255;
 	Nplus1 = N + 1;
 	A = 0.000002f;
-	w = XMFLOAT2(32.0f, 32.0f);
-	length = 255.0f;
+	w = XMFLOAT2(5.0f, 5.0f);
+	length = 256.0f;
 	time = 0.0f;
 
 	vertices.resize(Nplus1*Nplus1);
@@ -79,40 +98,121 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 
 	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateFrame))) return false;
 
+	mSamplerStates = new ID3D11SamplerState*[3];
+
+	D3D11_SAMPLER_DESC samplerDesc;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.BorderColor[0] = 0.0f;
+	samplerDesc.BorderColor[1] = 0.0f;
+	samplerDesc.BorderColor[2] = 0.0f;
+	samplerDesc.BorderColor[3] = 0.0f;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samplerDesc.MaxAnisotropy = 1;
+	samplerDesc.MaxLOD = FLT_MAX;
+	samplerDesc.MinLOD = -FLT_MAX;
+	samplerDesc.MipLODBias = 0;
+
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[0]))) return false;
+
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+
+	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[1]))) return false;
+
+	samplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+
+	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[2]))) return false;
+
 	return true;
 }
 
-void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
+void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
+	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();
+	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();
+
 	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
 
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
+	XMFLOAT4 worldPlanes[6];
+	ExtractFrustrumPlanes(worldPlanes, Camera->GetViewProjMatrix());
+
+	// PS
 	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
 
+	// DS
 	D3D11_MAPPED_SUBRESOURCE mappedResources;
-	MatrixBufferType *dataPtr;
+	cbPerFrameDSType* dataPtrDS;
 
-	mImmediateContext->Map(MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
+	mImmediateContext->Map(cbPerFrameDS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
+	dataPtrDS = (cbPerFrameDSType*)mappedResources.pData;
 
-	dataPtr = (MatrixBufferType*)mappedResources.pData;
+	dataPtrDS->gViewProj = Camera->GetViewProjTransMatrix();
+	dataPtrDS->gShadowTrans = Camera->GetViewProjTransMatrix();
 
-	dataPtr->gWorld = ViewProjTrans*XMMatrixTranspose(XMMatrixTranslation(0.0f, 15.0f, 0.0f));
+	mImmediateContext->Unmap(cbPerFrameDS, 0);
 
-	mImmediateContext->Unmap(MatrixBuffer, 0);
+	mImmediateContext->DSSetConstantBuffers(0, 1, &cbPerFrameDS);
+	mImmediateContext->DSSetShaderResources(0, 1, &mFFTSRV[1][0]);
 
-	mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
+	mImmediateContext->DSSetSamplers(0, 1, &mSamplerStates[1]);
+
+	mImmediateContext->DSSetShader(mDomainShader, NULL, 0);
+
+	// HS
+	cbPerFrameHSType* dataPtrHS;
+	mImmediateContext->Map(cbPerFrameHS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
+	dataPtrHS = (cbPerFrameHSType*)mappedResources.pData;
+
+	XMStoreFloat3(&(dataPtrHS->gEyePosW), Camera->GetPosition());
+	dataPtrHS->gMaxDist = 500.0f;
+	dataPtrHS->gMinDist = 20.0f;
+	dataPtrHS->gMaxTess = 6.0f;
+	dataPtrHS->gMinTess = 0.0f;
+	for (int i = 0; i < 6; ++i)
+		dataPtrHS->gWorldFrustumPlanes[i] = worldPlanes[i];
+	dataPtrHS->gFrustumCull = 1;
+
+	mImmediateContext->Unmap(cbPerFrameHS, 0);
+
+	mImmediateContext->HSSetConstantBuffers(0, 1, &cbPerFrameHS);
+
+	mImmediateContext->HSSetShader(mHullShader, NULL, 0);
+
+	// VS
+	cbPerFrameVSType *dataPtr;
+	mImmediateContext->Map(cbPerFrameVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
+
+	dataPtr = (cbPerFrameVSType*)mappedResources.pData;
+
+	dataPtr->gWorld = XMMatrixTranspose(XMMatrixTranslation(0.0f, 10.0f, 0.0f));
+
+	mImmediateContext->Unmap(cbPerFrameVS, 0);
+
+	mImmediateContext->VSSetConstantBuffers(0, 1, &cbPerFrameVS);
 
 	mImmediateContext->VSSetShaderResources(0, 1, &mFFTSRV[1][0]);
 
+	mImmediateContext->VSSetSamplers(0, 1, &mSamplerStates[0]);
+
 	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
 
+	// IA
 	mImmediateContext->IASetInputLayout(mInputLayout);
 
 	mImmediateContext->IASetIndexBuffer(mQuadPatchIB, DXGI_FORMAT_R32_UINT, 0);
 	mImmediateContext->IASetVertexBuffers(0, 1, &mQuadPatchVB, &stride, &offset);
-	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
 
 	mImmediateContext->RSSetState(mRastStateFrame);
 
@@ -120,6 +220,7 @@ void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<
 
 	ID3D11ShaderResourceView* ppSRVNULL = NULL;
 	mImmediateContext->VSSetShaderResources(0, 1, &ppSRVNULL);
+	mImmediateContext->DSSetShaderResources(0, 1, &ppSRVNULL);
 }
 
 void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateContext)
@@ -203,19 +304,27 @@ void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateCont
 
 void WaterClass::BuildQuadPatchVB(ID3D11Device1 * device)
 {
-	vector<Vertex> patchVertices;
+	vector<Vertex> patchVertices(mNumPatchVertCols*mNumPatchVertRows);
 
-	float dx = 1.0f / N;
-	for (int i = 0; i < Nplus1; ++i)
+	float halfWidth = 512.0f;
+	float halfDepth = 512.0f;
+
+	float patchWidth = 1024.0f / (mNumPatchVertCols - 1);
+	float patchDepth = 1024.0f / (mNumPatchVertRows - 1);
+
+	for (int i = 0; i < mNumPatchVertRows; ++i)
 	{
-		for (int j = 0; j < Nplus1; ++j)
+		float z = halfDepth - i*patchDepth;
+		for (int j = 0; j < mNumPatchVertCols; ++j)
 		{
-			patchVertices.push_back(Vertex{ XMFLOAT3(i, 0.0f, j) });
+			float x = -halfWidth + j*patchWidth;
+
+			patchVertices[i*mNumPatchVertCols + j] = Vertex{ XMFLOAT3(x, 0.0f, z), XMFLOAT2(x / 256.0f, z / 256.0f) };
 		}
 	}
 
 	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = D3D11_USAGE_DEFAULT;
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
 	vbd.ByteWidth = sizeof(Vertex)*patchVertices.size();
 	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vbd.CPUAccessFlags = 0;
@@ -229,18 +338,17 @@ void WaterClass::BuildQuadPatchVB(ID3D11Device1 * device)
 
 bool WaterClass::BuildQuadPatchIB(ID3D11Device1 * device)
 {
-	vector<UINT> indices;
+	vector<UINT> indices(mNumPatchQuadFaces * 4);
 
-	for (int i = 0; i < N; ++i)
+	int k = 0;
+	for (int i = 0; i < mNumPatchVertRows - 1; ++i)
 	{
-		for (int j = 0; j < N; ++j)
+		for (int j = 0; j < mNumPatchVertCols - 1; ++j)
 		{
-			indices.push_back(i*Nplus1 + j);
-			indices.push_back((i + 1)*Nplus1 + j);
-			indices.push_back((i + 1)*Nplus1 + j + 1);
-			indices.push_back(i*Nplus1 + j);
-			indices.push_back((i + 1)*Nplus1 + j + 1);
-			indices.push_back(i*Nplus1 + j + 1);
+			indices[k++] = i*mNumPatchVertCols + j;
+			indices[k++] = i*mNumPatchVertCols + j + 1;
+			indices[k++] = (i + 1)*mNumPatchVertCols + j;
+			indices[k++] = (i + 1)*mNumPatchVertCols + j + 1;
 		}
 	}
 
@@ -263,169 +371,36 @@ bool WaterClass::BuildQuadPatchIB(ID3D11Device1 * device)
 
 bool WaterClass::CreateInputLayoutAndShaders(ID3D11Device1 * device)
 {
-	ifstream stream;
-	size_t size;
-	char* data;
-
 	// compute
 	ID3D11ComputeShader* tempCShader;
-	stream.open("..\\Debug\\WaterCS_FFTPrep.cso", ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateComputeShader(data, size, 0, &tempCShader)))
-		{
-			LogError(L"Failed to create water pixel shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open WaterCS.cso");
-		return false;
-	}
+	CreateCSFromFile(L"..\\Debug\\WaterCS_FFTPrep.cso", device, tempCShader);
 	mComputeShader.push_back(tempCShader);
 
-	stream.open("..\\Debug\\WaterCS_FFT.cso", ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateComputeShader(data, size, 0, &tempCShader)))
-		{
-			LogError(L"Failed to create water pixel shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open WaterCS_FFT.cso");
-		return false;
-	}
+	CreateCSFromFile(L"..\\Debug\\WaterCS_FFT.cso", device, tempCShader);
 	mComputeShader.push_back(tempCShader);
 
-	stream.open("..\\Debug\\WaterCS_FFTPost.cso", ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateComputeShader(data, size, 0, &tempCShader)))
-		{
-			LogError(L"Failed to create water pixel shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open WaterCS_FFT.cso");
-		return false;
-	}
+	CreateCSFromFile(L"..\\Debug\\WaterCS_FFTPost.cso", device, tempCShader);
 	mComputeShader.push_back(tempCShader);
-
-	stream.open("..\\Debug\\WaterCS_DFT.cso", ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateComputeShader(data, size, 0, &tempCShader)))
-		{
-			LogError(L"Failed to create water pixel shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open WaterCS_FFT.cso");
-		return false;
-	}
-	mComputeShader.push_back(tempCShader);
-
+	
 	// pixel
-	stream.open("..\\Debug\\WaterPS.cso", ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
+	CreatePSFromFile(L"..\\Debug\\WaterPS.cso", device, mPixelShader);
 
-		if (FAILED(device->CreatePixelShader(data, size, 0, &mPixelShader)))
-		{
-			LogError(L"Failed to create water pixel shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open WaterPS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Water pixel shader created.");
-
-	// vertex shader
-	stream.open("..\\Debug\\WaterVS.cso", ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateVertexShader(data, size, 0, &mVertexShader)))
-		{
-			LogError(L"Failed to create water vertex shader");
-			return false;
-		}
-	}
-	else
-	{
-		LogError(L"Fail to open WaterPS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Water vertex shader created.");
-
+	// domain
+	CreateDSFromFile(L"..\\Debug\\WaterDS.cso", device, mDomainShader);
+	
+	// hull
+	CreateHSFromFile(L"..\\Debug\\WaterHS.cso", device, mHullShader);
+	
+	// vertex and input layout
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	int numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
 
-	if (FAILED(device->CreateInputLayout(vertexDesc, numElements, data, size, &mInputLayout))) return false;
-
-	delete[] data;
+	CreateVSAndInputLayout(L"..\\Debug\\WaterVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout);
 
 	return true;
 }

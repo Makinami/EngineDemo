@@ -1,5 +1,6 @@
 #include "terrain.h"
 #include "DDSTextureLoader.h"
+#include "Utilities\CreateShader.h"
 
 TerrainClass::TerrainClass() :
 	mQuadPatchVB(0),
@@ -587,113 +588,16 @@ void TerrainClass::BuildHeightmapSRV(ID3D11Device1* device)
 
 bool TerrainClass::CreateInputLayoutAndShaders(ID3D11Device1* device)
 {
-	ifstream stream;
-	size_t size;;
-	char* data;
-
 	// pixel
-	stream.open("..\\Debug\\TerrainPS.cso", ifstream::in | ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreatePixelShader(data, size, 0, &mPixelShader)))
-		{
-			LogError(L"Failed to create Pixel Shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open TerrainPS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Pixel Shader created.");
+	CreatePSFromFile(L"..\\Debug\\TerrainPS.cso", device, mPixelShader);
 
 	// domain
-	stream.open("..\\Debug\\TerrainDS.cso", ifstream::in | ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateDomainShader(data, size, 0, &mDomainShader)))
-		{
-			LogError(L"Failed to create Domain Shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open TerrainDS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Domain Shader created.");
+	CreateDSFromFile(L"..\\Debug\\TerrainDS.cso", device, mDomainShader);
 
 	// hull
-	stream.open("..\\Debug\\TerrainHS.cso", ifstream::in | ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
+	CreateHSFromFile(L"..\\Debug\\TerrainHS.cso", device, mHullShader);
 
-		if (FAILED(device->CreateHullShader(data, size, 0, &mHullShader)))
-		{
-			LogError(L"Failed to create Hull Shader");
-			return false;
-		}
-		delete[] data;
-	}
-	else
-	{
-		LogError(L"Failed to open TerrainHS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Hull Shader created.");
-
-	// vertex
-	stream.open("..\\Debug\\TerrainVS.cso", ifstream::in | ifstream::binary);
-	if (stream.good())
-	{
-		stream.seekg(0, ios::end);
-		size = size_t(stream.tellg());
-		data = new char[size];
-		stream.seekg(0, ios::beg);
-		stream.read(&data[0], size);
-		stream.close();
-
-		if (FAILED(device->CreateVertexShader(data, size, 0, &mVertexShader)))
-		{
-			LogError(L"Failed to create Vertex Shader");
-			return false;
-		}
-	}
-	else
-	{
-		LogError(L"Failed to open TerrainVS.cso");
-		return false;
-	}
-
-	LogSuccess(L"Vertex Shader created.");
-	
+	// vertex and input layout	
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -703,9 +607,8 @@ bool TerrainClass::CreateInputLayoutAndShaders(ID3D11Device1* device)
 
 	int numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
 
-	if (FAILED(device->CreateInputLayout(vertexDesc, numElements, data, size, &mInputLayout))) return false;
-
-	delete[] data;
+	CreateVSAndInputLayout(L"..\\Debug\\TerrainVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout);
+	
 	return true;
 }
 
