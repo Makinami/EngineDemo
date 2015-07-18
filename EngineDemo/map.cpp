@@ -23,9 +23,6 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	}
 	LogSuccess(L"Water initiated");
 
-	Water20 = std::make_shared<WaterClass20>();
-	Water20->Init(device, dc);
-
 	Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
@@ -193,9 +190,7 @@ void MapClass::Shutdown()
 
 void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 {
-	//Water->evaluateWavesFFT(dt);
-	Water20->evaluateWavesGPU(dt, mImmediateContext);
-	//Water->evaluateWavesGPU(dt, mImmediateContext);
+	Water->evaluateWavesGPU(dt, mImmediateContext);
 }
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
@@ -215,7 +210,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//DrawDebug(mImmediateContext);
 	*/
 	//Water->Draw(mImmediateContext, Camera);
-	Water20->Draw(mImmediateContext, Camera);
+	Water->Draw(mImmediateContext, Camera);
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)

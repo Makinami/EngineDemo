@@ -63,9 +63,6 @@
     <ClCompile Include="playerclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="water.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="shadowmapclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -79,7 +76,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Water20.cpp">
+    <ClCompile Include="water.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -114,9 +111,6 @@
     <ClInclude Include="playerclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="water.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="map.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -132,7 +126,7 @@
     <ClInclude Include="FFT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Water20.h">
+    <ClInclude Include="Water.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

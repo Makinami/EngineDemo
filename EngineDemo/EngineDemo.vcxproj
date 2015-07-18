@@ -159,7 +159,6 @@
     <ClCompile Include="terrain.cpp" />
     <ClCompile Include="timerclass.cpp" />
     <ClCompile Include="water.cpp" />
-    <ClCompile Include="Water20.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cameraclass.h" />
@@ -177,8 +176,7 @@
     <ClInclude Include="terrain.h" />
     <ClInclude Include="timerclass.h" />
     <ClInclude Include="Utilities\RenderViewTargetStack.h" />
-    <ClInclude Include="water.h" />
-    <ClInclude Include="Water20.h" />
+    <ClInclude Include="Water.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
