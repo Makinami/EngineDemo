@@ -27,55 +27,26 @@
 
 #include "loggerclass.h"
 #include "cameraclass.h"
-#include "FFT.h"
 
 using namespace std;
 using namespace DirectX;
 
-struct vertex_ocean
-{
-	float x, y, z; // vertex
-	float nx, ny, nz; // normal
-	float a, b, c; //htilde0
-	float _a, _b, _c; // htilde0mk conjugate
-	float ox, oy, oz; // original position
-};
-
-struct complex_vector_normal
-{
-	complex<float> h; // wave height
-	XMFLOAT2 D; // displacement
-	XMFLOAT3 n; // normal
-};
-
-class WaterClass : public HasLogger
+class WaterClass20 : public HasLogger
 {
 public:
 	struct Vertex
 	{
 		XMFLOAT3 Pos;
-		XMFLOAT3 Normal;
-		XMFLOAT3 hTilde0;
-		XMFLOAT3 hTilde0mkconj;
-		XMFLOAT3 Original;
 	};
 
 public:
-	WaterClass();
-	~WaterClass();
+	WaterClass20();
+	~WaterClass20();
 
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
-	void DrawWithShadow(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, ID3D11ShaderResourceView* shadowmap);
 
-	float dispersion(int n_prime, int m_prime); // deep water
-	float phillips(int n_prime, int m_prime); // phillips spectrum
-	complex<float> hTilde_0(int n_prime, int m_prime);
-	complex<float> hTilde(float t, int n_prime, int m_prime);
-	complex_vector_normal h_D_and_n(XMFLOAT2 x, float t);
-	void evaluateWaves(float t);
-	void evaluateWavesFFT(float t);
 	void evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateContext);
 
 private:
@@ -84,29 +55,54 @@ private:
 		XMMATRIX gWorld;
 	};
 
+	struct FFTInitialType
+	{
+		XMFLOAT2 h_0;
+		XMFLOAT2 h_0conj;
+		float dispersion;
+	};
+
+	struct TimeBufferCS
+	{
+		XMFLOAT4 time;
+	};
+
+	struct FFTParameters
+	{
+		UINT col_row_pass[4];
+	};
 private:
 	void BuildQuadPatchVB(ID3D11Device1* device);
 	bool BuildQuadPatchIB(ID3D11Device1* device);
 	bool CreateInputLayoutAndShaders(ID3D11Device1* device);
 
+	bool CreateInitialDataResource(ID3D11Device1* device);
+
 	ID3D11Buffer* mQuadPatchVB;
 	ID3D11Buffer* mQuadPatchIB;
 
 	ID3D11Buffer* MatrixBuffer;
+	ID3D11Buffer* FFTPrepBuffer;
+	ID3D11Buffer* FFTBuffer;
+
+	ID3D11Buffer* mFFTInitial;
+	ID3D11ShaderResourceView* mFFTInitialSRV;
+	ID3D11Buffer* mFFTOutput;
+	ID3D11UnorderedAccessView* mFFTUAV[2][2];
+	ID3D11ShaderResourceView* mFFTSRV[2][2];
 
 	ID3D11InputLayout* mInputLayout;
 	ID3D11VertexShader* mVertexShader;
 	ID3D11PixelShader* mPixelShader;
+	vector<ID3D11ComputeShader*> mComputeShader;
 
 	XMFLOAT4X4 mWorld;
 
-	float g; // gravity constant
+	const float g;
 	int N, Nplus1; // dimension -- N should be a power of 2
 	float A; // phillips spectrum parameter -- affect heights of waves
 	XMFLOAT2 w; // wind parameter
 	float length; // length parameter
-	complex<float> *h_tilde, *h_tilde_slopex, *h_tilde_slopez, *h_tilde_dx, *h_tilde_dz; // for fft
-	cFFT *fft;
 
 	default_random_engine generator;
 	normal_distribution<float> distribution;
@@ -115,19 +111,12 @@ private:
 
 	ID3D11RasterizerState* mRastStateFrame;
 
-	vector<vertex_ocean> vertices;
-	vector<UINT>indices;
+	vector<Vertex> vertices;
+	vector<UINT> indices;
 	UINT indices_count;
 
-	ID3DX11FFT* mFFTDevice;
-
-	vector<ID3D11Buffer*> ArrBufTemp;
-	vector<ID3D11UnorderedAccessView*> ArrBufTemp_UAV;
-
-	vector<ID3D11Buffer*> ArrBufpreCompu;
-	vector<ID3D11UnorderedAccessView*> ArrBufpreCompu_UAV;
-
-	ID3D11Buffer* FFTCPUInput;
-	ID3D11Buffer* FFTInput;
-	ID3D11UnorderedAccessView* FFTInput_UAV;
+	// helpers
+	float PhillipsSpectrum(int n, int m);
+	complex<float> hTilde_0(int n, int m);
+	float Dispersion(int n, int m);
 };

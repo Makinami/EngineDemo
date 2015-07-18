@@ -79,6 +79,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Water20.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -129,6 +132,9 @@
     <ClInclude Include="FFT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Water20.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -160,6 +166,15 @@
     </FxCompile>
     <FxCompile Include="DebugPS.hlsl">
       <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="WaterCS_FFT.hlsl">
+      <Filter>Shaders\Watter</Filter>
+    </FxCompile>
+    <FxCompile Include="WaterCS_FFTPrep.hlsl">
+      <Filter>Shaders\Watter</Filter>
+    </FxCompile>
+    <FxCompile Include="WaterCS_FFTPost.hlsl">
+      <Filter>Shaders\Watter</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

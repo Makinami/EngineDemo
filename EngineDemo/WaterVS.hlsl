@@ -6,11 +6,11 @@ cbuffer MatrixBuffer
 struct VertexIn
 {
 	float3 PosW : POSITION0;
-	float3 Normal : NORMAL;
-	float3 hTilde0 : TEXCOORD0;
-	float3 hTilde0mkconj : TEXCOORD1;
-	float3 Original : POSITION1;
 };
+
+SamplerState samHeightmap : register(s0);
+
+Texture2D gFFTOutput : register(t0);
 
 struct VertexOut
 {
@@ -20,6 +20,10 @@ struct VertexOut
 VertexOut main( VertexIn vin )
 {
 	VertexOut dout;
+
+	float3 displacement = gFFTOutput[vin.PosW.xz].rgb;
+	
+	vin.PosW += displacement;
 
 	dout.PosH = mul(float4(vin.PosW, 1.0f), gWorldProjView);
 

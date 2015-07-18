@@ -101,7 +101,7 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	mNumPatchQuadFaces = (mNumPatchVertRows - 1)*(mNumPatchVertCols - 1);
 	
 	LoadHeighMap();
-	Smooth();
+	//Smooth();
 	CalcAllPatchBoundsY();
 	
 	BuildQuadPatchVB(device);

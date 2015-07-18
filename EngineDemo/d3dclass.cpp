@@ -56,11 +56,11 @@ D3DClass::D3DClass()
 		ReleaseCOM(mDevice);
 		return;
 	}
-	else if (mDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
+	/*else if (mDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
 	{
 		MessageBox(0, L"Direct3D in feature level 11_0. Possible unexpected behavior.", 0, 0);
 		LogNotice(L"Direct3D in feature level 11_0. Possible unexpected behavior.");
-	}
+	}*/
 }
 
 D3DClass::D3DClass(const D3DClass& other)

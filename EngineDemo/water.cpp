@@ -41,7 +41,7 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 	if (FAILED(device->CreateBuffer(&matrixBufferDesc, NULL, &MatrixBuffer))) return false;
 
 	g = 9.81f;
-	N = 64;
+	N = 256;
 	Nplus1 = N + 1;
 	A = 0.0005f;
 	w = XMFLOAT2(32.0f, 32.0f);
@@ -101,22 +101,149 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 
 	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateFrame))) return false;
 
-	D3DX11_FFT_DESC  fftdesc = {};
-	fftdesc.ElementLengths[0] = fftdesc.ElementLengths[1] = fftdesc.ElementLengths[2] = 1;
-
-	fftdesc.NumDimensions = 1;
-	fftdesc.ElementLengths[0] = 102;
-	fftdesc.DimensionMask = D3DX11_FFT_DIM_MASK_1D;
-	fftdesc.Type = D3DX11_FFT_DATA_TYPE_COMPLEX;
-
-	D3DX11_FFT_BUFFER_INFO  fftbufferinfo = {};
-	mFFTDevice = 0;
+	/*D3DX11_FFT_BUFFER_INFO  fftbufferinfo = {};
 	HRESULT hr;
-	if (FAILED(hr = D3DX11CreateFFT((ID3D11DeviceContext*)dc, &fftdesc, 0, &fftbufferinfo, &mFFTDevice)))
-	//if FAILED(hr = D3DX11CreateFFT2DComplex(dc, 1, 1, 0, &FFTdesc, &mFFTDevice))
+	if (FAILED(hr = D3DX11CreateFFT2DComplex(dc, N, N, 0, &fftbufferinfo, &mFFTDevice)))
 	{
 		return false;
 	}
+
+	for (UINT i = 0; i < fftbufferinfo.NumTempBufferSizes; ++i)
+	{
+		ID3D11Buffer* tmp_pBufT1;
+		
+		D3D11_BUFFER_DESC desc = {};
+		desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+		desc.ByteWidth = sizeof(float)*fftbufferinfo.TempBufferFloatSizes[i];
+		desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+		desc.StructureByteStride = sizeof(float);
+
+		device->CreateBuffer(&desc, NULL, &tmp_pBufT1);
+
+		ID3D11UnorderedAccessView* tmp_pBufT1_UAV;
+		tmp_pBufT1->GetDesc(&desc);
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC undesc = {};
+		undesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		undesc.Buffer.FirstElement = 0;
+
+		if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
+		{
+			// This is a Raw Buffer
+
+			undesc.Format = DXGI_FORMAT_R32_TYPELESS; // Format must be DXGI_FORMAT_R32_TYPELESS, when creating Raw Unordered Access View
+			undesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+			undesc.Buffer.NumElements = desc.ByteWidth / 4;
+		}
+		else if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+		{
+			// This is a Structured Buffer
+
+			undesc.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+			undesc.Buffer.NumElements = desc.ByteWidth / desc.StructureByteStride;
+		}
+		else
+		{
+			return E_INVALIDARG;
+		}
+
+		device->CreateUnorderedAccessView(tmp_pBufT1, &undesc, &tmp_pBufT1_UAV);
+
+		ArrBufTemp.push_back(tmp_pBufT1);
+		ArrBufTemp_UAV.push_back(tmp_pBufT1_UAV);
+	}
+
+	for (UINT i = 0; i < fftbufferinfo.NumPrecomputeBufferSizes; ++i)
+	{
+		ID3D11Buffer* tmp_pBufT1;
+
+		D3D11_BUFFER_DESC desc = {};
+		desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+		desc.ByteWidth = sizeof(float)*fftbufferinfo.TempBufferFloatSizes[i];
+		desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+		desc.StructureByteStride = sizeof(float);
+
+		device->CreateBuffer(&desc, NULL, &tmp_pBufT1);
+
+		ID3D11UnorderedAccessView* tmp_pBufT1_UAV;
+		tmp_pBufT1->GetDesc(&desc);
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC undesc = {};
+		undesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		undesc.Buffer.FirstElement = 0;
+
+		if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
+		{
+			// This is a Raw Buffer
+
+			undesc.Format = DXGI_FORMAT_R32_TYPELESS; // Format must be DXGI_FORMAT_R32_TYPELESS, when creating Raw Unordered Access View
+			undesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+			undesc.Buffer.NumElements = desc.ByteWidth / 4;
+		}
+		else if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+		{
+			// This is a Structured Buffer
+
+			undesc.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+			undesc.Buffer.NumElements = desc.ByteWidth / desc.StructureByteStride;
+		}
+		else
+		{
+			return E_INVALIDARG;
+		}
+
+		device->CreateUnorderedAccessView(tmp_pBufT1, &undesc, &tmp_pBufT1_UAV);
+
+		ArrBufpreCompu.push_back(tmp_pBufT1);
+		ArrBufpreCompu_UAV.push_back(tmp_pBufT1_UAV);
+	}
+
+	mFFTDevice->AttachBuffersAndPrecompute(ArrBufTemp_UAV.size(), ArrBufTemp_UAV.size() ? &ArrBufTemp_UAV[0] : NULL,
+										   ArrBufpreCompu_UAV.size(), ArrBufpreCompu_UAV.size() ? &ArrBufpreCompu_UAV[0] : NULL);
+
+	D3D11_BUFFER_DESC vbd = {};
+	vbd.Usage = D3D11_USAGE_DEFAULT;
+	vbd.ByteWidth = sizeof(XMFLOAT2)*N*N;
+	vbd.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;;
+	vbd.StructureByteStride = sizeof(XMFLOAT2);
+
+	hr = device->CreateBuffer(&vbd, NULL, &FFTInput);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC undesc = {};
+	undesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	undesc.Buffer.FirstElement = 0;
+
+	if (vbd.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
+	{
+		// This is a Raw Buffer
+
+		undesc.Format = DXGI_FORMAT_R32_TYPELESS; // Format must be DXGI_FORMAT_R32_TYPELESS, when creating Raw Unordered Access View
+		undesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+		undesc.Buffer.NumElements = vbd.ByteWidth / 4;
+	}
+	else if (vbd.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+	{
+		// This is a Structured Buffer
+
+		undesc.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+		undesc.Buffer.NumElements = vbd.ByteWidth / vbd.StructureByteStride;
+	}
+	else
+	{
+		return E_INVALIDARG;
+	}
+
+	device->CreateUnorderedAccessView(FFTInput, &undesc, &FFTInput_UAV);
+
+	vbd = {};
+	vbd.Usage = D3D11_USAGE_STAGING;
+	vbd.ByteWidth = sizeof(XMFLOAT2)*N*N;
+	vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+	vbd.MiscFlags = 0;
+	vbd.StructureByteStride = 0;
+
+	hr = device->CreateBuffer(&vbd, NULL, &FFTCPUInput);*/
 
 	return true;
 }
@@ -407,18 +534,18 @@ void WaterClass::evaluateWavesFFT(float t)
 	for (int m_prime = 0; m_prime < N; ++m_prime)
 	{
 		fft->fft(h_tilde, h_tilde, 1, m_prime*N);
-		//fft->fft(h_tilde_slopex, h_tilde_slopex, 1, m_prime*N);
-		//fft->fft(h_tilde_slopez, h_tilde_slopez, 1, m_prime*N);
-		//fft->fft(h_tilde_dx, h_tilde_dx, 1, m_prime*N);
-		//fft->fft(h_tilde_dz, h_tilde_dz, 1, m_prime*N);
+		fft->fft(h_tilde_slopex, h_tilde_slopex, 1, m_prime*N);
+		fft->fft(h_tilde_slopez, h_tilde_slopez, 1, m_prime*N);
+		fft->fft(h_tilde_dx, h_tilde_dx, 1, m_prime*N);
+		fft->fft(h_tilde_dz, h_tilde_dz, 1, m_prime*N);
 	}
 	for (int n_prime = 0; n_prime < N; ++n_prime)
 	{
 		fft->fft(h_tilde, h_tilde, N, n_prime);
-		//fft->fft(h_tilde_slopex, h_tilde_slopex, N, n_prime);
-		//fft->fft(h_tilde_slopez, h_tilde_slopez, N, n_prime);
-		//fft->fft(h_tilde_dx, h_tilde_dx, N, n_prime);
-		//fft->fft(h_tilde_dz, h_tilde_dz, N, n_prime);
+		fft->fft(h_tilde_slopex, h_tilde_slopex, N, n_prime);
+		fft->fft(h_tilde_slopez, h_tilde_slopez, N, n_prime);
+		fft->fft(h_tilde_dx, h_tilde_dx, N, n_prime);
+		fft->fft(h_tilde_dz, h_tilde_dz, N, n_prime);
 	}
 
 	float sign;
@@ -488,9 +615,80 @@ void WaterClass::evaluateWavesFFT(float t)
 	}
 }
 
-void WaterClass::evaluateWavesGPU(float t)
+void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateContext)
 {
+	/*t = time;
 
+	float kx, kz, len, lambda = -1.0f;
+	int index, index1;
+
+	D3D11_MAPPED_SUBRESOURCE mappedData;
+	HRESULT hr = mImmediateContext->Map(FFTCPUInput, 0, D3D11_MAP_WRITE, 0, &mappedData);
+	XMFLOAT2* grain = reinterpret_cast<XMFLOAT2*>(mappedData.pData);
+	complex<float> temp;
+
+	for (int m_prime = 0; m_prime < N; ++m_prime)
+	{
+		for (int n_prime = 0; n_prime < N; ++n_prime)
+		{
+			index = m_prime*N + n_prime;
+
+			temp = hTilde(t, n_prime, m_prime);
+
+			grain[index].x = real(temp);
+			grain[index].y = imag(temp);
+		}
+	}
+
+	mImmediateContext->Unmap(FFTCPUInput, 0);
+
+	mImmediateContext->CopyResource(FFTInput, FFTCPUInput);
+
+	ID3D11UnorderedAccessView* FFTOutput_UAV = NULL;
+	mFFTDevice->SetInverseScale(10.0f);
+	hr = mFFTDevice->InverseTransform(FFTInput_UAV, &FFTOutput_UAV);
+	
+
+	ID3D11Buffer* tempout = NULL;
+	FFTOutput_UAV->GetResource((ID3D11Resource**)&tempout);
+
+	mImmediateContext->CopyResource(FFTCPUInput, tempout);
+
+	D3D11_MAPPED_SUBRESOURCE dataFFT, dataVB;
+	hr = mImmediateContext->Map(FFTCPUInput, 0, D3D11_MAP_READ, 0, &dataFFT);
+	XMFLOAT2* FFTOutput = reinterpret_cast<XMFLOAT2*>(dataFFT.pData);
+
+	float sign;
+	float signs[] = { 1.0f, -1.0f };
+	for (int m_prime = 0; m_prime < N; m_prime++)
+	{
+		for (int n_prime = 0; n_prime < N; ++n_prime)
+		{
+			index = m_prime*N + n_prime;
+			index1 = m_prime*Nplus1 + n_prime;
+
+			//sign = signs[(n_prime + m_prime) & 1];
+
+			complex<float> temp = complex<float>(FFTOutput[index].x, FFTOutput[index].y);
+			//temp =  temp*sign;
+
+			//height
+			vertices[index1].y = real(temp);
+
+			// for tiling
+			if (n_prime == 0 && m_prime == 0) {
+				vertices[index1 + N + Nplus1 * N].y = real(temp);
+			}
+			if (n_prime == 0) {
+				vertices[index1 + N].y = real(temp);
+			}
+			if (m_prime == 0) {
+				vertices[index1 + Nplus1 * N].y = real(temp);
+			}
+		}
+	}
+
+	mImmediateContext->Unmap(tempout, 0);*/
 }
 
 void WaterClass::BuildQuadPatchVB(ID3D11Device1 * device)

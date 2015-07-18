@@ -9,6 +9,7 @@
 #include "loggerclass.h"
 #include "terrain.h"
 #include "water.h"
+#include "Water20.h"
 
 #include "shadowmapclass.h"
 
@@ -33,7 +34,7 @@ public:
 
 	void Shutdown();
 
-	void Update(float dt);
+	void Update(float dt, ID3D11DeviceContext1 * mImmediateContext);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 	void Draw20(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
@@ -45,6 +46,7 @@ public:
 private:
 	std::shared_ptr<TerrainClass> Terrain;
 	std::shared_ptr<WaterClass> Water;
+	std::shared_ptr<WaterClass20> Water20;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;
