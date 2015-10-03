@@ -9,6 +9,7 @@
 #include "loggerclass.h"
 #include "terrain.h"
 #include "Water.h"
+#include "Sky.h"
 
 #include "shadowmapclass.h"
 
@@ -45,6 +46,7 @@ public:
 private:
 	std::shared_ptr<TerrainClass> Terrain;
 	std::shared_ptr<WaterClass> Water;
+	std::shared_ptr<SkyClass> Sky;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;

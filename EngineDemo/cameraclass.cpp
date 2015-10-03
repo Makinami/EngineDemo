@@ -7,6 +7,7 @@ CameraClass::CameraClass()
 	mUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	mLook = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	mRight = XMFLOAT3(0.0f, 0.0f, -1.0f);
+	mPositionRelSun = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	SetLens(XM_PIDIV4, 16.0f / 9.0f, 1.0f, 100.0f);
 }
@@ -17,6 +18,7 @@ CameraClass::~CameraClass()
 void CameraClass::SetPosition(float x, float y, float z)
 {
 	mPosition = XMFLOAT3(x, y, z);
+	mPositionRelSun = XMFLOAT3(0.0f, 6360 + y/1000, 0.0f);
 	mValid = false;
 }
 
@@ -32,7 +34,7 @@ void CameraClass::SetUp(float x, float y, float z)
 	mValid = false;
 }
 
-void CameraClass::setRight(float x, float y, float z)
+void CameraClass::SetRight(float x, float y, float z)
 {
 	mRight = XMFLOAT3(x, y, z);
 	mValid = false;
@@ -40,7 +42,10 @@ void CameraClass::setRight(float x, float y, float z)
 
 void CameraClass::SetLens(float fovY, float aspect, float zn, float zf)
 {
-	XMStoreFloat4x4(&mProj, XMMatrixPerspectiveFovLH(fovY, aspect, zn, zf));
+	XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, aspect, zn, zf);
+
+	XMStoreFloat4x4(&mProj, proj);
+	XMStoreFloat4x4(&mProjTrans, XMMatrixTranspose(proj));
 
 	mValid = false;
 }
@@ -52,6 +57,8 @@ void CameraClass::LookAt(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR worldUp)
 	XMVECTOR U = XMVector3Cross(L, R);
 
 	XMStoreFloat3(&mPosition, pos);
+	mPositionRelSun.y = mPosition.y;
+
 	XMStoreFloat3(&mLook, L);
 	XMStoreFloat3(&mRight, R);
 	XMStoreFloat3(&mUp, U);
@@ -62,6 +69,7 @@ void CameraClass::LookAt(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR worldUp)
 void CameraClass::ChangePosition(float x, float y, float z)
 {
 	mPosition = XMFLOAT3(mPosition.x + x, mPosition.y + y, mPosition.z + z);
+	mPositionRelSun.y = mPosition.y / 1000 + 6360.0f;
 	mValid = false;
 }
 
@@ -96,12 +104,8 @@ XMVECTOR CameraClass::GetRight() const
 
 XMMATRIX CameraClass::GetViewMatrix()
 {
-	if (mValid)	return XMLoadFloat4x4(&mView);
-	else
-	{
-		UpdateViewMatrix();
-		return XMLoadFloat4x4(&mView);
-	}
+	if (!mValid) UpdateViewMatrix();
+	return XMLoadFloat4x4(&mView);
 }
 
 XMMATRIX CameraClass::GetProjMatrix()
@@ -111,22 +115,36 @@ XMMATRIX CameraClass::GetProjMatrix()
 
 XMMATRIX CameraClass::GetViewProjMatrix()
 {
-	if (mValid) return XMLoadFloat4x4(&mViewProj);
-	else
-	{
-		UpdateViewMatrix();
-		return XMLoadFloat4x4(&mViewProj);
-	}
+	if (!mValid) UpdateViewMatrix();
+	return XMLoadFloat4x4(&mViewProj);
 }
 
 XMMATRIX CameraClass::GetViewProjTransMatrix()
 {
-	if (mValid) return XMLoadFloat4x4(&mViewProjTrans);
-	else
-	{
-		UpdateViewMatrix();
-		return XMLoadFloat4x4(&mViewProjTrans);
-	}
+	if (mValid) UpdateViewMatrix();
+	return XMLoadFloat4x4(&mViewProjTrans);
+}
+
+XMMATRIX CameraClass::GetViewRelSun()
+{
+	if (!mValid) UpdateViewMatrix();
+	return XMLoadFloat4x4(&mViewRelSun);
+}
+
+XMMATRIX CameraClass::GetViewRelSunTrans()
+{
+	if (!mValid) UpdateViewMatrix();
+	return XMLoadFloat4x4(&mViewRelSunTrans);
+}
+
+XMMATRIX CameraClass::GetProjTrans()
+{
+	return XMLoadFloat4x4(&mProjTrans);
+}
+
+XMVECTOR CameraClass::GetPositionRelSun() const
+{
+	return XMLoadFloat3(&mPositionRelSun);
 }
 
 void CameraClass::Walk(XMFLOAT3 deltaX)
@@ -139,6 +157,7 @@ void CameraClass::Walk(XMFLOAT3 deltaX)
 	
 	p = XMVectorMultiplyAdd(w, l, p);
 	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(d, r, p));
+	mPositionRelSun.y = mPosition.y/1000 + 6360.0f;
 
 	mValid = false;
 }
@@ -168,10 +187,13 @@ inline void CameraClass::UpdateViewMatrix()
 {
 	XMMATRIX mViewMatrix = XMMatrixLookToLH(XMLoadFloat3(&mPosition), XMLoadFloat3(&mLook), XMLoadFloat3(&mUp));
 	XMMATRIX mViewProjMatrix = mViewMatrix*GetProjMatrix();
+	XMMATRIX mViewRelSunMatrix = XMMatrixLookToLH(XMLoadFloat3(&mPositionRelSun), XMLoadFloat3(&mLook), XMLoadFloat3(&mUp));
 
 	XMStoreFloat4x4(&mView, mViewMatrix);
 	XMStoreFloat4x4(&mViewProj, mViewProjMatrix);
 	XMStoreFloat4x4(&mViewProjTrans, XMMatrixTranspose(mViewProjMatrix));
+	XMStoreFloat4x4(&mViewRelSun, mViewRelSunMatrix);
+	XMStoreFloat4x4(&mViewRelSunTrans, XMMatrixTranspose(mViewRelSunMatrix));
 
 	mValid = true;
 }

@@ -24,6 +24,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	}
 	LogSuccess(L"Water initiated");
 
+	Sky = std::make_shared<SkyClass>();
+	Sky->Init(device, dc);
+
 	Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
@@ -158,6 +161,8 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//DrawDebug(mImmediateContext);
 	
 	Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+
+	Sky->Draw(mImmediateContext, Camera, light);
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)

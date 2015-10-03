@@ -31,6 +31,9 @@
     <Filter Include="Utilities">
       <UniqueIdentifier>{b32946a3-196e-4ebd-806b-5841d938e6fe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Sky">
+      <UniqueIdentifier>{dbc5dcd7-e2e1-4be6-b8e1-8d97717d27b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -81,6 +84,9 @@
     </ClCompile>
     <ClCompile Include="Utilities\CreateShader.cpp">
       <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Sky.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -135,6 +141,15 @@
     <ClInclude Include="Utilities\CreateShader.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="Version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sky.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\Sky\resolutions.h">
+      <Filter>Shaders\Sky</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -142,18 +157,6 @@
     </FxCompile>
     <FxCompile Include="BasicVS.hlsl">
       <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="TerrainVS.hlsl">
-      <Filter>Shaders\Terrain</Filter>
-    </FxCompile>
-    <FxCompile Include="TerrainHS.hlsl">
-      <Filter>Shaders\Terrain</Filter>
-    </FxCompile>
-    <FxCompile Include="TerrainDS.hlsl">
-      <Filter>Shaders\Terrain</Filter>
-    </FxCompile>
-    <FxCompile Include="TerrainPS.hlsl">
-      <Filter>Shaders\Terrain</Filter>
     </FxCompile>
     <FxCompile Include="WaterVS.hlsl">
       <Filter>Shaders\Watter</Filter>
@@ -182,8 +185,56 @@
     <FxCompile Include="WaterHS.hlsl">
       <Filter>Shaders\Watter</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Sky\transmittance.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain\TerrainDS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain\TerrainHS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain\TerrainPS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain\TerrainVS.hlsl">
+      <Filter>Shaders\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\copyinscatter1.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\inscatter1.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\inscatterS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\irradiance1.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\irradianceN.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\inscatterN.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\copyInscatterN.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\copyIrradiance.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyPS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyVS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
+    <None Include="Shaders\Sky\common.hlsli">
+      <Filter>Shaders\Sky</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -218,6 +218,9 @@ void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<
 
 	mImmediateContext->DrawIndexed(indices_count, 0, 0);
 
+	mImmediateContext->HSSetShader(0, 0, 0);
+	mImmediateContext->DSSetShader(0, 0, 0);
+
 	ID3D11ShaderResourceView* ppSRVNULL = NULL;
 	mImmediateContext->VSSetShaderResources(0, 1, &ppSRVNULL);
 	mImmediateContext->DSSetShaderResources(0, 1, &ppSRVNULL);

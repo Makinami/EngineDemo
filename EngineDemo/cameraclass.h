@@ -21,7 +21,7 @@ class CameraClass
 		void SetPosition(float x, float y, float z);
 		void SetLook(float x, float y, float z);
 		void SetUp(float x, float y, float z);
-		void setRight(float x, float y, float z);
+		void SetRight(float x, float y, float z);
 
 		void SetLens(float fovY, float aspect, float zn, float zf);
 
@@ -40,6 +40,11 @@ class CameraClass
 		XMMATRIX GetViewProjMatrix();
 		XMMATRIX GetViewProjTransMatrix();
 
+		XMMATRIX GetViewRelSun();
+		XMMATRIX GetViewRelSunTrans();
+		XMMATRIX GetProjTrans();
+		XMVECTOR GetPositionRelSun() const;
+
 		void Walk(XMFLOAT3 d);
 
 		void Pitch(float angle);
@@ -50,11 +55,17 @@ class CameraClass
 		inline void UpdateViewMatrix();
 
 		XMFLOAT3 mPosition, mRight, mUp, mLook;
+
+		XMFLOAT3 mPositionRelSun;
 		
 		XMFLOAT4X4 mProj;
 		XMFLOAT4X4 mView;
 		XMFLOAT4X4 mViewProj;
 		XMFLOAT4X4 mViewProjTrans;
+
+		XMFLOAT4X4 mViewRelSun;
+		XMFLOAT4X4 mViewRelSunTrans;
+		XMFLOAT4X4 mProjTrans;
 
 		bool mValid;
 };

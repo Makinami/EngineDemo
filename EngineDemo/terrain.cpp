@@ -589,13 +589,13 @@ void TerrainClass::BuildHeightmapSRV(ID3D11Device1* device)
 bool TerrainClass::CreateInputLayoutAndShaders(ID3D11Device1* device)
 {
 	// pixel
-	CreatePSFromFile(L"..\\Debug\\TerrainPS.cso", device, mPixelShader);
+	CreatePSFromFile(L"..\\Debug\\Shaders\\Terrain\\TerrainPS.cso", device, mPixelShader);
 
 	// domain
-	CreateDSFromFile(L"..\\Debug\\TerrainDS.cso", device, mDomainShader);
+	CreateDSFromFile(L"..\\Debug\\Shaders\\Terrain\\TerrainDS.cso", device, mDomainShader);
 
 	// hull
-	CreateHSFromFile(L"..\\Debug\\TerrainHS.cso", device, mHullShader);
+	CreateHSFromFile(L"..\\Debug\\Shaders\\Terrain\\TerrainHS.cso", device, mHullShader);
 
 	// vertex and input layout	
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
@@ -607,7 +607,7 @@ bool TerrainClass::CreateInputLayoutAndShaders(ID3D11Device1* device)
 
 	int numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
 
-	CreateVSAndInputLayout(L"..\\Debug\\TerrainVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout);
+	CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Terrain\\TerrainVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout);
 	
 	return true;
 }
