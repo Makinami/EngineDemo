@@ -55,7 +55,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	light.Ambient(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	light.Diffuse(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Specular(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
-	light.Direction(XMFLOAT3(0.994987f, -0.1f, 0.0f));
+	light.Direction(XMFLOAT3(0.1f, -0.994987f, 0.0f));
 
 	vector<TerrainClass::Vertex> patchVertices(4);
 
@@ -156,11 +156,11 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
 
-	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	//DrawDebug(mImmediateContext);
 	
-	Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	Sky->Draw(mImmediateContext, Camera, light);
 }

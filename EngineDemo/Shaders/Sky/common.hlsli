@@ -11,10 +11,21 @@ static const float HR = 8.0f;
 static const float3 betaR = float3(5.8e-3, 1.35e-2, 3.31e-2);
 
 // Mie
+// default
 static const float HM = 1.2;
 static const float3 betaMSca = float3(4e-3, 4e-3, 4e-3);
 static const float3 betaMEx = betaMSca / 0.9f;
 static const float mieG = 0.8;
+// clear
+//static const float HM = 1.2;
+//static const float3 betaMSca = float3(20e-3, 20e-3, 20e-3);
+//static const float3 betaMEx = betaMSca / 0.9f;
+//static const float mieG = 0.76;
+// cloudy
+//static const float HM = 3.0;
+//static const float3 betaMSca = float3(3e-3, 3e-3, 3e-3);
+//static const float3 betaMEx = betaMSca / 0.9f;
+//static const float mieG = 0.65;
 
 
 /*

@@ -103,7 +103,7 @@ float3 inscatter(inout float3 x, inout float t, float3 v, float3 s, out float r,
 		// avoid imprecision problems in Mie scattering when sun isbelow horizon
 		inscatter.w *= smoothstep(0.0, 0.02, muS);
 #endif
-		result = inscatter;// max(inscatter.rgb*phaseR + getMie(inscatter)*phaseM, 0.0);
+		result = max(inscatter.rgb*phaseR + getMie(inscatter)*phaseM, 0.0);
 	}
 	else // x in spacce and ray looking in space
 	{
