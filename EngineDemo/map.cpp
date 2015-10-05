@@ -156,11 +156,11 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
 
-	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	//DrawDebug(mImmediateContext);
 	
-	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	Sky->Draw(mImmediateContext, Camera, light);
 }

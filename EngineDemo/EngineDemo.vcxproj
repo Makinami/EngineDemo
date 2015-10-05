@@ -162,7 +162,6 @@
     <ClCompile Include="playerclass.cpp" />
     <ClCompile Include="shadowmapclass.cpp" />
     <ClCompile Include="Sky.cpp" />
-    <ClCompile Include="Sun.cpp" />
     <ClCompile Include="systemclass.cpp" />
     <ClCompile Include="terrain.cpp" />
     <ClCompile Include="timerclass.cpp" />
@@ -183,7 +182,6 @@
     <ClInclude Include="Shaders\Sky\resolutions.h" />
     <ClInclude Include="shadowmapclass.h" />
     <ClInclude Include="Sky.h" />
-    <ClInclude Include="Sun.h" />
     <ClInclude Include="systemclass.h" />
     <ClInclude Include="terrain.h" />
     <ClInclude Include="timerclass.h" />

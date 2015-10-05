@@ -88,9 +88,6 @@
     <ClCompile Include="Sky.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sun.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -152,9 +149,6 @@
     </ClInclude>
     <ClInclude Include="Shaders\Sky\resolutions.h">
       <Filter>Shaders\Sky</Filter>
-    </ClInclude>
-    <ClInclude Include="Sun.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
