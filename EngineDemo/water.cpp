@@ -18,15 +18,43 @@ WaterClass::~WaterClass()
 	ReleaseCOM(mQuadPatchIB);
 	ReleaseCOM(mQuadPatchVB);
 
+	ReleaseCOM(cbPerFrameHS);
 	ReleaseCOM(cbPerFrameDS);
+	ReleaseCOM(cbPerFramePS);
+	ReleaseCOM(cbPerFrameVS);
+	ReleaseCOM(FFTPrepBuffer);
+	ReleaseCOM(FFTBuffer);
+
+	ReleaseCOM(mFFTInitial);
+	ReleaseCOM(mFFTInitialSRV);
+
+	for (size_t i = 0; i < 2; i++)
+	{
+		for (size_t j = 0; j < 2; j++)
+		{
+			ReleaseCOM(mFFTUAV[i][j]);
+			ReleaseCOM(mFFTSRV[i][j]);
+		}
+	}
 
 	ReleaseCOM(mInputLayout);
 	ReleaseCOM(mVertexShader);
+	ReleaseCOM(mHullShader);
+	ReleaseCOM(mDomainShader);
 	ReleaseCOM(mPixelShader);
 
-	for (int i = 0; i < mComputeShader.size(); ++i) ReleaseCOM(mComputeShader[i]);
-
+	for (auto mCS : mComputeShader)
+	{
+		ReleaseCOM(mCS);
+	}
+	
 	ReleaseCOM(mRastStateFrame);
+	
+	for (size_t i = 0; i < 3; i++)
+	{
+		ReleaseCOM(mSamplerStates[i]);
+	}
+	delete[] mSamplerStates;
 }
 
 bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
@@ -483,6 +511,11 @@ bool WaterClass::CreateInitialDataResource(ID3D11Device1 * device)
 	hr = device->CreateUnorderedAccessView(FFTImag0, &FFTRIUAVDesc, &mFFTUAV[0][1]);
 	hr = device->CreateUnorderedAccessView(FFTReal1, &FFTRIUAVDesc, &mFFTUAV[1][0]);
 	hr = device->CreateUnorderedAccessView(FFTImag1, &FFTRIUAVDesc, &mFFTUAV[1][1]);
+
+	ReleaseCOM(FFTReal0);
+	ReleaseCOM(FFTImag0);
+	ReleaseCOM(FFTReal1);
+	ReleaseCOM(FFTImag1);
 
 	return false;
 }

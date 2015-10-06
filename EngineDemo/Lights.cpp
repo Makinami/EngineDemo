@@ -1,5 +1,9 @@
 #include "Lights.h"
 
+
+/*
+ * Directional Light definitions
+ */
 DirectionalLight::DirectionalLight()
 	: mValid(0)
 {
@@ -13,6 +17,12 @@ DirectionalLight::DirectionalLight()
 DirectionalLight::DirectionalLight(const XMFLOAT4 & _Ambient, const XMFLOAT4 & _Diffuse, const XMFLOAT4 & _Specular, const XMFLOAT3 & _Direction)
 	: mValid(0)
 {
+	mMap = XMFLOAT4X4(
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f);
+
 	mLight.Ambient = _Ambient;
 	mLight.Diffuse = _Diffuse;
 	mLight.Specular = _Specular;

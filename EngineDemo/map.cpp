@@ -5,7 +5,8 @@
 
 MapClass::MapClass() :
 	Terrain(nullptr),
-	Water(nullptr)
+	Water(nullptr),
+	Sky(nullptr)
 {
 }
 
@@ -146,7 +147,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	light.SetLitWorld(XMFLOAT3(-513.0f, 0.0f, -513.0f), XMFLOAT3(513.0f, 100.0f, 513.0f));
+	light.SetLitWorld(XMFLOAT3(-513.0f, -100.0f, -513.0f), XMFLOAT3(513.0f, 100.0f, 513.0f));
 
 	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
 	ShadowMap->ClearDepthMap(mImmediateContext);

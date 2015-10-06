@@ -34,6 +34,7 @@ private:
 private:
 	ID3D11ShaderResourceView* transmitanceSRV;
 	ID3D11UnorderedAccessView* transmitanceUAV;
+	ID3D11Texture2D* transmittanceText;
 
 	ID3D11ShaderResourceView* deltaESRV;
 	ID3D11UnorderedAccessView* deltaEUAV;

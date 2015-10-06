@@ -133,7 +133,6 @@ private:
 
 	ID3D11Buffer* mFFTInitial;
 	ID3D11ShaderResourceView* mFFTInitialSRV;
-	ID3D11Buffer* mFFTOutput;
 	ID3D11UnorderedAccessView* mFFTUAV[2][2];
 	ID3D11ShaderResourceView* mFFTSRV[2][2];
 
