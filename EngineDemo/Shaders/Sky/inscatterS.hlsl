@@ -21,7 +21,7 @@ SamplerState samIrradiance : register(s3);
 
 #include <common.hlsli>
 
-cbuffer Order
+cbuffer Order : register(c0)
 {
 	int4 order;
 };

@@ -200,9 +200,6 @@
     <FxCompile Include="Shaders\Terrain\TerrainVS.hlsl">
       <Filter>Shaders\Terrain</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Sky\copyinscatter1.hlsl">
-      <Filter>Shaders\Sky</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Sky\inscatter1.hlsl">
       <Filter>Shaders\Sky</Filter>
     </FxCompile>
@@ -228,6 +225,9 @@
       <Filter>Shaders\Sky</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Sky\SkyVS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\copyInscatter1.hlsl">
       <Filter>Shaders\Sky</Filter>
     </FxCompile>
   </ItemGroup>

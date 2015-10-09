@@ -62,14 +62,14 @@ private:
 	ID3D11ComputeShader* transmittanceCS;
 	ID3D11ComputeShader* irradiance1CS;
 	ID3D11ComputeShader* inscatter1CS;
-	ID3D11ComputeShader* copyinscatter1CS;
+	ID3D11ComputeShader* copyInscatter1CS;
 	ID3D11ComputeShader* inscatterSCS;
 	ID3D11ComputeShader* irradianceNCS;
 	ID3D11ComputeShader* inscatterNCS;
 	ID3D11ComputeShader* copyIrradianceCS;
 	ID3D11ComputeShader* copyInscatterNCS;
 
-	struct cbIrradianceNType
+	struct cbNOrderType
 	{
 		int order[4];
 	};
@@ -88,7 +88,7 @@ private:
 		float pad;
 	};
 
-	ID3D11Buffer* cbIrradianceN;
+	ID3D11Buffer* cbNOrder;
 	ID3D11Buffer* cbPerFrameVS;
 	ID3D11Buffer* cbPerFramePS;
 
@@ -101,6 +101,8 @@ private:
 	ID3D11PixelShader* mPixelShader;
 
 	ID3D11RasterizerState* mRastStateBasic;
+	ID3D11SamplerState** mSamplerStateBasic; // 4 identical basic states
+	ID3D11DepthStencilState* mDepthStencilStateSky;
 
 	struct Vertex
 	{
