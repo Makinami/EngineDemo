@@ -313,6 +313,7 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
 	mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
+	mImmediateContext->IASetInputLayout(mInputLayout);
 
 	// VS
 	cbPerFrameVSType* dataVS;
@@ -336,8 +337,10 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	dataPS = (cbPerFramePSType*)mappedResource.pData;
 
 	XMStoreFloat3(&(dataPS->gCameraPos), Camera->GetPositionRelSun());
-	dataPS->gExposure = 0.4;
+	dataPS->gExposure = 0.5;
 	dataPS->gSunDir = light.Direction();
+	// change light direction to sun direction
+	dataPS->gSunDir.x *= -1; dataPS->gSunDir.y *= -1; dataPS->gSunDir.z *= -1;
 
 	mImmediateContext->Unmap(cbPerFramePS, 0);
 
@@ -404,7 +407,7 @@ int SkyClass::Precompute(ID3D11DeviceContext1 * mImmediateContext)
 	mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
 
-	for (UINT order = 2; order <= 4; order++)
+	for (int order = 2; order <= 4; order++)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		cbNOrderType* dataPtr;
@@ -416,14 +419,13 @@ int SkyClass::Precompute(ID3D11DeviceContext1 * mImmediateContext)
 
 		mImmediateContext->Unmap(cbNOrder, 0);
 
-		mImmediateContext->CSSetConstantBuffers(0, 1, &cbNOrder);
-
 		// line 7
 		mImmediateContext->CSSetShaderResources(0, 1, &transmitanceSRV);
 		mImmediateContext->CSSetShaderResources(1, 1, &deltaESRV);
 		mImmediateContext->CSSetShaderResources(2, 2, deltaSSRV);
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &deltaJUAV, NULL);
 		mImmediateContext->CSSetShader(inscatterSCS, NULL, 0);
+		mImmediateContext->CSSetConstantBuffers(0, 1, &cbNOrder);
 
 		mImmediateContext->Dispatch(RES_MU_S*RES_NU / 16, RES_MU / 16, RES_R);
 
@@ -435,6 +437,7 @@ int SkyClass::Precompute(ID3D11DeviceContext1 * mImmediateContext)
 		mImmediateContext->CSSetShaderResources(1, 2, deltaSSRV);
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &deltaEUAV, NULL);
 		mImmediateContext->CSSetShader(irradianceNCS, NULL, 0);
+		mImmediateContext->CSSetConstantBuffers(0, 1, &cbNOrder);
 
 		mImmediateContext->Dispatch(SKY_W / 16, SKY_H / 16, 1);
 

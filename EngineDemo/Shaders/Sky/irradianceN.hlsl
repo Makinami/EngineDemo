@@ -18,7 +18,7 @@ SamplerState samDeltaSM : register(s2);
 
 #include <common.hlsli>
 
-cbuffer Order
+cbuffer Order : register(b0)
 {
 	int4 order;
 };

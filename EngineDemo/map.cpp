@@ -1,6 +1,6 @@
 #include "map.h"
 
-#include  "Utilities\RenderViewTargetStack.h"
+#include "Utilities\RenderViewTargetStack.h"
 #include "Utilities\CreateShader.h"
 
 MapClass::MapClass() :
@@ -56,7 +56,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	light.Ambient(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	light.Diffuse(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Specular(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
-	light.Direction(XMFLOAT3(0.1f, 0.994987f, 0.0f));
+	light.Direction(XMFLOAT3(-1.0f, 0.0f, 0.0f));
 
 	vector<TerrainClass::Vertex> patchVertices(4);
 
@@ -143,6 +143,14 @@ void MapClass::Shutdown()
 void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 {
 	Water->evaluateWavesGPU(dt, mImmediateContext);
+
+	XMFLOAT3 dir_f = light.Direction();
+	XMVECTOR dir = XMLoadFloat3(&dir_f);
+
+	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_PIDIV2 / 60.0f));
+
+	XMStoreFloat3(&dir_f, dir);
+	light.Direction(dir_f);
 }
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
@@ -162,7 +170,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//DrawDebug(mImmediateContext);
 	
 	Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-
+	
 	Sky->Draw(mImmediateContext, Camera, light);
 }
 
