@@ -210,6 +210,7 @@ void D3DClass::Shutdown()
 	if (mImmediateContext) mImmediateContext->ClearState();
 
 	ReleaseCOM(mImmediateContext);
+	ReleaseCOM(mDevice);
 #if defined(DEBUG) || defined(_DEBUG)
 	if (mDebug)
 	{
@@ -218,7 +219,6 @@ void D3DClass::Shutdown()
 		ReleaseCOM(mDebug);
 	}
 #endif
-	ReleaseCOM(mDevice);
 }
 
 // Clear back buffer and depth-stencil buffer

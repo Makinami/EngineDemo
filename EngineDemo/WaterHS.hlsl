@@ -90,51 +90,51 @@ TessSettings CalcHSPatchConstants(
 	float3 boxExtents = 0.5f*(vMax - vMin);
 
 	// TEMP: Which is faster?
-	/*if (gFrustumCull == 0)
+	if (gFrustumCull == 0)
 	{
-	pt.EdgeTess[0] = 0.0f;
-	pt.EdgeTess[1] = 0.0f;
-	pt.EdgeTess[2] = 0.0f;
-	pt.EdgeTess[3] = 0.0f;
+		pt.EdgeTess[0] = 0.0f;
+		pt.EdgeTess[1] = 0.0f;
+		pt.EdgeTess[2] = 0.0f;
+		pt.EdgeTess[3] = 0.0f;
 
-	pt.InsideTess[0] = 0.0f;
-	pt.InsideTess[1] = 0.0f;
+		pt.InsideTess[0] = 0.0f;
+		pt.InsideTess[1] = 0.0f;
 
-	return pt;
+		return pt;
 	}
 	else
 	{
-	if (AabbOutsideFrustumTest(boxCentre, boxExtents, gWorldFrustumPlanes))
-	{
-	pt.EdgeTess[0] = 2.0f;
-	pt.EdgeTess[1] = 2.0f;
-	pt.EdgeTess[2] = 2.0f;
-	pt.EdgeTess[3] = 2.0f;
+		if (AabbOutsideFrustumTest(boxCentre, boxExtents, gWorldFrustumPlanes))
+		{
+			pt.EdgeTess[0] = 2.0f;
+			pt.EdgeTess[1] = 2.0f;
+			pt.EdgeTess[2] = 2.0f;
+			pt.EdgeTess[3] = 2.0f;
 
-	pt.InsideTess[0] = 2.0f;
-	pt.InsideTess[1] = 2.0f;
+			pt.InsideTess[0] = 2.0f;
+			pt.InsideTess[1] = 2.0f;
 
-	return pt;
-	/*}
-	else
-	{*/
-	float3 e0 = 0.5f*(patch[0].PosW + patch[2].PosW);
-	float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
-	float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
-	float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
-	float3 c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
+			return pt;
+		}
+		else
+		{
+			float3 e0 = 0.5f*(patch[0].PosW + patch[2].PosW);
+			float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
+			float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
+			float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
+			float3 c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
 
-	pt.EdgeTess[0] = CalcTessFactor(e0);
-	pt.EdgeTess[1] = CalcTessFactor(e1);
-	pt.EdgeTess[2] = CalcTessFactor(e2);
-	pt.EdgeTess[3] = CalcTessFactor(e3);
+			pt.EdgeTess[0] = CalcTessFactor(e0);
+			pt.EdgeTess[1] = CalcTessFactor(e1);
+			pt.EdgeTess[2] = CalcTessFactor(e2);
+			pt.EdgeTess[3] = CalcTessFactor(e3);
 
-	pt.InsideTess[0] = CalcTessFactor(c);
-	pt.InsideTess[1] = pt.InsideTess[0];
+			pt.InsideTess[0] = CalcTessFactor(c);
+			pt.InsideTess[1] = pt.InsideTess[0];
 
-	return pt;
-	/*}
-	}*/
+			return pt;
+		}
+	}
 }
 
 [domain("quad")]

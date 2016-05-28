@@ -20,6 +20,7 @@ bool LoadShader(_In_ std::wstring fileName, _Out_ char* &data, _Out_ size_t &siz
 	return false;
 }
 
+#ifdef NOT
 bool CreatePSFromFile(_In_ std::wstring fileName, ID3D11Device1 * device, ID3D11PixelShader* &ps)
 {
 	size_t size;
@@ -168,3 +169,4 @@ bool CreateVSAndInputLayout(_In_ std::wstring fileName, ID3D11Device1 * device, 
 
 	return false;
 }
+#endif

@@ -1,6 +1,7 @@
 #define _CRTDBG_MAPALLOC
 
 #include "systemclass.h"
+#include "DXGIDebug.h"
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PSTR cmdLine, _In_ int showCmd)
 {

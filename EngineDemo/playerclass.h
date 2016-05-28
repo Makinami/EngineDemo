@@ -32,7 +32,7 @@ private:
 	XMFLOAT3 mPosition;
 
 	const float WalkV = 2.0f;
-	const float RunV = 50.0f;
+	const float RunV = 100.0f;
 
 	std::shared_ptr<CameraClass> Camera;
 	std::shared_ptr<InputClass> Input;

@@ -19,6 +19,8 @@
 #include "playerclass.h"
 #include "map.h"
 
+#include "Performance.h"
+
 /*
 Main System Class:
 Creates new game and status window (at least for now) and manages other subsystems
@@ -87,8 +89,13 @@ class SystemClass
 
 		std::shared_ptr<PlayerClass> Player;
 
+		std::shared_ptr<Debug::PerformanceClass> Performance;
+
 		/*
 		World
 		*/
 		std::shared_ptr<MapClass> Map; // Map object
+
+		// system perf 
+		char allDraw;
 };

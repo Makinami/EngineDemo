@@ -1,7 +1,8 @@
 #include "cameraclass.h"
 
 CameraClass::CameraClass()
-: mValid(false)
+: mValid(false),
+pitch(0.0f)
 {
 	mPosition = XMFLOAT3(0.0f, 10.7f, 0.0f);
 	mUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
@@ -170,6 +171,24 @@ void CameraClass::Pitch(float angle)
 	XMStoreFloat3(&mLook, XMVector3TransformNormal(XMLoadFloat3(&mLook), R));
 
 	mValid = false;
+
+	// temp?
+	pitch += angle;
+}
+
+float CameraClass::GetHorizon()
+{
+	float R = 6360000.0f;
+	float z = mPosition.y;
+	float a = -sqrt((2 * R*z + z*z) / (R*R));
+	float angle = atan(a);
+
+	XMMATRIX Rot = XMMatrixRotationAxis(XMLoadFloat3(&mRight), XM_PIDIV2-angle);
+	XMVECTOR look = XMVector3TransformNormal(XMLoadFloat3(&mUp), Rot);
+	look = XMLoadFloat3(&mPosition) + look;
+	look = XMVector3Project(look, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, GetProjMatrix(), GetViewMatrix(), XMMatrixIdentity());
+
+	return 1.0f - XMVectorGetY(look);
 }
 
 void CameraClass::RotateY(float angle)

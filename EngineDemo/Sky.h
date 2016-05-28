@@ -15,10 +15,12 @@
 #include "terrain.h"
 #include "cameraclass.h"
 
+#include "Performance.h"
+
 using namespace std;
 using namespace DirectX;
 
-class SkyClass
+class SkyClass : public Debug::HasPerformance
 {
 public:
 	SkyClass();
@@ -27,6 +29,14 @@ public:
 	int Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
+	void DrawToCube(ID3D11DeviceContext1* mImmediateContext, DirectionalLight& light);
+
+	void DrawToMap(ID3D11DeviceContext1* mImmediateContext, DirectionalLight& light);
+
+	void DrawToScreen(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
+	ID3D11ShaderResourceView* getTransmittanceSRV();
 
 private:
 	int Precompute(ID3D11DeviceContext1* mImmediateContext);
@@ -69,6 +79,8 @@ private:
 	ID3D11ComputeShader* copyIrradianceCS;
 	ID3D11ComputeShader* copyInscatterNCS;
 
+	int cos = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT;
+
 	struct cbNOrderType
 	{
 		int order[4];
@@ -88,25 +100,55 @@ private:
 		float pad;
 	};
 
+	struct skyMapBufferType
+	{
+		XMFLOAT3 sunDir;
+		float pad;
+	} skyMapParams;
+
 	ID3D11Buffer* cbNOrder;
 	ID3D11Buffer* cbPerFrameVS;
 	ID3D11Buffer* cbPerFramePS;
+	ID3D11Buffer* skyMapCB;
 
+	const int CubeMapSize = 512;
+
+	ID3D11RenderTargetView** cubeTextRTV; // 6 faces
+	ID3D11ShaderResourceView* cubeTextSRV;
+	ID3D11DepthStencilView* cubeMapDSV;
+	D3D11_VIEWPORT cubeViewport;
+
+	ID3D11RenderTargetView* mapRTV;
+	ID3D11ShaderResourceView* mapSRV;
+	
+	UINT skyMapSize;
+
+	std::shared_ptr<CameraClass> mCubeMapCamera[6];
+
+	void BuildCubeFaceCamera(float x, float y, float z);
 
 	ID3D11Buffer* mScreenQuadVB;
 	ID3D11Buffer* mScreenQuadIB;
 
 	ID3D11InputLayout* mInputLayout;
 	ID3D11VertexShader* mVertexShader;
-	ID3D11PixelShader* mPixelShader;
+	ID3D11PixelShader* mPixelShaderToCube;
+	ID3D11PixelShader* mPixelShaderToScreen;
+
+	ID3D11VertexShader* mMapVertexShader;
+	ID3D11PixelShader* mMapPixelShader;
 
 	ID3D11RasterizerState* mRastStateBasic;
 	ID3D11SamplerState** mSamplerStateBasic; // 4 identical basic states
+	ID3D11SamplerState* mSamplerStateTrilinear;
+	ID3D11SamplerState* mSamplerAnisotropic;
 	ID3D11DepthStencilState* mDepthStencilStateSky;
 
 	struct Vertex
 	{
 		XMFLOAT3 Pos;
 	};
-};
 
+	// performace ids
+	char drawSky;
+};

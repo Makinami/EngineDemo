@@ -159,11 +159,16 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 
 	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[2]))) return false;
 
+	computeFFTPrf = Performance->ReserveName(L"Compute Water FFT");
+	drawPrf = Performance->ReserveName(L"Draw Water");
+
 	return true;
 }
 
 void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
+	Performance->Call(drawPrf, Debug::PerformanceClass::CallType::START);
+
 	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();
 	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();
 
@@ -191,7 +196,7 @@ void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<
 	mImmediateContext->Unmap(cbPerFrameDS, 0);
 
 	mImmediateContext->DSSetConstantBuffers(0, 1, &cbPerFrameDS);
-	mImmediateContext->DSSetShaderResources(0, 1, &mFFTSRV[1][0]);
+	mImmediateContext->DSSetShaderResources(0, 1, &ShadowMap);
 
 	mImmediateContext->DSSetSamplers(0, 1, &mSamplerStates[1]);
 
@@ -252,10 +257,14 @@ void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<
 	ID3D11ShaderResourceView* ppSRVNULL = NULL;
 	mImmediateContext->VSSetShaderResources(0, 1, &ppSRVNULL);
 	mImmediateContext->DSSetShaderResources(0, 1, &ppSRVNULL);
+
+	Performance->Call(drawPrf, Debug::PerformanceClass::CallType::END);
 }
 
 void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateContext)
 {
+	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::START);
+
 	time += t;
 
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
@@ -331,6 +340,8 @@ void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateCont
 	mImmediateContext->CSSetShader(NULL, NULL, 0);
 	mImmediateContext->CSSetUnorderedAccessViews(0, 2, ppUAViewNULL, NULL);
 	mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
+
+	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::END);
 }
 
 void WaterClass::BuildQuadPatchVB(ID3D11Device1 * device)
@@ -524,7 +535,7 @@ float WaterClass::PhillipsSpectrum(int n, int m)
 {
 	XMFLOAT2 k(XM_PI*(2 * n - N) / length, XM_PI*(2 * m - N) / length);
 	float k_length = sqrt(k.x*k.x + k.y*k.y);
-	if (k_length < 0.000001) return 0.0f;
+	if (k_length < 0.6) return 0.0f;
 
 	float w_length = sqrt(w.x*w.x + w.y*w.y);
 

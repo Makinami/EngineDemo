@@ -17,7 +17,17 @@ MapClass::~MapClass()
 
 bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 {
+	WaterB = std::make_unique<WaterBruneton>();
+	WaterB->SetPerformance(Performance);
+	if (!WaterB->Init(device, dc))
+	{
+		LogError(L"Failed to initiate water bruneton");
+		return false;
+	}
+	LogSuccess(L"WaterBruneton initiated");
+
 	Water = std::make_shared<WaterClass>();
+	Water->SetPerformance(Performance);
 	if (!Water->Init(device, dc))
 	{
 		LogError(L"Failed to initiate water");
@@ -26,9 +36,10 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	LogSuccess(L"Water initiated");
 
 	Sky = std::make_shared<SkyClass>();
+	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
 
-	Terrain = std::make_shared<TerrainClass>();
+	/*Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
 	TerrainClass::InitInfo tii;
@@ -50,6 +61,12 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 		return false;
 	}
 	LogSuccess(L"Terrain initiated");
+	*/
+	Clouds = std::make_shared<CloudsClass>();
+	//Clouds->Init(device, dc);
+
+	Clouds2 = std::make_shared<CloudsClass2>();
+	//Clouds2->Init(device, dc);
 
 	ShadowMap = std::make_unique<ShadowMapClass>(device, 2048, 2048);
 
@@ -142,12 +159,14 @@ void MapClass::Shutdown()
 
 void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 {
-	Water->evaluateWavesGPU(dt, mImmediateContext);
+	//Water->evaluateWavesGPU(dt, mImmediateContext);
+	//WaterB->EvaluateWaves(dt, mImmediateContext);
+	//WaterB->BEvelWater(dt, mImmediateContext);
 
 	XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);
 
-	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_PIDIV2 / 60.0f));
+	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_2PI/(60.f*5.0f)));
 
 	XMStoreFloat3(&dir_f, dir);
 	light.Direction(dir_f);
@@ -155,23 +174,44 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	light.SetLitWorld(XMFLOAT3(-513.0f, -100.0f, -513.0f), XMFLOAT3(513.0f, 100.0f, 513.0f));
+	/*light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
 
 	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
 	ShadowMap->ClearDepthMap(mImmediateContext);
 
 	Terrain->Draw(mImmediateContext, Camera, light);
 
+	//Clouds->GenerateClouds(mImmediateContext);
+
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
-
-	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	*/
+	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	//DrawDebug(mImmediateContext);
 	
-	Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	//Water->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 	
+	//Sky->DrawToMap(mImmediateContext, light);
+	//Sky->DrawToCube(mImmediateContext, light);
+	//Sky->DrawToScreen(mImmediateContext, Camera, light);
 	Sky->Draw(mImmediateContext, Camera, light);
+
+	//WaterB->Draw(mImmediateContext, Camera, light);
+	
+	/*static int counter = 0;
+
+	if (counter == 0)
+		Sky->DrawToCube(mImmediateContext, light);
+
+	if (++counter == 1) counter = 0;
+	
+	Sky->DrawToScreen(mImmediateContext, Camera, light);*/
+
+	//Clouds->Draw(mImmediateContext, Camera, light);
+	//Clouds2->GenerateClouds(mImmediateContext);
+	//Clouds2->Draw(mImmediacoteContext, Camera, light, Sky->getTransmittanceSRV());
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
@@ -194,7 +234,6 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext)
 		0.0f, 0.25f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.75f, -0.75f, 0.0f, 1.0f);
-
 
 	//PS
 	ID3D11ShaderResourceView* mDepthMapSRV = ShadowMap->DepthMapSRV();
@@ -227,5 +266,6 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext)
 
 float MapClass::GetHeight(float x, float y)
 {
+	return 0.3;
 	return Terrain->GetHeight(x, y);
 }

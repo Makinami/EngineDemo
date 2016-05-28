@@ -1,4 +1,4 @@
-Texture2D gHeightMap;
+Texture2DArray<float4> gHeightMap;
 
 cbuffer MatrixBuffer
 {
@@ -50,7 +50,7 @@ DomainOut main(
 		lerp(quad[2].Tex, quad[3].Tex, domain.x),
 		domain.y);
 
-	temp += gHeightMap.SampleLevel(samHeightmap, temp2, 0).rgb;
+	temp += float3(1.0, 1.0, 1.0)*gHeightMap.SampleLevel(samHeightmap, float3(temp2, 0.0), 0).xyz;
 
 	dout.PosH = mul(float4(temp, 1.0f), gViewProj);
 

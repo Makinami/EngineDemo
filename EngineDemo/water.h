@@ -26,13 +26,14 @@
 #include <string>
 
 #include "loggerclass.h"
+#include "Performance.h"
 #include "cameraclass.h"
 #include "Lights.h"
 
 using namespace std;
 using namespace DirectX;
 
-class WaterClass : public HasLogger
+class WaterClass : public HasLogger, public Debug::HasPerformance
 {
 public:
 	struct Vertex
@@ -173,6 +174,10 @@ private:
 	float PhillipsSpectrum(int n, int m);
 	complex<float> hTilde_0(int n, int m);
 	float Dispersion(int n, int m);
+
+	// performance ids
+	char computeFFTPrf;
+	char drawPrf;
 };
 
 // TEMP

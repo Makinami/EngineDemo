@@ -11,11 +11,11 @@ struct VertexIn
 	float2 Tex : TEXCOORD0;
 };
 
-Texture2D gFFTOutput : register(t0);
+Texture2D<float4> gFFTOutput : register(t0);
 
 struct VertexOut
 {
-	float3 PosW : POSITION0;
+	float3 PosW : POSITION;
 	float2 Tex : TEXCOORD0;
 };
 
@@ -27,7 +27,7 @@ VertexOut main( VertexIn vin )
 	
 	//vin.PosW.xyz += displacement;
 
-	dout.PosW = mul(float4(vin.PosW, 1.0f), gWorld);
+	dout.PosW = mul(float4(vin.PosW, 1.0f), gWorld).xyz;
 	//dout.PosW = vin.PosW;
 	dout.Tex = vin.Tex;
 

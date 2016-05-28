@@ -93,17 +93,21 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"Input initiated");
 
 	Camera = std::make_shared<CameraClass>();
-	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.5f, 1000.0f);
+	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.2f, 2000000.0f);
 
 	Timer = std::make_shared<TimerClass>();
+
+	Performance = std::make_shared<Debug::PerformanceClass>();
+	Performance->Init(D3D->GetDevice(), D3D->GetDeviceContext());
 	
 	/*
 	World
 	*/
 	Map = std::make_shared<MapClass>();
 	Map->SetLogger(Logger);
+	Map->SetPerformance(Performance);
 	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
-	
+
 	/*
 	Player
 	*/
@@ -113,6 +117,8 @@ bool SystemClass::Init(std::string filename)
 	Player->SetInput(Input);
 	Player->SetLogger(Logger);
 	Player->Init();
+
+	allDraw = Performance->ReserveName(L"All sky draw");
 
 	return true;
 }
@@ -289,6 +295,7 @@ LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 // Run every frame
 bool SystemClass::Frame()
 {
+	Performance->Call(allDraw, Debug::PerformanceClass::CallType::START);
 	float dt = Timer->DeltaTime();
 	Input->Capture();
 
@@ -301,8 +308,12 @@ bool SystemClass::Frame()
 	
 	//Map->Draw20(D3D->GetDeviceContext(), Camera);
 
-	D3D->EndScene();
+	Performance->Call(allDraw, Debug::PerformanceClass::CallType::END);
+	Performance->Compute();
 
+	Performance->Draw(D3D->GetDeviceContext());
+
+	D3D->EndScene();
 	return true;
 }
 

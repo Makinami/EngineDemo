@@ -50,6 +50,8 @@ class CameraClass
 		void Pitch(float angle);
 		void RotateY(float angle);
 
+		float GetHorizon();
+
 	private:
 
 		inline void UpdateViewMatrix();
@@ -68,4 +70,7 @@ class CameraClass
 		XMFLOAT4X4 mProjTrans;
 
 		bool mValid;
+
+		// temp
+		float pitch;
 };

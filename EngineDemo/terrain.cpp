@@ -5,11 +5,23 @@
 TerrainClass::TerrainClass() :
 	mQuadPatchVB(0),
 	mQuadPatchIB(0),
+	cbPerFrameHS(0),
 	mHeightmapSRV(0),
 	mNumPatchVertices(0),
 	mNumPatchQuadFaces(0),
 	mNumPatchVertRows(0),
-	mNumPatchVertCols(0)
+	mNumPatchVertCols(0),
+	MatrixBuffer(0),
+	cbPerFramePS(0),
+	mLayerMapArraySRV(0),
+	mBlendMapSRV(0),
+	mInputLayout(0),
+	mVertexShader(0),
+	mHullShader(0),
+	mDomainShader(0),
+	mPixelShader(0),
+	mRastStateBasic(0),
+	mRastStateShadow(0)
 {
 	XMStoreFloat4x4(&mWorld, XMMatrixIdentity());
 }
