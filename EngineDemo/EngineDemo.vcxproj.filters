@@ -34,6 +34,24 @@
     <Filter Include="Shaders\Sky">
       <UniqueIdentifier>{dbc5dcd7-e2e1-4be6-b8e1-8d97717d27b3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Clouds">
+      <UniqueIdentifier>{79205377-1b1e-4d1c-a893-556fe7f7c0c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd-party\noise">
+      <UniqueIdentifier>{e47e847d-dee4-4fa2-bf71-889c54eb62de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd-party\noise\module">
+      <UniqueIdentifier>{c0aba9ca-8e2e-4c41-85f8-e05b75079fc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd-party\noise\model">
+      <UniqueIdentifier>{0fc33b44-82f4-4837-a3bd-f13945dd2bc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Debug">
+      <UniqueIdentifier>{bae5339b-83bd-4acb-93f3-9d34c656626f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\WaterBruneton">
+      <UniqueIdentifier>{275b03d0-e732-48bc-af35-fc53c977b8b7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -47,9 +65,6 @@
     </ClCompile>
     <ClCompile Include="inih\cpp\INIReader.cpp">
       <Filter>3rd-party\inih</Filter>
-    </ClCompile>
-    <ClCompile Include="loggerclass.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cameraclass.cpp">
       <Filter>Source Files</Filter>
@@ -88,6 +103,21 @@
     <ClCompile Include="Sky.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CloudsClass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CloudsClass2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WaterBruneton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Performance.cpp">
+      <Filter>Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="loggerclass.cpp">
+      <Filter>Debug</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -101,9 +131,6 @@
     </ClInclude>
     <ClInclude Include="inih\cpp\INIReader.h">
       <Filter>3rd-party\inih</Filter>
-    </ClInclude>
-    <ClInclude Include="loggerclass.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cameraclass.h">
       <Filter>Header Files</Filter>
@@ -149,6 +176,165 @@
     </ClInclude>
     <ClInclude Include="Shaders\Sky\resolutions.h">
       <Filter>Shaders\Sky</Filter>
+    </ClInclude>
+    <ClInclude Include="CloudsClass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\basictypes.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\exception.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\interp.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\latlon.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\mathconsts.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\misc.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\noise.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\noisegen.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\vectortable.h">
+      <Filter>3rd-party\noise</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\abs.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\add.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\billow.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\blend.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\cache.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\checkerboard.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\clamp.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\const.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\curve.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\cylinders.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\displace.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\exponent.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\invert.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\max.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\min.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\module.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\modulebase.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\multiply.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\perlin.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\power.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\ridgedmulti.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\rotatepoint.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\scalebias.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\scalepoint.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\select.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\spheres.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\terrace.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\translatepoint.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\turbulence.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\module\voronoi.h">
+      <Filter>3rd-party\noise\module</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\model\cylinder.h">
+      <Filter>3rd-party\noise\model</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\model\line.h">
+      <Filter>3rd-party\noise\model</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\model\model.h">
+      <Filter>3rd-party\noise\model</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\model\plane.h">
+      <Filter>3rd-party\noise\model</Filter>
+    </ClInclude>
+    <ClInclude Include="noise\model\sphere.h">
+      <Filter>3rd-party\noise\model</Filter>
+    </ClInclude>
+    <ClInclude Include="CloudsClass2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FW1FontWrapper.h">
+      <Filter>3rd-party</Filter>
+    </ClInclude>
+    <ClInclude Include="WaterBruneton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\CreateBuffer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\MapResources.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Performance.h">
+      <Filter>Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="loggerclass.h">
+      <Filter>Debug</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -221,14 +407,56 @@
     <FxCompile Include="Shaders\Sky\copyIrradiance.hlsl">
       <Filter>Shaders\Sky</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Sky\SkyPS.hlsl">
-      <Filter>Shaders\Sky</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Sky\SkyVS.hlsl">
       <Filter>Shaders\Sky</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Sky\copyInscatter1.hlsl">
       <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyToScreenPS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyToCubePS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Clouds\generate.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Clouds\CloudsVS.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Clouds\CloudsPS.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\WaterVS.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\WaterPS.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\variances.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\initFFT.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\FFT.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyMapVS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyMapPS.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\BinitFFT.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\Bfftx.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaterBruneton\Bffty.hlsl">
+      <Filter>Shaders\WaterBruneton</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
@@ -236,5 +464,15 @@
     <None Include="Shaders\Sky\common.hlsli">
       <Filter>Shaders\Sky</Filter>
     </None>
+    <None Include="Shaders\Clouds\SimplexNoise.hlsli">
+      <Filter>Shaders\Clouds</Filter>
+    </None>
+    <None Include="Shaders\WaterBruneton\atmosphere.hlsli">
+      <Filter>Shaders\WaterBruneton</Filter>
+    </None>
+    <None Include="ClassDiagram.cd" />
+    <None Include="ClassDiagram1.cd" />
+    <None Include="ClassDiagram2.cd" />
+    <None Include="ClassDiagram3.cd" />
   </ItemGroup>
 </Project>
