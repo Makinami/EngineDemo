@@ -16,7 +16,7 @@ WaterBruneton::WaterBruneton() :
 	km(370.0),
 	WIND(5.0), // wind speed in m/s (at 10m above surface)
 	OMEGA(0.84), // sea state (inverse wave age)
-	A(5.0), // wave aplitude factor (should be one?)
+	A(1.0), // wave aplitude factor (should be one?)
 	time(0),
 	spectrumSRV(0),
 	slopeVarianceSRV(0),
@@ -76,6 +76,12 @@ bool WaterBruneton::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 
 	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerState))) return false;
 
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSSSlopeVariance))) return false;
+
 	if (!CreateInputLayoutAndShaders(device)) return false;
 
 	if (!CreateDataResources(device)) return false;
@@ -88,7 +94,7 @@ bool WaterBruneton::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 
 	D3D11_RASTERIZER_DESC rastDesc;
 	ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
-	rastDesc.FillMode = D3D11_FILL_WIREFRAME;
+	rastDesc.FillMode = D3D11_FILL_SOLID;
 	rastDesc.CullMode = D3D11_CULL_NONE;
 	rastDesc.FrontCounterClockwise = false;
 	rastDesc.DepthClipEnable = false;
@@ -98,6 +104,10 @@ bool WaterBruneton::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 	computeFFTPrf = Performance->ReserveName(L"Bruneton FFT");
 	drawPrf = Performance->ReserveName(L"Bruneton Draw");
 
+
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
 	samplerDesc.MaxAnisotropy = 16;
 	device->CreateSamplerState(&samplerDesc, &mSamplerAnisotropic);
@@ -150,6 +160,7 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->PSSetShaderResources(0, 1, &fftWavesSRV);
 	mImmediateContext->PSSetShaderResources(1, 1, &slopeVarianceSRV);
 	mImmediateContext->PSSetSamplers(2, 1, &mSamplerAnisotropic);
+	mImmediateContext->PSSetSamplers(3, 1, &mSSSlopeVariance);
 
 	// VS
 	mImmediateContext->VSSetShader(mVertexShader, nullptr, 0);
@@ -177,6 +188,8 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 
 void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * mImmediateContext)
 {
+	ComputeVarianceText(mImmediateContext);
+
 	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::START);
 
 	time += t;
@@ -189,7 +202,7 @@ void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * mImmediateCont
 	mImmediateContext->CSSetShaderResources(0, 1, &spectrumSRV);
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, &fftWavesUAV, nullptr);
 
-	initFFTParams.INVERSE_GRID_SIZE = XMFLOAT4(1.0f / GRID_SIZE[0], 1.0f / GRID_SIZE[1], 1.0f / GRID_SIZE[2], 1.0f / GRID_SIZE[3]);
+	initFFTParams.INVERSE_GRID_SIZE = XMFLOAT4(XM_2PI / GRID_SIZE[0], XM_2PI / GRID_SIZE[1], XM_2PI / GRID_SIZE[2], XM_2PI / GRID_SIZE[3]);
 	initFFTParams.time = time;
 	MapResources(mImmediateContext, initFFTCB, initFFTParams);
 	mImmediateContext->CSSetConstantBuffers(0, 1, &initFFTCB);

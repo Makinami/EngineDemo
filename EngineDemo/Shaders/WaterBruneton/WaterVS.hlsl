@@ -52,7 +52,7 @@ VertexOut main( VertexIn vin )
 	dP += gDisplacement.SampleGrad(samFFTMap, float3(u / GRID_SIZES.w, 3.0), dux / GRID_SIZES.w, duz / GRID_SIZES.w).rbg;
 
 	if (choppy <= 0.0) dP = float3(0.0f, dP.y, 0.0f);
-	
+	dP = float3(0.0, 0.0, 0.0);
 	vout.PosW = float3(u.x, 0.0f, u.y) + dP;
 	vout.PosH = mul(float4(vout.PosW, 1.0f), worldToScreen).xyzw;
 	vout.u = u;

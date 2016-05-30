@@ -160,7 +160,7 @@ void MapClass::Shutdown()
 void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 {
 	//Water->evaluateWavesGPU(dt, mImmediateContext);
-	//WaterB->EvaluateWaves(dt, mImmediateContext);
+	WaterB->EvaluateWaves(dt, mImmediateContext);
 	//WaterB->BEvelWater(dt, mImmediateContext);
 
 	XMFLOAT3 dir_f = light.Direction();
@@ -196,9 +196,9 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToCube(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
-	Sky->Draw(mImmediateContext, Camera, light);
+	//Sky->Draw(mImmediateContext, Camera, light);
 
-	//WaterB->Draw(mImmediateContext, Camera, light);
+	WaterB->Draw(mImmediateContext, Camera, light);
 	
 	/*static int counter = 0;
 

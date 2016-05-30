@@ -18,6 +18,7 @@ cbuffer WaterParams : register(c0)
 Texture2DArray<float4> gDisplacement : register(t0);
 Texture3D<float4> gSlopeVariance : register(t1);
 SamplerState samFFTMap : register(s2);
+SamplerState samVariance : register(s3);
 
 struct VertexOut
 {
@@ -146,8 +147,8 @@ float4 main(VertexOut pin) : SV_TARGET
 	float ua = pow(A / SCALE, 0.25);
 	float ub = 0.5 + 0.5 * B / sqrt(A * C);
 	float uc = pow(C / SCALE, 0.25);
-	float4 sigmaSq = gSlopeVariance.Sample(samFFTMap, float3(ua, ub, uc));
-	
+	float2 sigmaSq = gSlopeVariance.Sample(samVariance, float3(pin.PosH.x / 300, 0.0, pin.PosH.y/300)).rg;
+	return float4(sigmaSq*100, 0.0,0.0);
 	sigmaSq = max(sigmaSq, 2e-5);
 
 	float3 Ty = normalize(float3(0.0, N.z, -N.y));
@@ -160,13 +161,13 @@ float4 main(VertexOut pin) : SV_TARGET
 	float3 extinction;
 	sunRadianceAndSkyIrradiance(worldCamera + earthPos, worldSunDir, Lsun, Esky);
 
-	float3 result = float3(0.0, 0.0, 0.0);
+	float3 result = float3(0.1, 0.0, 0.0);
 
 	// SUN
-	result += reflectedSunRadiance(worldSunDir, V, N, Tx, Ty, sigmaSq) * Lsun;
+	//result += reflectedSunRadiance(worldSunDir, V, N, Tx, Ty, sigmaSq) * Lsun;
 	
 	// SKY
-	result += fresnel * meanSkyRadiance(V, N, Tx, Ty, sigmaSq);
+	//result += fresnel * meanSkyRadiance(V, N, Tx, Ty, sigmaSq);
 
 	// SEA
 	float3 Lsea = seaColour * Esky / PI;

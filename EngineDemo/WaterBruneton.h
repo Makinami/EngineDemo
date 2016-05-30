@@ -111,6 +111,7 @@ private:
 	ID3D11RasterizerState* mRastStateFrame;
 	ID3D11SamplerState* mSamplerState;
 	ID3D11SamplerState* mSamplerAnisotropic;
+	ID3D11SamplerState* mSSSlopeVariance;
 	ID3D11DepthStencilState* mDepthStencilStateSea;
 
 	int mScreenWidth;

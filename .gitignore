@@ -189,3 +189,14 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 PDF/
+/DirectXTK
+/Automatic Versions
+/EngineDemo/Textures
+/EngineDemo/cloudsGeneralNoise2.raw
+/EngineDemo/cloudsGeneralNoise.raw
+/EngineDemo/cloudsDetailNoise2.raw
+/EngineDemo/cloudsDetailNoise.raw
+/EngineDemo/log.txt
+*.db
+*.opendb
+/IMPORTANT.txt
