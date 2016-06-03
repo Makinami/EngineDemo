@@ -40,11 +40,11 @@ public:
 	WaterBruneton();
 	~WaterBruneton();
 
-	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
+	bool Init(ID3D11Device1* &device, ID3D11DeviceContext1* &mImmediateContext);
 
-	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
-	void EvaluateWaves(float t, ID3D11DeviceContext1* mImmediateContext);
+	void EvaluateWaves(float t, ID3D11DeviceContext1* &mImmediateContext);
 
 	void BEvelWater(float t, ID3D11DeviceContext1* mImmediateContext);
 

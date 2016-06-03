@@ -40,13 +40,13 @@ void main( uint3 DTid : SV_DispatchThreadID )
 			int i = x >= FFT_SIZE / 2 ? x - FFT_SIZE : x;
 			int j = y >= FFT_SIZE / 2 ? y - FFT_SIZE : y;
 			float2 k = 2.0 * XM_PI * float2(i, j);
-
-			slope += getSlopeVariances(k / GRID_SIZE.x, A, B, C, spectrum.SampleLevel(samVarLinear, float3(float(x) / FFT_SIZE, float(y) / FFT_SIZE, 0.0), 0.0));
-			slope += getSlopeVariances(k / GRID_SIZE.y, A, B, C, spectrum.SampleLevel(samVarLinear, float3(float(x) / FFT_SIZE, float(y) / FFT_SIZE, 1.0), 0.0));
-			slope += getSlopeVariances(k / GRID_SIZE.z, A, B, C, spectrum.SampleLevel(samVarLinear, float3(float(x) / FFT_SIZE, float(y) / FFT_SIZE, 2.0), 0.0));
-			slope += getSlopeVariances(k / GRID_SIZE.w, A, B, C, spectrum.SampleLevel(samVarLinear, float3(float(x) / FFT_SIZE, float(y) / FFT_SIZE, 3.0), 0.0));
+			
+			[unroll(4)]
+			for (int i = 0; i < 4; ++i)
+				slope += getSlopeVariances(k / GRID_SIZE[i], A, B, C, spectrum[uint3(x, y, i)]);
 		}
 	}
 
-	slopeVariances[DTid] = float4(slope, 0.0, 0.0);
+	// TODO: why slope.y is a around 30% smaller?!!
+	slopeVariances[DTid] = float4(slope.xx, 0.0, 0.0);
 }

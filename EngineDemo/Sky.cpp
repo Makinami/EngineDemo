@@ -20,7 +20,8 @@ SkyClass::SkyClass()
 	irradianceText(0),
 	mapRTV(0),
 	mapSRV(0),
-	skyMapSize(512)
+	skyMapSize(512),
+	copyIrradianceSRV(nullptr)
 {
 	deltaSSRV = new ID3D11ShaderResourceView*[2];
 	deltaSUAV = new ID3D11UnorderedAccessView*[2];

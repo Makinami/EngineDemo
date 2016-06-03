@@ -61,7 +61,7 @@ WaterBruneton::~WaterBruneton()
 	ReleaseCOM(mScreenMeshVB);
 }
 
-bool WaterBruneton::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)
+bool WaterBruneton::Init(ID3D11Device1 * &device, ID3D11DeviceContext1 * &mImmediateContext)
 {
 	D3D11_SAMPLER_DESC samplerDesc;
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -82,10 +82,11 @@ bool WaterBruneton::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 
 	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSSSlopeVariance))) return false;
 
+	if (!CreateDataResources(device)) return false;
+
 	if (!CreateInputLayoutAndShaders(device)) return false;
 
-	if (!CreateDataResources(device)) return false;
-	BCreatespectrumEtc(device);
+	//BCreatespectrumEtc(device);
 
 	ComputeVarianceText(mImmediateContext);
 
@@ -124,7 +125,7 @@ bool WaterBruneton::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 	return true;
 }
 
-void WaterBruneton::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light)
+void WaterBruneton::Draw(ID3D11DeviceContext1 * &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light)
 {
 	float _horizon = Camera->GetHorizon();
 	if (horizon != _horizon)
@@ -150,7 +151,7 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	drawParams.worldSunDir = light.Direction();
 	// change light direction to sun direction
 	drawParams.worldSunDir.x *= -1; drawParams.worldSunDir.y *= -1; drawParams.worldSunDir.z *= -1;
-	drawParams.seaColour = XMFLOAT3(10.0f / 255.0f, 40.0f / 255.0f, 120.0f / 255.0f);
+	drawParams.seaColour = XMFLOAT3(1.0f / 255.0f, 4.0f / 255.0f, 12.0f / 255.0f);
 
 	MapResources(mImmediateContext, drawCB, drawParams);
 
@@ -186,9 +187,9 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	CallEnd(drawPrf);
 }
 
-void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * mImmediateContext)
+void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * &mImmediateContext)
 {
-	ComputeVarianceText(mImmediateContext);
+	//ComputeVarianceText(mImmediateContext);
 
 	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::START);
 

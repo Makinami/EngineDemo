@@ -46,13 +46,12 @@ VertexOut main( VertexIn vin )
 	float2 duz = abs(uz - u) * 2.0f;
 
 	float3 dP = float3(0.0f, 0.0f, 0.0f);
-	dP += gDisplacement.SampleGrad(samFFTMap, float3(u / GRID_SIZES.x, 0.0), dux / GRID_SIZES.x, duz / GRID_SIZES.x).rbg;
-	dP += gDisplacement.SampleGrad(samFFTMap, float3(u / GRID_SIZES.y, 1.0), dux / GRID_SIZES.y, duz / GRID_SIZES.y).rbg;
-	dP += gDisplacement.SampleGrad(samFFTMap, float3(u / GRID_SIZES.z, 2.0), dux / GRID_SIZES.z, duz / GRID_SIZES.z).rbg;
-	dP += gDisplacement.SampleGrad(samFFTMap, float3(u / GRID_SIZES.w, 3.0), dux / GRID_SIZES.w, duz / GRID_SIZES.w).rbg;
+	[unroll(4)]
+	for (int i = 0; i < 4; ++i)
+		dP += gDisplacement.SampleGrad(samFFTMap, float3(u / GRID_SIZES[i], i), dux / GRID_SIZES[i], duz / GRID_SIZES[i]).rbg;
 
 	if (choppy <= 0.0) dP = float3(0.0f, dP.y, 0.0f);
-	dP = float3(0.0, 0.0, 0.0);
+	//dP = float3(0.0, 0.0, 0.0);
 	vout.PosW = float3(u.x, 0.0f, u.y) + dP;
 	vout.PosH = mul(float4(vout.PosW, 1.0f), worldToScreen).xyzw;
 	vout.u = u;
