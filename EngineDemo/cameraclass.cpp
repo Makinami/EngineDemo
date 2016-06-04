@@ -150,7 +150,7 @@ XMVECTOR CameraClass::GetPositionRelSun() const
 
 void CameraClass::Walk(XMFLOAT3 deltaX)
 {
-	XMVECTOR w = XMVectorReplicate(deltaX.y);
+	XMVECTOR w = XMVectorReplicate(deltaX.z);
 	XMVECTOR d = XMVectorReplicate(deltaX.x);
 	XMVECTOR l = XMLoadFloat3(&mLook);
 	XMVECTOR r = XMLoadFloat3(&mRight);

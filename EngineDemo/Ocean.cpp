@@ -1,0 +1,519 @@
+#include "Ocean.h"
+
+#include "Utilities\CreateShader.h"
+#include "Utilities\CreateBuffer.h"
+#include "Utilities\MapResources.h"
+
+using Microsoft::WRL::ComPtr;
+
+
+#define EXIT_ON_FAILURE(fnc)  \
+	{ \
+		HRESULT result; \
+		if (FAILED(result = fnc)) { \
+			return result; \
+		} \
+	}
+
+OceanClass::OceanClass() :
+	spectrumSRV(nullptr),
+	turbulenceSRV(nullptr),
+	turbulenceUAV(nullptr),
+	initFFTCS(nullptr),
+	fftCS(nullptr),
+	injectTurbulanceCS(nullptr),
+	dissipateTurbulanceCS(nullptr),
+	perFrameCB(nullptr),
+	FFT_SIZE(256),
+	GRID_SIZE{ 5488.0, 392.0, 28.0, 2.0 },
+	windSpeed(5.0),
+	waveAge(0.84),
+	cm(0.23),
+	km(370.0),
+	amplitude(1.0),
+	time(0),
+	rand01(0.0, 1.0),
+	screenWidth(1280),
+	screenHeight(720),
+	screenGridSize(16)
+{
+	random_device rd;
+	mt.seed(rd());
+}
+
+
+OceanClass::~OceanClass()
+{
+	Release();
+}
+
+HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmediateContext)
+{
+	EXIT_ON_FAILURE(CompileShadersAndInputLayout(device));
+
+	EXIT_ON_FAILURE(CreateConstantBuffers(device));
+
+	EXIT_ON_FAILURE(CreateDataResources(device));
+
+	EXIT_ON_FAILURE(CreateSamplerRasterDepthStencilStates(device));
+
+	CreateScreenMesh(device);
+
+	return S_OK;
+}
+
+void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, std::shared_ptr<CameraClass> Camera)
+{
+	time += dt;
+
+	float horizon = max(min(Camera->GetHorizon(), 1.1f), -0.1);
+	indicesToRender = (int)((horizon + 0.1)*screenHeight / screenGridSize) * indicesPerRow;
+
+	perFrameParams.dt = dt;
+	perFrameParams.time = time;
+	perFrameParams.screendy = max(-2.0f*horizon + 2.2f, 0.0);
+	XMStoreFloat4x4(&(perFrameParams.screenToCamMatrix), XMMatrixInverse(nullptr, Camera->GetProjTrans()));
+	XMStoreFloat4x4(&(perFrameParams.camToWorldMatrix), XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewMatrix())));
+	XMStoreFloat4x4(&(perFrameParams.worldToScreenMatrix), Camera->GetViewProjTransMatrix());
+	XMStoreFloat3(&(perFrameParams.camPos), Camera->GetPosition());
+	perFrameParams.gridSize = XMFLOAT2(screenGridSize / (float)screenWidth, screenGridSize / (float)screenHeight);
+
+	ID3D11Buffer* pp = perFrameCB.Get();
+	MapResources(mImmediateContext, perFrameCB.Get(), perFrameParams);
+
+	Simulate(mImmediateContext);
+}
+
+void OceanClass::Simulate(ID3D11DeviceContext1 *& mImmediateContext)
+{
+	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
+	ID3D11ShaderResourceView* ppSRVNULL[2] = { NULL, NULL };
+
+	ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
+
+	// init
+	mImmediateContext->CSSetShader(initFFTCS.Get(), nullptr, 0);
+	mImmediateContext->CSSetShaderResources(0, 1, spectrumSRV.GetAddressOf());
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, wavesUAV[0].GetAddressOf(), nullptr);
+	mImmediateContext->CSSetConstantBuffers(0, 2, buffers);
+
+	mImmediateContext->Dispatch(FFT_SIZE / 16, FFT_SIZE / 16, 4);
+
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
+
+	// fft
+	mImmediateContext->CSSetShader(fftCS.Get(), nullptr, 0);
+	for (auto i = 0; i < 2; ++i)
+	{
+		mImmediateContext->CSSetShaderResources(0, 1, wavesSRV[i].GetAddressOf());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, wavesUAV[1 - i].GetAddressOf(), nullptr);
+		mImmediateContext->CSSetConstantBuffers(0, 1, constCB[i].GetAddressOf());
+
+		mImmediateContext->Dispatch(1, 256, 4);
+
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
+	}
+}
+
+void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light )
+{
+	ID3D11ShaderResourceView* ppSRVNULL[2] = { NULL, NULL };
+	ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
+
+	// IA 
+	mImmediateContext->IASetInputLayout(mInputLayout.Get());
+	mImmediateContext->IASetIndexBuffer(screenMeshIB.Get(), DXGI_FORMAT_R16_UINT, 0);
+	mImmediateContext->IASetVertexBuffers(0, 1, screenMeshVB.GetAddressOf(), &stride, &offset);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// VS
+	mImmediateContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
+	mImmediateContext->VSSetConstantBuffers(0, 2, buffers);
+	mImmediateContext->VSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
+	mImmediateContext->VSSetSamplers(0, 1, mSamplerAnisotropic.GetAddressOf());
+
+	// PS 
+	mImmediateContext->PSSetShader(mPixelShader.Get(), nullptr, 0);
+	mImmediateContext->PSSetConstantBuffers(1, 1, perFrameCB.GetAddressOf());
+	
+	// RS & OM
+	mImmediateContext->RSSetState(mRastStateFrame.Get());
+	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
+
+	mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
+
+	mImmediateContext->VSSetShaderResources(0, 1, ppSRVNULL);
+}
+
+void OceanClass::ChangedWinSize(ID3D11Device1 *& device, int width, int height)
+{
+	screenWidth = width;
+	screenHeight = height;
+
+	CreateScreenMesh(device);
+}
+
+void OceanClass::Release()
+{
+}
+
+HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
+{
+	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\initFFT.cso", device, initFFTCS));
+
+	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\WaterBruneton\\FFT.cso", device, fftCS));
+
+	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\injectTurbulence.cso", device, injectTurbulanceCS));
+
+	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\dissipateTrubulence.cso", device, dissipateTurbulanceCS));
+	
+	EXIT_ON_FAILURE(CreatePSFromFile(L"..\\Debug\\Shaders\\Ocean\\OceanPS.cso", device, mPixelShader));
+
+	// vertex and input layout
+	const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	UINT numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
+
+	EXIT_ON_FAILURE(CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Ocean\\OceanVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout));
+
+	return S_OK;
+}
+
+HRESULT OceanClass::CreateConstantBuffers(ID3D11Device1 *& device)
+{
+	D3D11_BUFFER_DESC constantBufferDesc;
+	constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constantBufferDesc.CPUAccessFlags = 0;
+	constantBufferDesc.MiscFlags = 0;
+	constantBufferDesc.StructureByteStride = 0;
+	constantBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	
+	UINT buffer[4] = { 0, 0, 0, 0 };
+	constantBufferDesc.ByteWidth = sizeof(buffer);
+
+	D3D11_SUBRESOURCE_DATA initData;
+	initData.pSysMem = buffer;
+	initData.SysMemPitch = sizeof(buffer);
+
+	// fft 0/row pass
+	constCB.push_back(nullptr);
+	EXIT_ON_FAILURE(device->CreateBuffer(&constantBufferDesc, &initData, &(constCB.back())));
+
+	// fft 1/col pass
+	buffer[0] = 1;
+	constCB.push_back(nullptr);
+	EXIT_ON_FAILURE(device->CreateBuffer(&constantBufferDesc, &initData, &(constCB.back()))); 
+	
+	// invert grid size
+	float bufferf[8] = { XM_2PI / GRID_SIZE[0], XM_2PI / GRID_SIZE[1], XM_2PI / GRID_SIZE[2], XM_2PI / GRID_SIZE[3],
+						 GRID_SIZE[0], GRID_SIZE[1], GRID_SIZE[2], GRID_SIZE[3] };
+	constantBufferDesc.ByteWidth = sizeof(bufferf);
+	initData.pSysMem = bufferf;
+	initData.SysMemPitch = sizeof(buffer);
+
+	constCB.push_back(nullptr);
+	EXIT_ON_FAILURE(device->CreateBuffer(&constantBufferDesc, &initData, &(constCB.back())));
+
+	// per frame params
+	EXIT_ON_FAILURE(CreateConstantBuffer(device, sizeof(perFrameParams), perFrameCB));
+
+	return S_OK;
+}
+
+HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
+{
+	/*
+	 * SPECTRUM
+	 */
+	UINT SLICE_SIZE = FFT_SIZE * FFT_SIZE * 2;
+	float* spectrum = new float[SLICE_SIZE * 4];
+
+	// populate wave spectrum array
+	for (int y = 0; y < FFT_SIZE; ++y)
+	{
+		for (int x = 0; x < FFT_SIZE; ++x)
+		{
+			int offset = 2 * (y * FFT_SIZE + x);
+			// [-N/2;N/2]
+			int i = x >= FFT_SIZE / 2 ? x - FFT_SIZE : x;
+			int j = y >= FFT_SIZE / 2 ? y - FFT_SIZE : y;
+
+			// populate spectrum
+			getSpectrumSample(i, j, GRID_SIZE[0], XM_PI / GRID_SIZE[0], spectrum + offset);
+			getSpectrumSample(i, j, GRID_SIZE[1], XM_PI * FFT_SIZE / GRID_SIZE[0], spectrum + SLICE_SIZE + offset);
+			getSpectrumSample(i, j, GRID_SIZE[2], XM_PI * FFT_SIZE / GRID_SIZE[1], spectrum + 2 * SLICE_SIZE + offset);
+			getSpectrumSample(i, j, GRID_SIZE[3], XM_PI * FFT_SIZE / GRID_SIZE[2], spectrum + 3 * SLICE_SIZE + offset);
+		}
+	}
+
+	D3D11_TEXTURE2D_DESC textDesc;
+	textDesc.ArraySize = 4;
+	textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	textDesc.CPUAccessFlags = 0;
+	textDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	textDesc.Height = FFT_SIZE;
+	textDesc.MipLevels = 1;
+	textDesc.MiscFlags = 0;
+	textDesc.SampleDesc = { 1, 0 };
+	textDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	textDesc.Width = FFT_SIZE;
+
+	D3D11_SUBRESOURCE_DATA textData[4];
+	for (auto i = 0; i < 4; ++i)
+	{
+		textData[i].pSysMem = spectrum + i * SLICE_SIZE;
+		textData[i].SysMemPitch = sizeof(float) * FFT_SIZE * 2;
+	}
+
+	ComPtr<ID3D11Texture2D> spectrumText;
+	EXIT_ON_FAILURE(device->CreateTexture2D(&textDesc, textData, &spectrumText));
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	srvDesc.Format = textDesc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+	srvDesc.Texture2DArray.ArraySize = 4;
+	srvDesc.Texture2DArray.FirstArraySlice = 0;
+	srvDesc.Texture2DArray.MipLevels = textDesc.MipLevels;
+	srvDesc.Texture2DArray.MostDetailedMip = 0;
+
+	EXIT_ON_FAILURE(device->CreateShaderResourceView(spectrumText.Get(), &srvDesc, &spectrumSRV));
+
+	delete[] spectrum;
+
+	/*
+	 * FFT TEXTURES
+	 */
+	textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	textDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	textDesc.MipLevels = 1;
+	textDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	vector< ComPtr<ID3D11Texture2D> > fftText;
+	for (auto i = 0; i < 2; ++i)
+	{
+		fftText.push_back(nullptr);
+		EXIT_ON_FAILURE(device->CreateTexture2D(&textDesc, nullptr, &(fftText.back())));
+	}
+
+	srvDesc.Format = textDesc.Format;
+	srvDesc.Texture2DArray.MipLevels = -1;
+
+	for (auto i = 0; i < 2; ++i)
+	{
+		wavesSRV.push_back(nullptr);
+		EXIT_ON_FAILURE(device->CreateShaderResourceView(fftText[i].Get(), &srvDesc, &(wavesSRV.back())));
+	}
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+	uavDesc.Format = textDesc.Format;
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+	uavDesc.Texture2DArray.ArraySize = 4;
+	uavDesc.Texture2DArray.FirstArraySlice = 0;
+	uavDesc.Texture2DArray.MipSlice = 0;
+
+	for (auto i = 0; i < 2; ++i)
+	{
+		wavesUAV.push_back(nullptr);
+		EXIT_ON_FAILURE(device->CreateUnorderedAccessView(fftText[i].Get(), &uavDesc, &(wavesUAV.back())));
+	}
+
+	/*
+	 * TURBULENCE TEXTURES
+	 */
+	ComPtr<ID3D11Texture2D> turbulenceText;
+	EXIT_ON_FAILURE(device->CreateTexture2D(&textDesc, nullptr, &turbulenceText));
+
+	EXIT_ON_FAILURE(device->CreateShaderResourceView(turbulenceText.Get(), &srvDesc, &turbulenceSRV));
+
+	EXIT_ON_FAILURE(device->CreateUnorderedAccessView(turbulenceText.Get(), &uavDesc, &turbulenceUAV));
+
+	return S_OK;
+}
+
+HRESULT OceanClass::CreateScreenMesh(ID3D11Device1 *& device)
+{
+	float vmargin = 0.1;
+	float hmargin = 0.1;
+
+	vector<XMFLOAT2> vertices(int(ceil(screenHeight * (1 + 2 * hmargin) / screenGridSize) + 1) * int(ceil(screenWidth * (1 + 2 * vmargin) / screenGridSize) + 1));
+
+	int n = 0;
+	int nx;
+	for (float j = screenHeight * (1 + hmargin); j > -screenHeight * hmargin - screenGridSize; j -= screenGridSize)
+	{
+		nx = 0;
+		for (float i = -screenWidth * vmargin; i < screenWidth * (1.0 + vmargin) + screenGridSize; i += screenGridSize, ++nx)
+		{
+			vertices[n++] = XMFLOAT2(-1.0 + 2.0 * i / (float)screenWidth, -1.0 + 2.0 * j / (float)screenHeight);
+		}
+	}
+
+	stride = sizeof(vertices[0]);
+	offset = 0;
+
+	D3D11_BUFFER_DESC vbd;
+	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbd.ByteWidth = n * sizeof(vertices[0]);
+	vbd.CPUAccessFlags = 0;
+	vbd.MiscFlags = 0;
+	vbd.StructureByteStride = 0;
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
+
+	D3D11_SUBRESOURCE_DATA vinitData;
+	vinitData.pSysMem = &vertices[0];
+
+	EXIT_ON_FAILURE(device->CreateBuffer(&vbd, &vinitData, &screenMeshVB));
+
+	// indices
+	vector<UINT16> indices(6 * int(ceil(screenHeight * (1.0 + 2.0 * hmargin) / screenGridSize) + 1) * int(ceil(screenWidth * (1.0f + 2.0f * hmargin) / screenGridSize) + 1));
+
+	int nj = 0;
+	n = 0;
+	for (float j = screenHeight * (1.0 + hmargin); j > -screenHeight * hmargin; j -= screenGridSize, ++nj)
+	{
+		int ni = 0;
+		for (float i = -screenWidth * vmargin; i < screenWidth * (1.0 + vmargin); i += screenGridSize, ++ni)
+		{
+			indices[n++] = ni + (nj + 1) * nx;
+			indices[n++] = (ni + 1) + (nj + 1) * nx;
+			indices[n++] = (ni + 1) + nj * nx;
+			indices[n++] = (ni + 1) + nj * nx;
+			indices[n++] = ni + (nj + 1) * nx;
+			indices[n++] = ni + nj * nx;
+		}
+	}
+
+	indicesPerRow = (nx-1) * 6;
+
+	D3D11_BUFFER_DESC ibd;
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.ByteWidth = n * sizeof(indices[0]);
+	ibd.CPUAccessFlags = 0;
+	ibd.MiscFlags = 0;
+	ibd.StructureByteStride = 0;
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+
+	D3D11_SUBRESOURCE_DATA iinitData;
+	iinitData.pSysMem = &indices[0];
+
+	EXIT_ON_FAILURE(device->CreateBuffer(&ibd, &iinitData, &screenMeshIB));
+
+	return S_OK;
+}
+
+HRESULT OceanClass::CreateSamplerRasterDepthStencilStates(ID3D11Device1 *& device)
+{
+	D3D11_SAMPLER_DESC samplerDesc;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samplerDesc.MaxLOD = FLT_MAX;
+	samplerDesc.MinLOD = -FLT_MAX;
+	samplerDesc.MipLODBias = 0;
+	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.MaxAnisotropy = 16;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+
+	EXIT_ON_FAILURE(device->CreateSamplerState(&samplerDesc, &mSamplerAnisotropic));
+
+	D3D11_RASTERIZER_DESC rastDesc;
+	ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
+	rastDesc.FillMode = D3D11_FILL_SOLID;
+	rastDesc.CullMode = D3D11_CULL_NONE;
+	rastDesc.FrontCounterClockwise = false;
+	rastDesc.DepthClipEnable = false;
+	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateSolid))) return false;
+	
+	rastDesc.FillMode = D3D11_FILL_WIREFRAME;
+	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateFrame))) return false;
+
+	return S_OK;
+}
+
+void OceanClass::getSpectrumSample(int i, int j, float lengthScale, float kMin, float * result)
+{
+	float dk = XM_2PI / lengthScale;
+	float kx = i * dk;
+	float ky = j * dk;
+	if (abs(kx) < kMin && abs(ky) < kMin)
+	{
+		result[0] = 0.0f;
+		result[1] = 0.0f;
+	}
+	else
+	{
+		float S = spectrum(kx, ky);
+		float h = sqrt(S / 2.0) * dk;
+		float phi = rand01(mt) * XM_2PI;
+		result[0] = h * cos(phi);
+		result[1] = h * sin(phi);
+	}
+}
+
+/*
+ * Implementation taken as is from Eric Bruneton: "Real-time Realistic Ocean Lighting using Seamless Transitions from Geometry to BRDF"
+ * All credit to the author
+ *
+ * Based on work:
+ * "A unified directional spectrum for long and short wind-driven waves"
+ * T. Elfouhaily, B. Chapron, K. Katsaros, D. Vandemark
+ * Journal of Geophysical Research vol 102, p781-796, 1997
+ */
+float OceanClass::spectrum(float kx, float ky, bool omnispectrum)
+{
+	float U10 = windSpeed;
+	float Omega = waveAge;
+	float A = amplitude;
+
+	// phase speed
+	float k = sqrt(kx * kx + ky * ky);
+	float c = omega(k) / k;
+
+	// spectral peak
+	float kp = 9.81 * sqr(Omega / U10); // after Eq 3
+	float cp = omega(kp) / kp;
+
+	// friction velocity
+	float z0 = 3.7e-5 * sqr(U10) / 9.81 * pow(U10 / cp, 0.9f); // Eq 66
+	float u_star = 0.41 * U10 / log(10.0 / z0); // Eq 60
+
+	float Lpm = exp(-5.0 / 4.0 * sqr(kp / k)); // after Eq 3
+	float gamma = Omega < 1.0 ? 1.7 : 1.7 + 6.0 * log(Omega); // after Eq 3 // log10 or log??
+	float sigma = 0.08 * (1.0 + 4.0 / pow(Omega, 3.0f)); // after Eq 3
+	float Gamma = exp(-1.0 / (2.0 * sqr(sigma)) * sqr(sqrt(k / kp) - 1.0));
+	float Jp = pow(gamma, Gamma); // Eq 3
+	float Fp = Lpm * Jp * exp(-Omega / sqrt(10.0) * (sqrt(k / kp) - 1.0)); // Eq 32
+	float alphap = 0.006 * sqrt(Omega); // Eq 34
+	float Bl = 0.5 * alphap * cp / c * Fp; // Eq 31
+
+	float alpham = 0.01 * (u_star < cm ? 1.0 + log(u_star / cm) : 1.0 + 3.0 * log(u_star / cm)); // Eq 44
+	float Fm = exp(-0.25 * sqr(k / km - 1.0)); // Eq 41
+	float Bh = 0.5 * alpham * cm / c * Fm * Lpm; // Eq 40 (fixed)
+
+	if (omnispectrum) {
+		return A * (Bl + Bh) / (k * sqr(k)); // Eq 30
+	}
+
+	float a0 = log(2.0) / 4.0; float ap = 4.0; float am = 0.13 * u_star / cm; // Eq 59
+	float Delta = tanh(a0 + ap * pow(c / cp, 2.5f) + am * pow(cm / c, 2.5f)); // Eq 57
+
+	float phi = atan2(ky, kx);
+
+	if (kx < 0.0) {
+		return 0.0;
+	}
+	else {
+		Bl *= 2.0;
+		Bh *= 2.0;
+	}
+
+	return A * (Bl + Bh) * (1.0 + Delta * cos(2.0 * phi)) / (2.0 * XM_PI * sqr(sqr(k))); // Eq 67
+}
+
+float OceanClass::omega(float k)
+{
+	return sqrt(9.81 * k * (1.0 + sqr(k / km))); // Eq 24
+}

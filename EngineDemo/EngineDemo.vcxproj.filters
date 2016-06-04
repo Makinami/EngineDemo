@@ -52,6 +52,9 @@
     <Filter Include="Shaders\WaterBruneton">
       <UniqueIdentifier>{275b03d0-e732-48bc-af35-fc53c977b8b7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Ocean">
+      <UniqueIdentifier>{67ccc6a7-80f7-452b-b6db-6d7118d9012d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -117,6 +120,9 @@
     </ClCompile>
     <ClCompile Include="loggerclass.cpp">
       <Filter>Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Ocean.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -336,6 +342,9 @@
     <ClInclude Include="loggerclass.h">
       <Filter>Debug</Filter>
     </ClInclude>
+    <ClInclude Include="Ocean.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -458,6 +467,15 @@
     <FxCompile Include="Shaders\WaterBruneton\Bffty.hlsl">
       <Filter>Shaders\WaterBruneton</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\initFFT.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
@@ -474,5 +492,8 @@
     <None Include="ClassDiagram1.cd" />
     <None Include="ClassDiagram2.cd" />
     <None Include="ClassDiagram3.cd" />
+    <None Include="Shaders\Ocean\perFrameCB.hlsli">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
   </ItemGroup>
 </Project>

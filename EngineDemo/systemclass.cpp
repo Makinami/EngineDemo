@@ -300,7 +300,7 @@ bool SystemClass::Frame()
 	Input->Capture();
 
 	Player->React(dt);	
-	Map->Update(dt, D3D->GetDeviceContext());
+	Map->Update(dt, D3D->GetDeviceContext(), Camera);
 	
 	D3D->BeginScene();
 

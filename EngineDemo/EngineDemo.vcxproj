@@ -166,6 +166,7 @@
     <ClCompile Include="loggerclass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="map.cpp" />
+    <ClCompile Include="Ocean.cpp" />
     <ClCompile Include="Performance.cpp" />
     <ClCompile Include="playerclass.cpp" />
     <ClCompile Include="shadowmapclass.cpp" />
@@ -235,6 +236,7 @@
     <ClInclude Include="noise\noise.h" />
     <ClInclude Include="noise\noisegen.h" />
     <ClInclude Include="noise\vectortable.h" />
+    <ClInclude Include="Ocean.h" />
     <ClInclude Include="Performance.h" />
     <ClInclude Include="playerclass.h" />
     <ClInclude Include="Shaders\Sky\resolutions.h" />
@@ -302,6 +304,17 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)%(RelativeDir)%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\initFFT.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shaders\Sky\copyInscatterN.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
@@ -615,6 +628,7 @@
     <None Include="ClassDiagram3.cd" />
     <None Include="settings.ini" />
     <None Include="Shaders\Clouds\SimplexNoise.hlsli" />
+    <None Include="Shaders\Ocean\perFrameCB.hlsli" />
     <None Include="Shaders\Sky\common.hlsli" />
     <None Include="Shaders\WaterBruneton\atmosphere.hlsli" />
   </ItemGroup>

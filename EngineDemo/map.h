@@ -15,6 +15,7 @@
 #include "Sky.h"
 #include "CloudsClass.h"
 #include "CloudsClass2.h"
+#include "Ocean.h"
 
 #include "shadowmapclass.h"
 
@@ -39,12 +40,12 @@ public:
 	
 	void Shutdown();
 
-	void Update(float dt, ID3D11DeviceContext1 * mImmediateContext);
+	void Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 	void Draw20(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 
-	void DrawDebug(ID3D11DeviceContext1* mImmediateContext);
+	void DrawDebug(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 
 	float GetHeight(float x, float y);
 
@@ -55,6 +56,7 @@ private:
 	std::shared_ptr<CloudsClass> Clouds;
 	std::shared_ptr<CloudsClass2> Clouds2;
 	std::unique_ptr<WaterBruneton> WaterB;
+	std::unique_ptr<OceanClass> Ocean;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;
@@ -71,7 +73,15 @@ private:
 	struct MatrixBufferType
 	{
 		XMMATRIX gWorldProj;
-	};
+	} MatrixBufferParams;
 
 	ID3D11Buffer* MatrixBuffer;
+
+	// CUBE
+	ID3D11Buffer* mCubeVB;
+	ID3D11Buffer* mCubeIB;
+
+	ID3D11InputLayout* mCubeIL;
+	ID3D11VertexShader* mCubeVS;
+	ID3D11PixelShader* mCubePS;
 };
