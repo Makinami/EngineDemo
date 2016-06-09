@@ -7,7 +7,7 @@ cbuffer constBuffer : register(b0)
 };
 
 Texture2DArray wavesDisplacement : register(t0);
-SamplerState samAnisotropic : register(s0);
+SamplerState samAnisotropic : register(s1);
 
 struct VertexIn
 {
@@ -17,33 +17,21 @@ struct VertexIn
 struct VertexOut
 {
 	float4 PosH : SV_POSITION;
+	float2 PosF : TEXTCOORD0;
+	float3 PosW : TEXTCOORD1;
 };
-
-float2 screenToWorld(float2 vertex)
-{
-	float3 camDir = normalize(mul(float4(vertex, 0.0f, 1.0f), screenToCamMatrix).xyz);
-	float3 worldDir = (mul(float4(camDir, 0.0f), camToWorldMatrix)).xyz;
-	float t = -camPos.y / worldDir.y;
-	return camPos.xz + t * worldDir.xz;
-}
 
 VertexOut main( VertexIn vin )
 {
 	VertexOut vout;
-	float2 pos = vin.Pos - float2(0.0, screendy);
-
-	float2 u = screenToWorld(pos);
-	float2 ux = screenToWorld(pos + float2(gridSize.x, 0.0f));
-	float2 uz = screenToWorld(pos + float2(0.0f, gridSize.y));
-	float2 dux = abs(ux - u) * 2.0f;
-	float2 duz = abs(uz - u) * 2.0f;
 
 	float3 dP = float3(0.0f, 0.0f, 0.0f);
 	[unroll(4)]
 	for (int i = 0; i < 4; ++i)
-		dP += wavesDisplacement.SampleGrad(samAnisotropic, float3(pos / GRID_SIZE[i], i), dux / GRID_SIZE[i], duz / GRID_SIZE[i]).rbg;
+		dP += wavesDisplacement.SampleLevel(samAnisotropic, float3(vin.Pos / GRID_SIZE[i], i), 0.0).rbg;
 
-	vout.PosH = mul(float4(u.x + dP.x, 0.0 + dP.y, u.y + dP.z, 1.0f), worldToScreenMatrix);
-	//vout.PosH = float4(pos, 0.0f, 1.0f);
+	vout.PosF = vin.Pos;
+	vout.PosW = float3(vin.Pos.x, 0.0f, vin.Pos.y) + dP;
+	vout.PosH = mul(float4(vout.PosW, 1.0f), worldToScreenMatrix);
 	return vout;
 }

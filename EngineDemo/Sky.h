@@ -36,6 +36,8 @@ public:
 
 	void DrawToScreen(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
+	void SetTransmittance(ID3D11DeviceContext1* mImmediateContext, int slot);
+
 	ID3D11ShaderResourceView* getTransmittanceSRV();
 
 private:
@@ -151,4 +153,9 @@ private:
 
 	// performace ids
 	char drawSky;
+
+	// TEMP
+	ID3D11ShaderResourceView* transmittanceFile;
+	ID3D11ShaderResourceView* inscatterFile;
+	ID3D11ShaderResourceView* irradianceFile;
 };

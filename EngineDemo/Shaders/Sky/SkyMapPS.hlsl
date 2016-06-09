@@ -41,5 +41,5 @@ float4 main(VertexOut pin) : SV_TARGET
 		result.rgb = skyIrradiance(earthPos.y, sunDir.y) / PI * avgFresnel;
 	}
 
-	return result;
+	return float4(HDR(result), 1.0);
 }

@@ -453,6 +453,107 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 	drawSky = Performance->ReserveName(L"Bruneton Sky");
 
+	// TEXT FROM FILE
+	char* data;
+	float* fdata;
+	std::ifstream stream;
+
+	D3D11_TEXTURE2D_DESC text2descFile;
+	text2descFile.Height = SKY_H;
+	text2descFile.Width = SKY_W;
+	text2descFile.ArraySize = 1;
+	text2descFile.Usage = D3D11_USAGE_IMMUTABLE;
+	text2descFile.SampleDesc = { 1, 0 };
+	text2descFile.MipLevels = 1;
+	text2descFile.MiscFlags = 0;
+	text2descFile.CPUAccessFlags = 0;
+	text2descFile.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	text2descFile.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvdescFile;
+	srvdescFile.Texture2D.MipLevels = 1;
+	srvdescFile.Texture2D.MostDetailedMip = 0;
+	srvdescFile.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvdescFile.Format = text2descFile.Format;
+
+	ID3D11Texture2D* text2dFile;
+
+	data = new char[SKY_H*SKY_W * sizeof(XMFLOAT4)];
+
+	stream.open("irradiance.raw", std::ifstream::binary);
+	if (stream.good())
+	{
+		for (int i = 0; i < SKY_W * SKY_H; ++i)
+			stream.read(data + i * sizeof(XMFLOAT4), sizeof(XMFLOAT3));
+		stream.close();
+	}
+
+	D3D11_SUBRESOURCE_DATA subFile;
+	subFile.pSysMem = data;
+	subFile.SysMemPitch = SKY_W * sizeof(XMFLOAT4);
+
+	device->CreateTexture2D(&text2descFile, &subFile, &text2dFile);
+	device->CreateShaderResourceView(text2dFile, &srvdescFile, &irradianceFile);
+	ReleaseCOM(text2dFile);
+
+	delete[] data;
+
+	text2descFile.Height = TRANSMITTANCE_H;
+	text2descFile.Width = TRANSMITTANCE_W;
+
+	data = new char[TRANSMITTANCE_H*TRANSMITTANCE_W * sizeof(XMFLOAT4)];
+
+	stream.open("transmittance.raw", std::ifstream::binary);
+	if (stream.good())
+	{
+		for (int i = 0; i < TRANSMITTANCE_W * TRANSMITTANCE_H; ++i)
+			stream.read(data + i * sizeof(XMFLOAT4), sizeof(XMFLOAT3));
+		stream.close();
+	}
+
+	subFile.pSysMem = data;
+	subFile.SysMemPitch = TRANSMITTANCE_W * sizeof(XMFLOAT4);
+
+	device->CreateTexture2D(&text2descFile, &subFile, &text2dFile);
+	device->CreateShaderResourceView(text2dFile, &srvdescFile, &transmittanceFile);
+	ReleaseCOM(text2dFile);
+
+	delete[] data;
+
+	D3D11_TEXTURE3D_DESC text3descFile;
+	text3descFile.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	text3descFile.CPUAccessFlags = 0;
+	text3descFile.Depth = RES_R;
+	text3descFile.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	text3descFile.Height = RES_MU;
+	text3descFile.MipLevels = 1;
+	text3descFile.MiscFlags = 0;
+	text3descFile.Usage = D3D11_USAGE_IMMUTABLE;
+	text3descFile.Width = RES_MU_S * RES_NU;
+
+	srvdescFile.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+	srvdescFile.Texture3D.MipLevels = 1;
+	srvdescFile.Texture3D.MostDetailedMip = 0;
+
+	data = new char[RES_R*RES_MU*RES_MU_S*RES_NU * sizeof(XMFLOAT4)];
+
+	stream.open("inscatter.raw", std::ifstream::binary);
+	if (stream.good())
+	{
+		stream.read(data, RES_R*RES_MU*RES_MU_S*RES_NU * sizeof(XMFLOAT4));
+		stream.close();
+	}
+
+	subFile.pSysMem = data;
+	subFile.SysMemPitch = RES_MU_S * RES_NU * sizeof(XMFLOAT4);
+	subFile.SysMemSlicePitch = subFile.SysMemPitch * RES_MU;
+	
+	ID3D11Texture3D* text3dFile;
+	device->CreateTexture3D(&text3descFile, &subFile, &text3dFile);
+	device->CreateShaderResourceView(text3dFile, &srvdescFile, &inscatterFile);
+	ReleaseCOM(text3dFile);
+	delete[] data;
+
 	return 0;
 }
 
@@ -500,9 +601,9 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 
-	mImmediateContext->PSSetShaderResources(0, 1, &inscatterSRV);
-	mImmediateContext->PSSetShaderResources(1, 1, &transmitanceSRV);
-	mImmediateContext->PSSetShaderResources(2, 1, &irradianceSRV);
+	mImmediateContext->PSSetShaderResources(0, 1, &inscatterFile);
+	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceFile);
+	mImmediateContext->PSSetShaderResources(2, 1, &irradianceFile);
 	mImmediateContext->PSSetSamplers(0, 3, mSamplerStateBasic);
 	mImmediateContext->PSSetShader(mPixelShaderToCube, NULL, 0);
 
@@ -569,9 +670,9 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 	mImmediateContext->PSSetConstantBuffers(0, 1, &skyMapCB);
 	mImmediateContext->PSSetShader(mMapPixelShader, nullptr, 0);
 
-	mImmediateContext->PSSetShaderResources(101, 1, &inscatterSRV);
-	mImmediateContext->PSSetShaderResources(102, 1, &transmitanceSRV);
-	mImmediateContext->PSSetShaderResources(103, 1, &deltaESRV);
+	mImmediateContext->PSSetShaderResources(101, 1, &inscatterFile);
+	mImmediateContext->PSSetShaderResources(102, 1, &transmittanceFile);
+	mImmediateContext->PSSetShaderResources(103, 1, &irradianceFile);
 
 	mImmediateContext->PSSetSamplers(0, 1, mSamplerStateBasic);
 
@@ -650,6 +751,11 @@ void SkyClass::DrawToScreen(ID3D11DeviceContext1 * mImmediateContext, std::share
 	mImmediateContext->OMSetDepthStencilState(0, 0);
 
 	mImmediateContext->PSSetShaderResources(3, 1, ppSRVNULL);
+}
+
+void SkyClass::SetTransmittance(ID3D11DeviceContext1 * mImmediateContext, int slot)
+{
+	mImmediateContext->PSSetShaderResources(slot, 1, &transmitanceSRV);
 }
 
 ID3D11ShaderResourceView * SkyClass::getTransmittanceSRV()

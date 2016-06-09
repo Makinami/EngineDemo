@@ -476,6 +476,9 @@
     <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\JacobianInject.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />

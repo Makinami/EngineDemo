@@ -29,9 +29,9 @@ public:
 
 	HRESULT Init(ID3D11Device1* &device, ID3D11DeviceContext1* &mImmediateContext);
 
-	void Update(ID3D11DeviceContext1* &mImmediateContext, float dt, std::shared_ptr<CameraClass> Camera);
+	void Update(ID3D11DeviceContext1* &mImmediateContext, float dt, DirectionalLight& light, std::shared_ptr<CameraClass> Camera);
 
-	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light );
+	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB );
 
 	void ChangedWinSize(ID3D11Device1* &device, int width, int height);
 
@@ -44,7 +44,7 @@ private:
 
 	HRESULT CreateDataResources(ID3D11Device1* &device);
 
-	HRESULT CreateScreenMesh(ID3D11Device1* &device);
+	HRESULT CreateMesh(ID3D11Device1* &device);
 
 	HRESULT CreateSamplerRasterDepthStencilStates(ID3D11Device1* &device);
 
@@ -57,12 +57,14 @@ private:
 	vector< Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> > wavesSRV;
 	vector< Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> > wavesUAV;
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> turbulenceSRV;
-	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> turbulenceUAV;
+	vector< Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> > turbulenceSRV;
+	vector< Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> > turbulenceUAV;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fresnelSRV;
 
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> initFFTCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> fftCS;
-	Microsoft::WRL::ComPtr<ID3D11ComputeShader> injectTurbulanceCS;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> JacobianInjectCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> dissipateTurbulanceCS;
 
 	vector< Microsoft::WRL::ComPtr<ID3D11Buffer> > constCB;
@@ -79,13 +81,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerAnisotropic;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerClamp;
+
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateFrame;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateSolid;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState;
 
-	int indicesPerRow;
-	int screenGridSize;
 	int indicesToRender;
+	char turbulenceTextReadId;
+	char turbulenceTextWriteId;
 
 	struct {
 		XMFLOAT4X4 screenToCamMatrix;
@@ -93,9 +97,13 @@ private:
 		XMFLOAT4X4 worldToScreenMatrix;
 		XMFLOAT3 camPos;
 		float time;
+		XMFLOAT3 sunDir;
 		float dt;
 		float screendy;
 		XMFLOAT2 gridSize;
+		float lambda;
+		XMFLOAT2 sigma2;
+		XMFLOAT2 pad;
 	} perFrameParams;
 
 private:
@@ -104,6 +112,8 @@ private:
 	float spectrum(float kx, float ky, bool omnispectrum = false);
 	float omega(float k);
 	float inline sqr(float x) { return x * x; };
+
+	float Fresnel(float dot, float n1, float n2, bool schlick = false);
 
 private:
 	UINT FFT_SIZE;
@@ -123,6 +133,18 @@ private:
 
 	int screenWidth;
 	int screenHeight;
+
+	////
+
+	struct initFFTCBType
+	{
+		XMFLOAT4 INVERSE_GRID_SIZE;
+		float time;
+		XMFLOAT3 pad;
+	};
+	initFFTCBType initFFTParams;
+
+	ID3D11Buffer* initFFTCB;
 
 };
 

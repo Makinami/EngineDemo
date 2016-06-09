@@ -219,7 +219,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 	//Water->evaluateWavesGPU(dt, mImmediateContext);
 	WaterB->EvaluateWaves(dt, mImmediateContext);
 	//WaterB->BEvelWater(dt, mImmediateContext);
-	Ocean->Update(mImmediateContext, dt, Camera);
+	Ocean->Update(mImmediateContext, dt, light, Camera);
 
 	XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);
@@ -252,13 +252,13 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Water->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 	
 	Sky->DrawToMap(mImmediateContext, light);
-	Sky->DrawToCube(mImmediateContext, light);
-	Sky->DrawToScreen(mImmediateContext, Camera, light);
-	//Sky->Draw(mImmediateContext, Camera, light);
+	//Sky->DrawToCube(mImmediateContext, light);
+	//Sky->DrawToScreen(mImmediateContext, Camera, light);
+	Sky->Draw(mImmediateContext, Camera, light);
 
-	WaterB->Draw(mImmediateContext, Camera, light);
+	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	//Ocean->Draw(mImmediateContext, Camera, light);
+	Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
 	DrawDebug(mImmediateContext, Camera);
 	
@@ -292,7 +292,7 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->IASetIndexBuffer(mCubeIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mCubeIL);
 
-	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(392.0f, 0.0, 0.0));
+	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0, 0.0));
 	MapResources(mImmediateContext, MatrixBuffer, MatrixBufferParams);
 
 	mImmediateContext->VSSetShader(mCubeVS, nullptr, 0);
