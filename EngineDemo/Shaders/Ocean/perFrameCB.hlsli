@@ -9,7 +9,8 @@ cbuffer perFrameCB : register(b1)
 	float dt;
 	float screendy;
 	float2 gridSize;
-	float lambda;
+	float lambdaJ;
 	float2 sigma2;
-	float2 pad;
+	float lambdaV;
+	float pad;
 }

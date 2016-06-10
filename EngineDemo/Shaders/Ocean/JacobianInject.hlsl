@@ -27,11 +27,11 @@ void main( int3 DTid : SV_DispatchThreadID )
 
 	float Jacobian;
 
-	float2 dDdx = 0.5 * fftSize / GRID_SIZE[DTid.z] * lambda * (fftWaves[uint3(d_position.z, DTid.yz)] - fftWaves[uint3(d_position.x, DTid.yz)]);
-	float2 dDdy = 0.5 * fftSize / GRID_SIZE[DTid.z]  * lambda * (fftWaves[uint3(DTid.x, d_position.w, DTid.z)] - fftWaves[uint3(DTid.x, d_position.y, DTid.z)]);
+	float2 dDdx = 0.5 * fftSize / GRID_SIZE[DTid.z] * lambdaJ * (fftWaves[uint3(d_position.z, DTid.yz)] - fftWaves[uint3(d_position.x, DTid.yz)]);
+	float2 dDdy = 0.5 * fftSize / GRID_SIZE[DTid.z]  * lambdaJ * (fftWaves[uint3(DTid.x, d_position.w, DTid.z)] - fftWaves[uint3(DTid.x, d_position.y, DTid.z)]);
 
 	Jacobian = (1.0 + dDdx.x) * (1.0 + dDdy.y) - dDdx.y * dDdy.x;
 	float satJacobian = saturate(k*(-Jacobian + M));
 
-	turbulenceUAV[DTid] = float4(0.0, satJacobian, turbulence.z*exp(-dt) + satJacobian*dt, 0.0);
+	turbulenceUAV[DTid] = float4(Jacobian, satJacobian, turbulence.z*exp(-dt) + satJacobian*dt, 0.0);
 }

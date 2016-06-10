@@ -2,11 +2,15 @@
 
 #include <amp.h>
 
+#include "DDSTextureLoader.h"
+
 #include "Utilities\CreateShader.h"
 #include "Utilities\CreateBuffer.h"
 #include "Utilities\MapResources.h"
 
 using Microsoft::WRL::ComPtr;
+
+void ExtractFrustrumPlanes(XMFLOAT4 planes[6], CXMMATRIX M);
 
 
 #define EXIT_ON_FAILURE(fnc)  \
@@ -28,15 +32,17 @@ OceanClass::OceanClass() :
 	turbulenceTextWriteId(1),
 	FFT_SIZE(256),
 	GRID_SIZE{ 5488.0, 392.0, 28.0, 2.0 },
-	windSpeed(10.0),
+	windSpeed(35.0),
 	waveAge(0.84),
 	cm(0.23),
 	km(370.0),
-	amplitude(1.0),
+	spectrumGain(2.0),
 	time(0),
 	rand01(0.0, 1.0),
 	screenWidth(1280),
-	screenHeight(720)
+	screenHeight(720),
+	screenGridSize(2),
+	screen(0)
 {
 	random_device rd;
 	mt.seed(rd());
@@ -58,7 +64,9 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 
 	EXIT_ON_FAILURE(CreateSamplerRasterDepthStencilStates(device));
 
-	CreateMesh(device);
+	CreateGridMesh(device);
+
+	CreateScreenMesh(device);
 
 	return S_OK;
 }
@@ -66,16 +74,41 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, DirectionalLight& light, std::shared_ptr<CameraClass> Camera)
 {
 	time += dt;
+
+	float horizon = max(min(Camera->GetHorizon(), 1.1f), -0.1);
+	//horizon = 0.35;
+	if (screen)
+		indicesToRender = (int)((horizon + 0.1)*screenHeight / screenGridSize) * indicesPerRow;
 	
 	perFrameParams.dt = dt;
 	perFrameParams.time = time;
+	perFrameParams.screendy = max(-2.0f*horizon + 2.2f, 0.0);
 	XMStoreFloat4x4(&(perFrameParams.screenToCamMatrix), XMMatrixInverse(nullptr, Camera->GetProjTrans()));
 	XMStoreFloat4x4(&(perFrameParams.camToWorldMatrix), XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewMatrix())));
 	XMStoreFloat4x4(&(perFrameParams.worldToScreenMatrix), Camera->GetViewProjTransMatrix());
 	XMStoreFloat3(&(perFrameParams.camPos), Camera->GetPosition());
+	perFrameParams.gridSize = XMFLOAT2(screenGridSize / (float)screenWidth, screenGridSize / (float)screenHeight);
 	perFrameParams.sunDir = light.Direction();
 	perFrameParams.sunDir.x *= -1; perFrameParams.sunDir.y *= -1; perFrameParams.sunDir.z *= -1;
-	perFrameParams.lambda = 2.5f;
+	perFrameParams.lambdaJ = 4.0f;
+	perFrameParams.lambdaV = 2.0;
+	perFrameParams.pad = screen;
+
+	XMStoreFloat3(&cameraPos, Camera->GetPosition());
+	BuildInstanceBuffer(mImmediateContext, Camera);
+
+	/*instances[0].clear();
+	instances[0].push_back(XMFLOAT4X4(
+		1.0, 0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0
+	));*/
+
+	D3D11_MAPPED_SUBRESOURCE mappedResources;
+	mImmediateContext->Map(gridInstancesVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
+	memcpy(mappedResources.pData, &instances[0][0], sizeof(instances[0][0]) * instances[0].size());
+	mImmediateContext->Unmap(gridInstancesVB.Get(), 0);
 
 	ID3D11Buffer* pp = perFrameCB.Get();
 	MapResources(mImmediateContext, perFrameCB.Get(), perFrameParams);
@@ -130,15 +163,50 @@ void OceanClass::Simulate(ID3D11DeviceContext1 *& mImmediateContext)
 	mImmediateContext->CSSetShader(nullptr, 0, 0);
 }
 
+void OceanClass::BuildInstanceBuffer(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera)
+{
+	float edge = 256000.0;
+	instances[0].clear();
+	DivideTile(XMFLOAT2(-edge / 2.0, edge / 2.0), edge / 2.0, 0);
+	DivideTile(XMFLOAT2(edge / 2.0, edge / 2.0), edge / 2.0, 1);
+	DivideTile(XMFLOAT2(-edge / 2.0, -edge / 2.0), edge / 2.0, 2);
+	DivideTile(XMFLOAT2(edge / 2.0, -edge / 2.0), edge / 2.0, 3);
+}
+
+void OceanClass::DivideTile(XMFLOAT2 pos, float edge, int num)
+{
+	float dist = sqrt((pos.x - cameraPos.x)*(pos.x - cameraPos.x) + cameraPos.y*cameraPos.y + (pos.y - cameraPos.z)*(pos.y - cameraPos.z));
+
+	if (edge / (dist - edge * sqrt(2.0)) > 10)
+	{
+		DivideTile(XMFLOAT2(pos.x - edge / 2.0, pos.y + edge / 2.0), edge / 2.0, 0);
+		DivideTile(XMFLOAT2(pos.x + edge / 2.0, pos.y + edge / 2.0), edge / 2.0, 1);
+		DivideTile(XMFLOAT2(pos.x - edge / 2.0, pos.y - edge / 2.0), edge / 2.0, 2);
+		DivideTile(XMFLOAT2(pos.x + edge / 2.0, pos.y - edge / 2.0), edge / 2.0, 3);
+	}
+	else
+	{
+		instances[0].push_back(XMFLOAT4X4(
+			edge / 100.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0,
+			0.0, 0.0, edge / 100.0, 0.0,
+			-pos.x, 0.0, -pos.y, 1.0
+		));
+	}
+}
+
 void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB )
 {
-	ID3D11ShaderResourceView* ppSRVNULL[2] = { NULL, NULL };
+	ID3D11ShaderResourceView* ppSRVNULL[] = { NULL, NULL, NULL };
 	ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
 
 	// IA 
+	UINT stride[] = { sizeof(XMFLOAT2), sizeof(XMFLOAT4X4) };
+	UINT offset[] = { 0, 0 };
+	ID3D11Buffer* vbs[] = { gridMeshVB.Get(), gridInstancesVB.Get() };
 	mImmediateContext->IASetInputLayout(mInputLayout.Get());
-	mImmediateContext->IASetIndexBuffer(screenMeshIB.Get(), DXGI_FORMAT_R32_UINT, 0);
-	mImmediateContext->IASetVertexBuffers(0, 1, screenMeshVB.GetAddressOf(), &stride, &offset);
+	mImmediateContext->IASetIndexBuffer((screen ? screenMeshIB : gridMeshIB).Get(), DXGI_FORMAT_R32_UINT, 0);
+	mImmediateContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// VS
@@ -154,15 +222,18 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(1, 1, fresnelSRV.GetAddressOf());
 	mImmediateContext->PSSetSamplers(2, 1, mSamplerClamp.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(2, 1, turbulenceSRV[turbulenceTextReadId].GetAddressOf());
+	mImmediateContext->PSSetShaderResources(3, 1, noiseSRV.GetAddressOf());
 	
 	// RS & OM
 	mImmediateContext->RSSetState(mRastStateSolid.Get());
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
 
-	mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
+	//mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
+	mImmediateContext->DrawIndexedInstanced(indicesToRender, instances[0].size(), 0, 0, 0);
 
 	mImmediateContext->VSSetShaderResources(0, 1, ppSRVNULL);
-	mImmediateContext->PSSetShaderResources(0, 1, ppSRVNULL);
+	mImmediateContext->PSSetShaderResources(0, 3, ppSRVNULL);
 }
 
 void OceanClass::Release()
@@ -184,7 +255,11 @@ HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
 	// vertex and input layout
 	const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
 	};
 
 	UINT numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
@@ -401,24 +476,42 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 
 	EXIT_ON_FAILURE(device->CreateShaderResourceView(fresnelText.Get(), &srvDesc, &fresnelSRV));
 
+	/*
+	 * INSTANCE BUFFER
+	 */
+	D3D11_BUFFER_DESC instanceDesc;
+	instanceDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	instanceDesc.ByteWidth = sizeof(XMFLOAT4X4) * 200;
+	instanceDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	instanceDesc.MiscFlags = 0;
+	instanceDesc.StructureByteStride = 0;
+	instanceDesc.Usage = D3D11_USAGE_DYNAMIC;
+
+	EXIT_ON_FAILURE(device->CreateBuffer(&instanceDesc, nullptr, &gridInstancesVB));
+
+	/*
+	 * NOISE
+	 */
+	CreateDDSTextureFromFile(device, L"Textures/noise.dds", NULL, &noiseSRV);
+
 	return S_OK;
 }
 
-HRESULT OceanClass::CreateMesh(ID3D11Device1 *& device)
+HRESULT OceanClass::CreateScreenMesh(ID3D11Device1 *& device)
 {
 	float vmargin = 0.1;
 	float hmargin = 0.1;
 
-	vector<XMFLOAT2> vertices(401*401);
+	vector<XMFLOAT2> vertices(int(ceil(screenHeight * (1 + 2 * hmargin) / screenGridSize) + 1) * int(ceil(screenWidth * (1 + 2 * vmargin) / screenGridSize) + 1));
 
 	int n = 0;
 	int nx;
-	for (float j = -100.0f; j <= 100.0f; j += 0.5f)
+	for (float j = screenHeight * (1 + hmargin); j > -screenHeight * hmargin - screenGridSize; j -= screenGridSize)
 	{
 		nx = 0;
-		for (float i = -100.0f; i <= 100.0f; i += 0.5f, ++nx)
+		for (float i = -screenWidth * vmargin; i < screenWidth * (1.0 + vmargin) + screenGridSize; i += screenGridSize, ++nx)
 		{
-			vertices[n++] = XMFLOAT2(i, j);
+			vertices[n++] = XMFLOAT2(-1.0 + 2.0 * i / (float)screenWidth, -1.0 + 2.0 * j / (float)screenHeight);
 		}
 	}
 
@@ -439,14 +532,86 @@ HRESULT OceanClass::CreateMesh(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(device->CreateBuffer(&vbd, &vinitData, &screenMeshVB));
 
 	// indices
+	vector<UINT> indices(6 * int(ceil(screenHeight * (1.0 + 2.0 * hmargin) / screenGridSize) + 1) * int(ceil(screenWidth * (1.0f + 2.0f * hmargin) / screenGridSize) + 1));
+
+	int nj = 0;
+	n = 0;
+	for (float j = screenHeight * (1.0 + hmargin); j > -screenHeight * hmargin; j -= screenGridSize, ++nj)
+	{
+		int ni = 0;
+		for (float i = -screenWidth * vmargin; i < screenWidth * (1.0 + vmargin); i += screenGridSize, ++ni)
+		{
+			indices[n++] = ni + (nj + 1) * nx;
+			indices[n++] = (ni + 1) + (nj + 1) * nx;
+			indices[n++] = (ni + 1) + nj * nx;
+			indices[n++] = (ni + 1) + nj * nx;
+			indices[n++] = ni + (nj + 1) * nx;
+			indices[n++] = ni + nj * nx;
+		}
+	}
+
+	indicesPerRow = (nx - 1) * 6;
+
+	D3D11_BUFFER_DESC ibd;
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.ByteWidth = n * sizeof(indices[0]);
+	ibd.CPUAccessFlags = 0;
+	ibd.MiscFlags = 0;
+	ibd.StructureByteStride = 0;
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+
+	D3D11_SUBRESOURCE_DATA iinitData;
+	iinitData.pSysMem = &indices[0];
+
+	EXIT_ON_FAILURE(device->CreateBuffer(&ibd, &iinitData, &screenMeshIB));
+
+	return S_OK;
+}
+
+HRESULT OceanClass::CreateGridMesh(ID3D11Device1 *& device)
+{
+	float vmargin = 0.1;
+	float hmargin = 0.1;
+	float step = 5.0f;
+
+	vector<XMFLOAT2> vertices(401*401);
+
+	int n = 0;
+	int nx;
+	for (float j = -100.0f; j <= 100.0f; j += step)
+	{
+		nx = 0;
+		for (float i = -100.0f; i <= 100.0f; i += step, ++nx)
+		{
+			vertices[n++] = XMFLOAT2(i, j);
+		}
+	}
+
+	stride = sizeof(vertices[0]);
+	offset = 0;
+
+	D3D11_BUFFER_DESC vbd;
+	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbd.ByteWidth = n * sizeof(vertices[0]);
+	vbd.CPUAccessFlags = 0;
+	vbd.MiscFlags = 0;
+	vbd.StructureByteStride = 0;
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
+
+	D3D11_SUBRESOURCE_DATA vinitData;
+	vinitData.pSysMem = &vertices[0];
+
+	EXIT_ON_FAILURE(device->CreateBuffer(&vbd, &vinitData, &gridMeshVB));
+
+	// indices
 	vector<UINT> indices(6 * 400*400);
 
 	int nj = 0;
 	n = 0;
-	for (float j = -100.0f; j < 100.0f; j += 0.5f, ++nj)
+	for (float j = -100.0f; j < 100.0f; j += step, ++nj)
 	{
 		int ni = 0;
-		for (float i = -100.0f; i < 100.0f; i += 0.5f, ++ni)
+		for (float i = -100.0f; i < 100.0f; i += step, ++ni)
 		{
 			indices[n++] = ni + (nj + 1) * nx;
 			indices[n++] = (ni + 1) + (nj + 1) * nx;
@@ -470,7 +635,7 @@ HRESULT OceanClass::CreateMesh(ID3D11Device1 *& device)
 	D3D11_SUBRESOURCE_DATA iinitData;
 	iinitData.pSysMem = &indices[0];
 
-	EXIT_ON_FAILURE(device->CreateBuffer(&ibd, &iinitData, &screenMeshIB));
+	EXIT_ON_FAILURE(device->CreateBuffer(&ibd, &iinitData, &gridMeshIB));
 
 	return S_OK;
 }
@@ -583,7 +748,7 @@ float OceanClass::spectrum(float kx, float ky, bool omnispectrum)
 		Bh *= 2.0;
 	}
 
-	return (Bl + Bh) * (1.0f + delta * cos(2.0f * phi)) / (2.0f * XM_PI * sqr(sqr(k)));
+	return spectrumGain * (Bl + Bh) * (1.0f + delta * cos(2.0f * phi)) / (2.0f * XM_PI * sqr(sqr(k)));
 
 	//float U10 = windSpeed;
 	//float Omega = waveAge;

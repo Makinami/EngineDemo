@@ -124,6 +124,7 @@ float3 meanSkyRadiance(float3 V, float3 N, float3 Tx, float3 Ty, float2 sigmaSq)
 
 float4 main(VertexOut pin) : SV_TARGET
 {
+	//return float4(0.0, 0.0, 1.0, 1.0);
 	float3 V = normalize(worldCamera - pin.PosW);
 
 	float2 slopes = float2(0.0, 0.0);

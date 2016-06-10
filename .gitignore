@@ -200,3 +200,10 @@ PDF/
 *.db
 *.opendb
 /IMPORTANT.txt
+/EngineDemo/Automatic Versions.exe
+/EngineDemo/FW1FontWrapper.dll
+/EngineDemo/FW1FontWrapper.lib
+/EngineDemo/inscatter.raw
+/EngineDemo/irradiance.raw
+/EngineDemo/libnoise.lib
+/EngineDemo/transmittance.raw

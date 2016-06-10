@@ -55,12 +55,12 @@ void main( int3 DTid : SV_DispatchThreadID )
 	float2 h4 = getSpectrum(K4, spec4.xy, spec4.zw);
 
 	float4 slope = float4(i(k1.x * h1) - k1.y * h1, i(k2.x * h2) - k2.y * h2);
-	fftWaves[uint3(DTid.xy, 0)] = float4(slope.xy * IK1, (h1 + i(h2)).xy); // grid size 1 displacement
-	fftWaves[uint3(DTid.xy, 1)] = float4(slope.zw * IK2, (h1 + i(h2)).yx); // grid size 2 displacement
-	fftWaves[uint3(DTid.xy, 4)] = slope; // grid size 1 & 2 slope variance
+	fftWaves[uint3(DTid.xy, 0)] = float4(slope.xy * IK1, h1); // grid size 1 displacement
+	fftWaves[uint3(DTid.xy, 1)] = float4(slope.zw * IK2, h2); // grid size 2 displacement
+	fftWaves[uint3(DTid.xy, 4)] = slope; // grid size 1 & 2 slope
 
 	slope = float4(i(k3.x * h3) - k3.y * h3, i(k4.x * h4) - k4.y * h4);
-	fftWaves[uint3(DTid.xy, 2)] = float4(slope.xy * IK3, (h3 + i(h4)).xy); // grid size 3 displacement
-	fftWaves[uint3(DTid.xy, 3)] = float4(slope.zw * IK4, (h3 + i(h4)).yx); // grid size 4 displacement
-	fftWaves[uint3(DTid.xy, 5)] = slope; // grid size 3 & 4 slope variance
+	fftWaves[uint3(DTid.xy, 2)] = float4(slope.xy * IK3, h3); // grid size 3 displacement
+	fftWaves[uint3(DTid.xy, 3)] = float4(slope.zw * IK4, h4); // grid size 4 displacement
+	fftWaves[uint3(DTid.xy, 5)] = slope; // grid size 3 & 4 slope
 }

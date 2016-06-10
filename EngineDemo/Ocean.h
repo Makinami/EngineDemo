@@ -44,12 +44,18 @@ private:
 
 	HRESULT CreateDataResources(ID3D11Device1* &device);
 
-	HRESULT CreateMesh(ID3D11Device1* &device);
+	HRESULT CreateScreenMesh(ID3D11Device1* &device);
+
+	HRESULT CreateGridMesh(ID3D11Device1* &device);
 
 	HRESULT CreateSamplerRasterDepthStencilStates(ID3D11Device1* &device);
 
 private:
 	void Simulate(ID3D11DeviceContext1* &mImmediateContext);
+
+	void BuildInstanceBuffer(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera);
+
+	void DivideTile(XMFLOAT2 pos, float edge, int num);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> spectrumSRV;
@@ -59,6 +65,8 @@ private:
 
 	vector< Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> > turbulenceSRV;
 	vector< Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> > turbulenceUAV;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> noiseSRV;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fresnelSRV;
 
@@ -70,6 +78,10 @@ private:
 	vector< Microsoft::WRL::ComPtr<ID3D11Buffer> > constCB;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> perFrameCB;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> gridMeshVB;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> gridMeshIB;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> gridInstancesVB;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> screenMeshVB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> screenMeshIB;
@@ -87,6 +99,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateSolid;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState;
 
+	int indicesPerRow;
+	int screenGridSize;
 	int indicesToRender;
 	char turbulenceTextReadId;
 	char turbulenceTextWriteId;
@@ -101,9 +115,10 @@ private:
 		float dt;
 		float screendy;
 		XMFLOAT2 gridSize;
-		float lambda;
+		float lambdaJ;
 		XMFLOAT2 sigma2;
-		XMFLOAT2 pad;
+		float lambdaV;
+		float pad;
 	} perFrameParams;
 
 private:
@@ -124,7 +139,7 @@ private:
 	float waveAge;
 	float cm;
 	float km;
-	float amplitude;
+	float spectrumGain;
 
 	float time;
 
@@ -145,6 +160,11 @@ private:
 	initFFTCBType initFFTParams;
 
 	ID3D11Buffer* initFFTCB;
+
+	int screen;
+
+	vector<XMFLOAT4X4> instances[3];
+	XMFLOAT3 cameraPos;
 
 };
 

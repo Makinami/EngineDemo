@@ -10,6 +10,8 @@ cbuffer constBuffer : register(b0)
 
 Texture2DArray wavesDisplacement : register(t0);
 SamplerState samAnisotropic : register(s1);
+Texture2DArray turbulenceMap : register(s2);
+Texture2D noise : register(s3);
 
 Texture1DArray<float> fresnelTerm : register(t1);
 SamplerState samClamp : register(s2);
@@ -22,6 +24,18 @@ struct VertexOut
 	float2 PosF : TEXTCOORD0;
 	float3 PosW : TEXTCOORD1;
 };
+
+float meanFresnel(float cosThetaV, float sigmaV) {
+	return pow(1.0 - cosThetaV, 5.0 * exp(-2.69 * sigmaV)) / (1.0 + 22.7 * pow(sigmaV, 1.5));
+}
+
+// V, N in world space
+float meanFresnel(float3 V, float3 N, float2 sigmaSq) {
+	float2 v = V.xz; // view direction in wind space
+	float2 t = v * v / (1.0 - V.y * V.y); // cos^2 and sin^2 of view direction
+	float sigmaV2 = dot(t, sigmaSq); // slope variance in view direction
+	return meanFresnel(dot(V, N), sqrt(sigmaV2));
+}
 
 // assert x>0
 float erfc(float x)
@@ -83,7 +97,7 @@ float reflectedSunRadiance(float3 L, float3 V, float3 N, float3 Tx, float3 Tz, f
 	float cosL2 = 1.0 / (1.0 + tanL * tanL);
 	float sigmaL2 = sigma2.x * cosL2 + sigma2.y * (1.0 - cosL2);
 
-	float fresnel = 0.02 + 0.98 * pow(1.0 - dot(V, H), 5.0);
+	float fresnel = 0.02 + 0.98 * meanFresnel(V, H, sigma2);// pow(1.0 - dot(V, H), 5.0);
 
 	zL = max(zL, 0.01);
 	zV = max(zV, 0.01);
@@ -133,6 +147,7 @@ float4 main( VertexOut pin ) : SV_TARGET
 	//return float4(basicColour + sunLight, 1.0);
 
 	float fresnelUp = fresnelTerm.Sample(samClamp, dot(N, V), 0);
+	//float fresnelUp = 0.02 + 0.98 * meanFresnel(V, N, sigma2);
 
 	float3 Lsun;
 	float3 Esky;
@@ -145,9 +160,17 @@ float4 main( VertexOut pin ) : SV_TARGET
 	float3 skyLight = fresnelUp * meanSkyRadiance(V, N, Tx, Tz, sigma2);
 	//float3 sunLight = reflectedSunRadiance(sunDir, V, N, Tx, Tz, sigma2) * fresnelUp * Lsun;
 
-	//result += seaLight;
-	//result += skyLight;
-	result += sunLight;
+	float3 turbulence = float3(0.0, 0.0, 0.0);
+	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF / GRID_SIZE.x, 0)).xyz;
+	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF / GRID_SIZE.y, 1)).xyz;
+	//turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF / GRID_SIZE.z, 2)).xyz;
+	//turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF / GRID_SIZE.w, 3)).xyz;
+	float samNoise = noise.Sample(samAnisotropic, pin.PosF / 5.12);
+
+	result += seaLight;
+	result += skyLight;
+	//result += sunLight;
+	result += turbulence.zzz * (samNoise + turbulence.yyy);// *samNoise;
 
 	return float4(HDR(result), 1.0);
 }
