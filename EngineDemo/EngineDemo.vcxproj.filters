@@ -479,6 +479,15 @@
     <FxCompile Include="Shaders\Ocean\JacobianInject.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\slopeVariance.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanDS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanHS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />

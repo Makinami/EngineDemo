@@ -40,6 +40,8 @@ class CameraClass
 		XMMATRIX GetViewProjMatrix();
 		XMMATRIX GetViewProjTransMatrix();
 
+		XMFLOAT3 GetLookAt() const;
+
 		XMMATRIX GetViewRelSun();
 		XMMATRIX GetViewRelSunTrans();
 		XMMATRIX GetProjTrans();

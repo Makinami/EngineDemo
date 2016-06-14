@@ -126,6 +126,11 @@ XMMATRIX CameraClass::GetViewProjTransMatrix()
 	return XMLoadFloat4x4(&mViewProjTrans);
 }
 
+XMFLOAT3 CameraClass::GetLookAt() const
+{
+	return mLook;
+}
+
 XMMATRIX CameraClass::GetViewRelSun()
 {
 	if (!mValid) UpdateViewMatrix();

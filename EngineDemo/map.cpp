@@ -48,7 +48,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	}
 	LogSuccess(L"Ocean initiated");
 
-	/*Terrain = std::make_shared<TerrainClass>();
+	Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
 	TerrainClass::InitInfo tii;
@@ -70,7 +70,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 		return false;
 	}
 	LogSuccess(L"Terrain initiated");
-	*/
+	
 	Clouds = std::make_shared<CloudsClass>();
 	//Clouds->Init(device, dc);
 
@@ -232,7 +232,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	/*light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
+	light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
 
 	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
 	ShadowMap->ClearDepthMap(mImmediateContext);
@@ -243,8 +243,8 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
-	*/
-	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	
+	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	//DrawDebug(mImmediateContext);
 	

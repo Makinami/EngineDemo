@@ -46,6 +46,8 @@ private:
 
 	HRESULT CreateScreenMesh(ID3D11Device1* &device);
 
+	HRESULT CreateDiscMesh(ID3D11Device1* &device);
+
 	HRESULT CreateGridMesh(ID3D11Device1* &device);
 
 	HRESULT CreateSamplerRasterDepthStencilStates(ID3D11Device1* &device);
@@ -60,6 +62,9 @@ private:
 private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> spectrumSRV;
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> varianceSRV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> varianceUAV;
+
 	vector< Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> > wavesSRV;
 	vector< Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> > wavesUAV;
 
@@ -70,6 +75,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fresnelSRV;
 
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> slopeVarianceCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> initFFTCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> fftCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> JacobianInjectCS;
@@ -85,11 +91,17 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> screenMeshVB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> screenMeshIB;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> discMeshVB;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> discMeshIB;
+
 	UINT stride;
 	UINT offset;
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
+	Microsoft::WRL::ComPtr<ID3D11HullShader> mHullShader;
+	Microsoft::WRL::ComPtr<ID3D11DomainShader> mDomainShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerAnisotropic;
@@ -113,26 +125,31 @@ private:
 		float time;
 		XMFLOAT3 sunDir;
 		float dt;
-		float screendy;
+		float coneAngle;
 		XMFLOAT2 gridSize;
 		float lambdaJ;
 		XMFLOAT2 sigma2;
 		float lambdaV;
+		float scale;
+		XMFLOAT3 camLookAt;
 		float pad;
 	} perFrameParams;
 
 private:
 	void getSpectrumSample(int i, int j, float lengthScale, float kMin, float* result);
+	float getSlopeVariance(float kx, float ky, float * spectrum);
 
 	float spectrum(float kx, float ky, bool omnispectrum = false);
 	float omega(float k);
 	float inline sqr(float x) { return x * x; };
 
-	float Fresnel(float dot, float n1, float n2, bool schlick = false);
+	float Fresnel(float dot, float n1, float n2, bool schlick = true);
 
 private:
 	UINT FFT_SIZE;
 	float GRID_SIZE[4];
+
+	UINT16 varianceRes;
 
 	// spectrum
 	float windSpeed;
