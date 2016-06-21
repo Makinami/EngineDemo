@@ -49,8 +49,8 @@ DomainOut main(
 
 	dP += wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.x, 0), 0.0).rbg;
 	dP += (1.0 - smoothstep(GRID_SIZE.x, 1.2*GRID_SIZE.x, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.y, 1), 0.0).rbg;
-	dP += (1.0 - smoothstep(GRID_SIZE.y, 1.2*GRID_SIZE.y, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.z, 2), 0.0).rbg;
-	dP += (1.0 - smoothstep(GRID_SIZE.z, 1.2*GRID_SIZE.z, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.w, 3), 0.0).rbg;
+	//dP += (1.0 - smoothstep(GRID_SIZE.y, 1.2*GRID_SIZE.y, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.z, 2), 0.0).rbg;
+	//dP += (1.0 - smoothstep(GRID_SIZE.z, 1.2*GRID_SIZE.z, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.w, 3), 0.0).rbg;
 	
 	// NOTE: ifs - 11.51, in loop - 11.46, noneinloop - 11.10-11.31, byhand - 11.07
 	/*[unroll(4)]

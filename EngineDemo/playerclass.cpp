@@ -17,7 +17,7 @@ void PlayerClass::SetMap(std::shared_ptr<MapClass> iMap)
 void PlayerClass::Init()
 {
 	mPosition.y = Map->GetHeight(mPosition.x, mPosition.z);
-	Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);
+	// NOTE: Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);
 }
 
 void PlayerClass::SetCamera(std::shared_ptr<CameraClass> iCamera)

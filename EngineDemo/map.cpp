@@ -217,7 +217,7 @@ void MapClass::Shutdown()
 void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
 	//Water->evaluateWavesGPU(dt, mImmediateContext);
-	WaterB->EvaluateWaves(dt, mImmediateContext);
+	//WaterB->EvaluateWaves(dt, mImmediateContext);
 	//WaterB->BEvelWater(dt, mImmediateContext);
 	Ocean->Update(mImmediateContext, dt, light, Camera);
 
@@ -244,7 +244,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
 	
-	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 
 	//DrawDebug(mImmediateContext);
 	

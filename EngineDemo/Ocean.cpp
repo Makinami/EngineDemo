@@ -65,9 +65,9 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 
 	EXIT_ON_FAILURE(CreateSamplerRasterDepthStencilStates(device));
 
-	CreateGridMesh(device);
+	//CreateGridMesh(device);
 
-	CreateScreenMesh(device);
+	//CreateScreenMesh(device);
 
 	CreateDiscMesh(device);
 
@@ -95,7 +95,7 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 	//horizon = 0.35;
 	if (screen)
 		indicesToRender = (int)((horizon + 0.1)*screenHeight / screenGridSize) * indicesPerRow;
-	
+
 	perFrameParams.dt = dt;
 	perFrameParams.time = time;
 
@@ -110,7 +110,7 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 	perFrameParams.sunDir.x *= -1; perFrameParams.sunDir.y *= -1; perFrameParams.sunDir.z *= -1;
 	perFrameParams.lambdaJ = 4.0f;
 	perFrameParams.lambdaV = 2.0;
-	perFrameParams.scale = 1000 *sqrt(13 * abs(cameraPos.y));
+	perFrameParams.scale = 1000 * sqrt(13 * abs(cameraPos.y));
 	perFrameParams.camLookAt = Camera->GetLookAt();
 
 	XMStoreFloat3(&cameraPos, Camera->GetPosition());
@@ -118,10 +118,10 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 
 	/*instances[0].clear();
 	instances[0].push_back(XMFLOAT4X4(
-		20.0, 0.0, 0.0, 0.0,
-		0.0, 1.0, 0.0, 0.0,
-		0.0, 0.0, 1.0, 0.0,
-		3000.0, 0.0, 0.0, 1.0
+	20.0, 0.0, 0.0, 0.0,
+	0.0, 1.0, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	3000.0, 0.0, 0.0, 1.0
 	));*/
 
 	D3D11_MAPPED_SUBRESOURCE mappedResources;
@@ -174,7 +174,7 @@ void OceanClass::Simulate(ID3D11DeviceContext1 *& mImmediateContext)
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, turbulenceUAV[turbulenceTextWriteId].GetAddressOf(), nullptr);
 	mImmediateContext->CSSetConstantBuffers(0, 2, buffers);
 
-	mImmediateContext->Dispatch(FFT_SIZE / 16, FFT_SIZE / 16, 4);
+	//mImmediateContext->Dispatch(FFT_SIZE / 16, FFT_SIZE / 16, 4);
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 	mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
@@ -184,7 +184,7 @@ void OceanClass::Simulate(ID3D11DeviceContext1 *& mImmediateContext)
 
 void OceanClass::BuildInstanceBuffer(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	float edge = 1000*sqrt(abs(13*cameraPos.y));
+	float edge = 1000 * sqrt(abs(13 * cameraPos.y));
 	instances[0].clear();
 	DivideTile(XMFLOAT2(-edge / 4.0, edge / 4.0), edge / 2.0, 0);
 	DivideTile(XMFLOAT2(edge / 4.0, edge / 4.0), edge / 2.0, 1);
@@ -215,7 +215,7 @@ void OceanClass::DivideTile(XMFLOAT2 pos, float edge, int num)
 	}
 }
 
-void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB )
+void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB)
 {
 	ID3D11ShaderResourceView* ppSRVNULL[] = { NULL, NULL, NULL };
 	ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
@@ -255,7 +255,8 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetShaderResources(2, 1, turbulenceSRV[turbulenceTextReadId].GetAddressOf());
 	mImmediateContext->PSSetShaderResources(3, 1, noiseSRV.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(4, 1, varianceSRV.GetAddressOf());
-	
+	mImmediateContext->PSSetSamplers(3, 1, mSamplerBilinear.GetAddressOf());
+
 	// RS & OM
 	mImmediateContext->RSSetState(mRastStateSolid.Get());
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
@@ -286,10 +287,12 @@ HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\JacobianInject.cso", device, JacobianInjectCS));
 
 	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\dissipateTrubulence.cso", device, dissipateTurbulanceCS));
-	
+
 	EXIT_ON_FAILURE(CreatePSFromFile(L"..\\Debug\\Shaders\\Ocean\\OceanPS.cso", device, mPixelShader));
 
 	EXIT_ON_FAILURE(CreateDSFromFile(L"..\\Debug\\Shaders\\Ocean\\OceanDS.cso", device, mDomainShader));
+
+	EXIT_ON_FAILURE(CreateDSFromFile(L"..\\Debug\\Shaders\\Ocean\\OceanDSGerstner.cso", device, mGerstnerDS));
 
 	EXIT_ON_FAILURE(CreateHSFromFile(L"..\\Debug\\Shaders\\Ocean\\OceanHS.cso", device, mHullShader));
 
@@ -314,7 +317,7 @@ HRESULT OceanClass::CreateConstantBuffers(ID3D11Device1 *& device)
 	constantBufferDesc.MiscFlags = 0;
 	constantBufferDesc.StructureByteStride = 0;
 	constantBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	
+
 	UINT buffer[4] = { 0, 0, 0, 0 };
 	constantBufferDesc.ByteWidth = sizeof(buffer);
 
@@ -329,11 +332,11 @@ HRESULT OceanClass::CreateConstantBuffers(ID3D11Device1 *& device)
 	// fft 1/col pass
 	buffer[0] = 1;
 	constCB.push_back(nullptr);
-	EXIT_ON_FAILURE(device->CreateBuffer(&constantBufferDesc, &initData, &(constCB.back()))); 
-	
+	EXIT_ON_FAILURE(device->CreateBuffer(&constantBufferDesc, &initData, &(constCB.back())));
+
 	// invert grid size
 	float bufferf[8] = { XM_2PI / GRID_SIZE[0], XM_2PI / GRID_SIZE[1], XM_2PI / GRID_SIZE[2], XM_2PI / GRID_SIZE[3],
-						 GRID_SIZE[0], GRID_SIZE[1], GRID_SIZE[2], GRID_SIZE[3] };
+		GRID_SIZE[0], GRID_SIZE[1], GRID_SIZE[2], GRID_SIZE[3] };
 	constantBufferDesc.ByteWidth = sizeof(bufferf);
 	initData.pSysMem = bufferf;
 	initData.SysMemPitch = sizeof(buffer);
@@ -350,11 +353,11 @@ HRESULT OceanClass::CreateConstantBuffers(ID3D11Device1 *& device)
 HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 {
 	/*
-	 * SPECTRUM
-	 */
+	* SPECTRUM
+	*/
 	UINT SLICE_SIZE = FFT_SIZE * FFT_SIZE * 2;
 	float* spectrum = new float[SLICE_SIZE * 4];
-	
+
 	// populate wave spectrum array
 	for (int y = 0; y < FFT_SIZE; ++y)
 	{
@@ -417,10 +420,10 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 			float j = XM_2PI * (y >= FFT_SIZE / 2 ? y - FFT_SIZE : y);
 
 			// sum slope variance
-			totalSlopeVariance += getSlopeVariance(i * XM_2PI / GRID_SIZE[0], j * XM_2PI / GRID_SIZE[0], spectrum + offset);
-			totalSlopeVariance += getSlopeVariance(i * XM_2PI / GRID_SIZE[1], j * XM_2PI / GRID_SIZE[1], spectrum + SLICE_SIZE + offset);
-			totalSlopeVariance += getSlopeVariance(i * XM_2PI / GRID_SIZE[2], j * XM_2PI / GRID_SIZE[2], spectrum + 2 * SLICE_SIZE + offset);
-			totalSlopeVariance += getSlopeVariance(i * XM_2PI / GRID_SIZE[3], j * XM_2PI / GRID_SIZE[3], spectrum + 3 * SLICE_SIZE + offset);
+			totalSlopeVariance += getSlopeVariance(i / GRID_SIZE[0], j / GRID_SIZE[0], spectrum + offset);
+			totalSlopeVariance += getSlopeVariance(i / GRID_SIZE[1], j / GRID_SIZE[1], spectrum + SLICE_SIZE + offset);
+			totalSlopeVariance += getSlopeVariance(i / GRID_SIZE[2], j / GRID_SIZE[2], spectrum + 2 * SLICE_SIZE + offset);
+			totalSlopeVariance += getSlopeVariance(i / GRID_SIZE[3], j / GRID_SIZE[3], spectrum + 3 * SLICE_SIZE + offset);
 		}
 	}
 
@@ -434,15 +437,17 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 		k = nextK;
 	}
 
-	//perFrameParams.varianceDif = 0.5*(theoreticalSlopeVariance - totalSlopeVariance);
+	perFrameParams.pad = 0.5*(theoreticalSlopeVariance - totalSlopeVariance);
 
 	delete[] spectrum;
-	
+
 	/*
-	 * FFT TEXTURES
-	 */
+	* FFT TEXTURES
+	*/
+	// TODO: Check how about 32bit for init and first FFT and 16bit only for output for rendering
+	// And make sure is it fine to use 16bit for other textures
 	textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-	textDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	textDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	textDesc.MipLevels = 1;
 	textDesc.Usage = D3D11_USAGE_DEFAULT;
 	textDesc.ArraySize = 6;
@@ -478,8 +483,8 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	}
 
 	/*
-	 * TURBULENCE TEXTURES
-	 */
+	* TURBULENCE TEXTURES
+	*/
 	textDesc.ArraySize = 4;
 	srvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
 	uavDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
@@ -498,8 +503,8 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	}
 
 	/*
-	 * FRESNEL TERM LOOKUP TEXTURE
-	 */
+	* FRESNEL TERM LOOKUP TEXTURE
+	*/
 	const int fresnelRes = 128;
 	float* fresnel = new float[fresnelRes * 2];
 	for (int i = 0; i < fresnelRes; ++i)
@@ -546,7 +551,7 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	textDesc.ArraySize = 1;
 	textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	textDesc.CPUAccessFlags = 0;
-	textDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	textDesc.Format = DXGI_FORMAT_R16G16_FLOAT;
 	textDesc.Height = 16;
 	textDesc.MipLevels = 1;
 	textDesc.MiscFlags = 0;
@@ -571,8 +576,8 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(device->CreateUnorderedAccessView(varianceText.Get(), &uavDesc, &varianceUAV));
 
 	/*
-	 * INSTANCE BUFFER
-	 */
+	* INSTANCE BUFFER
+	*/
 	D3D11_BUFFER_DESC instanceDesc;
 	instanceDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	instanceDesc.ByteWidth = sizeof(XMFLOAT4X4) * 200;
@@ -584,8 +589,8 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(device->CreateBuffer(&instanceDesc, nullptr, &gridInstancesVB));
 
 	/*
-	 * NOISE
-	 */
+	* NOISE
+	*/
 	CreateDDSTextureFromFile(device, L"Textures/noise.dds", NULL, &noiseSRV);
 
 	return S_OK;
@@ -665,6 +670,7 @@ HRESULT OceanClass::CreateScreenMesh(ID3D11Device1 *& device)
 HRESULT OceanClass::CreateDiscMesh(ID3D11Device1 *& device)
 {
 	// NOTE: Easier grid resolution setting
+	// TODO: Check is drawing from inside out is faster (z-culling etc.)
 	int slices = 12;
 	float dif = 1.0 / (1 - XM_2PI / slices);
 	int steps = 11;
@@ -676,7 +682,7 @@ HRESULT OceanClass::CreateDiscMesh(ID3D11Device1 *& device)
 	int n = 0;
 	int in = 0;
 	float r = 1.0;
-	for (int i = 0; i < steps-1; ++i, r /= dif)
+	for (int i = 0; i < steps - 1; ++i, r /= dif)
 	{
 		for (int j = 0; j < slices; ++j)
 		{
@@ -739,7 +745,7 @@ HRESULT OceanClass::CreateGridMesh(ID3D11Device1 *& device)
 	float hmargin = 0.1;
 	float step = 100.0f;
 
-	vector<XMFLOAT2> vertices(401*401);
+	vector<XMFLOAT2> vertices(401 * 401);
 
 	int n = 0;
 	int nx;
@@ -769,7 +775,7 @@ HRESULT OceanClass::CreateGridMesh(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(device->CreateBuffer(&vbd, &vinitData, &gridMeshVB));
 
 	// indices
-	vector<UINT> indices(6 * 400*400);
+	vector<UINT> indices(6 * 400 * 400);
 
 	int nj = 0;
 	n = 0;
@@ -820,6 +826,10 @@ HRESULT OceanClass::CreateSamplerRasterDepthStencilStates(ID3D11Device1 *& devic
 
 	EXIT_ON_FAILURE(device->CreateSamplerState(&samplerDesc, &mSamplerAnisotropic));
 
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+
+	EXIT_ON_FAILURE(device->CreateSamplerState(&samplerDesc, &mSamplerBilinear));
+
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
@@ -833,7 +843,7 @@ HRESULT OceanClass::CreateSamplerRasterDepthStencilStates(ID3D11Device1 *& devic
 	rastDesc.FrontCounterClockwise = false;
 	rastDesc.DepthClipEnable = false;
 	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateSolid))) return false;
-	
+
 	rastDesc.FillMode = D3D11_FILL_WIREFRAME;
 	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateFrame))) return false;
 
@@ -870,14 +880,14 @@ float OceanClass::getSlopeVariance(float kx, float ky, float * spectrum)
 }
 
 /*
- * Based on work:
- * "A unified directional spectrum for long and short wind-driven waves"
- * T. Elfouhaily, B. Chapron, K. Katsaros, D. Vandemark
- * Journal of Geophysical Research vol 102, p781-796, 1997
- * 
- * with clarification from
- * "Real-time Realistic Ocean Lighting using Seamless Transitions from Geometry to BRDF" [FFT version source code]
- */
+* Based on work:
+* "A unified directional spectrum for long and short wind-driven waves"
+* T. Elfouhaily, B. Chapron, K. Katsaros, D. Vandemark
+* Journal of Geophysical Research vol 102, p781-796, 1997
+*
+* with clarification from
+* "Real-time Realistic Ocean Lighting using Seamless Transitions from Geometry to BRDF" [FFT version source code]
+*/
 float OceanClass::spectrum(float kx, float ky, bool omnispectrum)
 {
 	float U10 = windSpeed;
@@ -953,5 +963,5 @@ float OceanClass::Fresnel(float dot, float n1, float n2, bool schlick)
 		float Rp = pow((n1 * root - n2 * dot) / (n1 * root + n2 * dot), 2.0);
 
 		return clamp(0.5 * (Rs + Rp), 0.0, 1.0);
-	}	
+	}
 }

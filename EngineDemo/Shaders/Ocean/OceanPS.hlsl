@@ -17,6 +17,8 @@ Texture2D slopeVariance : register(t4);
 Texture1DArray<float> fresnelTerm : register(t1);
 SamplerState samClamp : register(s2);
 
+SamplerState samBilinear : register(s3);
+
 static const float4 seaColour = float4(10.0, 40.0, 120.0, 25.5) / 255.0;
 
 struct VertexOut
@@ -89,7 +91,7 @@ float reflectedSunRadiance(float3 L, float3 V, float3 N, float3 Tx, float3 Tz, f
 	float zH2 = zH * zH;
 
 	float p = exp(-0.5 * (zetax * zetax / sigma2.x + zetay * zetay / sigma2.y)) / (2.0 * PI * sqrt(sigma2.x * sigma2.y));
-
+	
 	float tanV = atan2(dot(V, Tz), dot(V, Tx));
 	float cosV2 = 1.0 / (1.0 + tanV * tanV);
 	float sigmaV2 = sigma2.x * cosV2 + sigma2.y * (1.0 - cosV2);
@@ -98,7 +100,7 @@ float reflectedSunRadiance(float3 L, float3 V, float3 N, float3 Tx, float3 Tz, f
 	float cosL2 = 1.0 / (1.0 + tanL * tanL);
 	float sigmaL2 = sigma2.x * cosL2 + sigma2.y * (1.0 - cosL2);
 
-	float fresnel = 0.02 + 0.98 * meanFresnel(V, H, sigma2);// pow(1.0 - dot(V, H), 5.0);
+	float fresnel = 0.02 + 0.98 * pow(1.0 - dot(V, H), 5.0);
 
 	zL = max(zL, 0.01);
 	zV = max(zV, 0.01);
@@ -127,14 +129,29 @@ float3 meanSkyRadiance(float3 V, float3 N, float3 Tx, float3 Ty, float2 sigma2)
 
 float4 main( VertexOut pin ) : SV_TARGET
 {
-	float3 V = normalize(camPos - pin.PosW);
-	float dist = length(camPos - pin.PosW);
+	float dist = pin.PosF.z;
 
 	float2 slope = float2(0.0, 0.0);
+	float3 frac = float3(1.0 - smoothstep(2.0*GRID_SIZE.x, 4.0*GRID_SIZE.x, dist), 1.0 - smoothstep(1.0*GRID_SIZE.y, 3.0*GRID_SIZE.y, dist), 1.0 - smoothstep(0.5*GRID_SIZE.z, 4.0*GRID_SIZE.z, dist));
 	slope += wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 4)).xy;
-	slope += (1.0 - smoothstep(3.0*GRID_SIZE.x, 6.0*GRID_SIZE.x, dist))*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
-	slope += (1.0 - smoothstep(3.0*GRID_SIZE.y, 6.0*GRID_SIZE.y, dist))*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
-	slope += (1.0 - smoothstep(3.0*GRID_SIZE.z, 6.0*GRID_SIZE.z, dist))*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
+	if (frac.x > 0.0)
+		slope += frac.x*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
+	if (frac.y > 0.0)
+		slope += frac.y*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
+	if (frac.z > 0.0)
+		slope += frac.z*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
+
+	float3 V = normalize(camPos - pin.PosW);
+	
+	float3 turbulence = float3(0.0, 0.0, 0.0);
+	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 0)).xyz;
+	if (frac.x > 0.0)
+		turbulence += frac.x*turbulenceMap.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.y, 1)).xyz;
+	//turbulence += (1.0 - smoothstep(3.0*GRID_SIZE.y, 6.0*GRID_SIZE.y, dist))*turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 2)).xyz;
+	//turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 3)).xyz;
+	float samNoise;
+	if (turbulence.z > 0.0) 
+		samNoise = noise.Sample(samBilinear, pin.PosF.xy / 50.12);
 	
 	float3 N = normalize(float3(-slope.x, 1.0, -slope.y));
 	float3 R = reflect(V, N);
@@ -151,9 +168,11 @@ float4 main( VertexOut pin ) : SV_TARGET
 	float C = Jxy * Jxy + Jyy * Jyy;
 	float ua = pow(A / 10.0, 0.25);
 	float uc = pow(C / 10.0, 0.25);
-	float2 sigma = slopeVariance.Sample(samClamp, float2(ua, uc)).rg;
-	//return float4(sigma*100, 0.0, 1.0);
+	//float2 sigma = slopeVariance.Sample(samClamp, float2((ua + uc) / 2.0, (ua + uc) / 2.0)).rg; // Looks better but at what cost
+	float2 sigma = slopeVariance.Sample(samClamp, float2(ua, uc)).rg * 1.06;
 	sigma = max(sigma, 2e-5);
+
+	//return float4(sigma * 50, 0.0, 1.0);
 
 	//float3 basicColour = float3(0.0, 0.0, dot(N, sunDir));
 	//float3 sunLight = HDR(float3(1.0, 1.0, 1.0) * reflectedSunRadiance(sunDir, V, N, Tx, Ty, sigma2) * 90.0);
@@ -170,17 +189,10 @@ float4 main( VertexOut pin ) : SV_TARGET
 
 	float3 result = float3(0.0, 0.0, 0.0);
 
-	//float3 sunLight = fresnelUp * Lsun * step(cos(PI/15), dot(N, H)) * dot(N, H);
+	//float3 sunLight = fresnelUp * Lsun * smoothstep(cos(PI/10), cos(PI/30), dot(N, H)) * dot(N, H);
 	float3 seaLight = (1.0 - fresnelUp) * seaColour.rgb * seaColour.a * Esky / PI;
 	float3 skyLight = fresnelUp * meanSkyRadiance(V, N, Tx, Tz, sigma2);
-	float3 sunLight = reflectedSunRadiance(sunDir, V, N, Tx, Tz, sigma) * fresnelUp * Lsun;
-
-	float3 turbulence = float3(0.0, 0.0, 0.0);
-	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 0)).xyz;
-	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 1)).xyz;
-	//turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 2)).xyz;
-	//turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 3)).xyz;
-	float samNoise = noise.Sample(samAnisotropic, pin.PosF.xy / 5.12);
+	float3 sunLight = reflectedSunRadiance(sunDir, V, N, Tx, Tz, sigma) *Lsun;
 
 	result += seaLight;
 	result += skyLight;

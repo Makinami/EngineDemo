@@ -488,6 +488,12 @@
     <FxCompile Include="Shaders\Ocean\OceanHS.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanDSGerstner.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPSGerstner.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
@@ -500,10 +506,6 @@
     <None Include="Shaders\WaterBruneton\atmosphere.hlsli">
       <Filter>Shaders\WaterBruneton</Filter>
     </None>
-    <None Include="ClassDiagram.cd" />
-    <None Include="ClassDiagram1.cd" />
-    <None Include="ClassDiagram2.cd" />
-    <None Include="ClassDiagram3.cd" />
     <None Include="Shaders\Ocean\perFrameCB.hlsli">
       <Filter>Shaders\Ocean</Filter>
     </None>

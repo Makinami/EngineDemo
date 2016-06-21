@@ -27,8 +27,8 @@ float2 i(float2 z) // i * z (complex)
 [numthreads(16, 16, 1)]
 void main(int3 DTid : SV_DispatchThreadID)
 {
-	float x = DTid.x >= FFT_SIZE / 2 ? DTid.x - FFT_SIZE : DTid.x;
-	float y = DTid.y >= FFT_SIZE / 2 ? DTid.y - FFT_SIZE : DTid.y;
+	float x = DTid.x >= FFT_SIZE >> 1 ? DTid.x - FFT_SIZE : DTid.x;
+	float y = DTid.y >= FFT_SIZE >> 1 ? DTid.y - FFT_SIZE : DTid.y;
 
 	float4 spec1 = float4(spectrum[uint3(DTid.xy, 0)], spectrum[uint3(FFT_SIZE - DTid.xy, 0)]);
 	float4 spec2 = float4(spectrum[uint3(DTid.xy, 1)], spectrum[uint3(FFT_SIZE - DTid.xy, 1)]);

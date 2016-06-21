@@ -26,12 +26,12 @@ void main( int3 DTid : SV_DispatchThreadID )
 	turbulence = turbulenceSRV[DTid];
 
 	float Jacobian;
-
+	// TODO: point sampler with wrap - mush simpler, maybe faster
 	float2 dDdx = 0.5 * fftSize / GRID_SIZE[DTid.z] * lambdaJ * (fftWaves[uint3(d_position.z, DTid.yz)] - fftWaves[uint3(d_position.x, DTid.yz)]);
-	float2 dDdy = 0.5 * fftSize / GRID_SIZE[DTid.z]  * lambdaJ * (fftWaves[uint3(DTid.x, d_position.w, DTid.z)] - fftWaves[uint3(DTid.x, d_position.y, DTid.z)]);
+	float2 dDdy = 0.5 * fftSize / GRID_SIZE[DTid.z] * lambdaJ * (fftWaves[uint3(DTid.x, d_position.w, DTid.z)] - fftWaves[uint3(DTid.x, d_position.y, DTid.z)]);
 
 	Jacobian = (1.0 + dDdx.x) * (1.0 + dDdy.y) - dDdx.y * dDdy.x;
 	float satJacobian = saturate(k*(-Jacobian + M));
 
-	turbulenceUAV[DTid] = float4(Jacobian, satJacobian, turbulence.z*exp(-dt) + satJacobian*dt, 0.0);
+	turbulenceUAV[DTid] = float4(Jacobian, satJacobian, turbulence.z*exp(-dt) + satJacobian*dt*pow(2.0, 3 - DTid.z), 0.0);
 }

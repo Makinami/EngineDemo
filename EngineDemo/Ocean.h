@@ -104,8 +104,11 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mDomainShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 
+	Microsoft::WRL::ComPtr<ID3D11DomainShader> mGerstnerDS;
+
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerAnisotropic;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerClamp;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerBilinear;
 
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateFrame;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateSolid;
