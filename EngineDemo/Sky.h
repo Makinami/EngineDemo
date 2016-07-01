@@ -151,4 +151,9 @@ private:
 
 	// performace ids
 	char drawSky;
+
+	// TEMP
+	ID3D11ShaderResourceView* transmittanceFile;
+	ID3D11ShaderResourceView* inscatterFile;
+	ID3D11ShaderResourceView* irradianceFile;
 };

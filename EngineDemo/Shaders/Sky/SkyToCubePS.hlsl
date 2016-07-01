@@ -1,6 +1,6 @@
 Texture3D<float4> inscatterTex : register(t0);
 Texture2D<float3> transmittance : register(t1);
-Texture2D<float3> deltaE : register(t2);
+Texture2D<float4> deltaE : register(t2);
 
 SamplerState samInscatter : register(s0);
 SamplerState samTransmittance : register(s1);
@@ -134,7 +134,7 @@ float3 ground(float3 x, float t, float3 v, float3 s, float r, float mu, float3 a
 		float3 sunLight = getTransmittanceWithShadow(r0, muS);
 
 		// precomputed sky light (irradiance) (=E[L*]) at x0
-		float3 groundSkyLight = getIrradiance(r0, muS);
+		float3 groundSkyLight = getIrradiance(r0, muS).rgb;
 
 		// light reflected at x0 (=(R[L0]+R[L*])/T(x,x0))
 		float3 groundColour = reflectance.rgb * (max(muS, 0.0)*sunLight + groundSkyLight)*ISun / PI;
@@ -206,7 +206,7 @@ float4 main( VertexOut vout ) : SV_TARGET
 	float3 attenuation;
 	float3 inscatterColour = inscatter(x, t, v, bSunDir1, r, mu, attenuation); //S[L]-T(x,xs)S[l]xs
 	float3 groundColour = ground(x, t, v, bSunDir1, r, mu, attenuation); //R[L0]+R[L*]
-	float3 sunColour = float3(0, 0, 0);// sun(x, t, v, bSunDir1, r, mu); // L0
+	float3 sunColour = sun(x, t, v, bSunDir1, r, mu); // L0
 	
-	return float4(/*HDR*/(sunColour + groundColour + inscatterColour), 1.0); // Eq(16)
+	return float4(HDR(sunColour + groundColour + inscatterColour), 1.0); // Eq(16)
 }

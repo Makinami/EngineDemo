@@ -1,7 +1,7 @@
 Texture2D<float3> transmittance : register(t0);
 
-RWTexture3D<float3> deltaSR : register(u0);
-RWTexture3D<float3> deltaSM : register(u1);
+RWTexture3D<float4> deltaSR : register(u0);
+RWTexture3D<float4> deltaSM : register(u1);
 
 SamplerState samTransmittance : register(s0);
 
@@ -73,6 +73,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
 	getMuMuSNu(float2(DTid.xy), r, dhdH, mu, muS, nu);
 	inscatter(r, mu, muS, nu, ray, mie);
 
-	deltaSR[DTid] = ray;
-	deltaSM[DTid] = mie;
+	deltaSR[DTid] = float4(ray, 0.0);
+	deltaSM[DTid] = float4(mie, 0.0);
 }

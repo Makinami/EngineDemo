@@ -1,9 +1,9 @@
 Texture2D<float3> transmittance : register(t0);
 
-Texture3D<float3> deltaSR : register(t2);
-Texture3D<float3> deltaSM : register(t3);
+Texture3D<float4> deltaSR : register(t2);
+Texture3D<float4> deltaSM : register(t3);
 
-RWTexture2D<float3> deltaE : register(u0);
+RWTexture2D<float4> deltaE : register(u0);
 
 SamplerState samTransmittance : register(s0);
 SamplerState samDeltaSR : register(s1);
@@ -38,21 +38,21 @@ void main( uint3 DTid : SV_DispatchThreadID )
 	for (int iphi = 0; iphi < 2 * IRRADIANCE_INTEGRAL_SAMPLES; ++iphi)
 	{
 		float phi = (float(iphi) + 0.5) * dphi;
-		for (int itheta = 0; itheta < IRRADIANCE_INTEGRAL_SAMPLES / 2; ++itheta)
+		for (int itheta = 0; itheta < /*IRRADIANCE_INTEGRAL_SAMPLES / 2*/ 1; ++itheta)
 		{
 			float theta = (float(itheta) + 0.5) * dtheta;
-			float dw = dtheta*dphi * sin(theta);
+			float dw = dtheta * dphi * sin(theta);
 			float3 w = float3(cos(phi)*sin(theta), sin(phi)*sin(theta), cos(theta));
 			float nu = dot(s, w);
 			if (order.x == 2)
 			{
 				// first iteration is special because Rayleigh and Mie ware stored separately,
 				// without the phase factors; they must be reintroduced here
-				float pr1 = phaseFunctionR(nu);
-				float pm1 = phaseFunctionM(nu);
+				float pr1 = 1.0;// phaseFunctionR(nu);
+				float pm1 = 0.0;// phaseFunctionM(nu);
 				float3 ray1 = getDeltaSR(r, w.z, muS, nu);
 				float3 mie1 = getDeltaSM(r, w.z, muS, nu);
-				result += (ray1*pr1 + mie1*pm1)*w.z*dw;
+				result += (ray1*pr1 + mie1*pm1);// *w.z*dw;
 			}
 			else
 			{
@@ -61,5 +61,5 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		}
 	}
 
-	deltaE[DTid.xy] = result;
+	deltaE[DTid.xy] = float4(result, 0.0);
 }
