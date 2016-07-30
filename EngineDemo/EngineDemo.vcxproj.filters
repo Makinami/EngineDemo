@@ -118,6 +118,9 @@
     <ClCompile Include="loggerclass.cpp">
       <Filter>Debug</Filter>
     </ClCompile>
+    <ClCompile Include="TweakBar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -336,6 +339,9 @@
     <ClInclude Include="loggerclass.h">
       <Filter>Debug</Filter>
     </ClInclude>
+    <ClInclude Include="TweakBar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -419,9 +425,6 @@
     <FxCompile Include="Shaders\Sky\SkyToCubePS.hlsl">
       <Filter>Shaders\Sky</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Clouds\generate.hlsl">
-      <Filter>Shaders\Clouds</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Clouds\CloudsVS.hlsl">
       <Filter>Shaders\Clouds</Filter>
     </FxCompile>
@@ -458,6 +461,15 @@
     <FxCompile Include="Shaders\WaterBruneton\Bffty.hlsl">
       <Filter>Shaders\WaterBruneton</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Clouds\CloudsSimplePS.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Clouds\generateGen.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Clouds\generateDet.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
@@ -474,5 +486,14 @@
     <None Include="ClassDiagram1.cd" />
     <None Include="ClassDiagram2.cd" />
     <None Include="ClassDiagram3.cd" />
+    <None Include="Shaders\PerlinNoise.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\WorleyNoise.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Clouds\generateCurl.hlsli">
+      <Filter>Shaders\Clouds</Filter>
+    </None>
   </ItemGroup>
 </Project>

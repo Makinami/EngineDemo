@@ -52,7 +52,8 @@ private:
 	{
 		XMFLOAT3 gCameraPos;
 		XMFLOAT3 gSunDir;
-		XMFLOAT2 pad;
+		float x;
+		float pad;
 	};
 
 	ID3D11Buffer* cbPerFrameVS;

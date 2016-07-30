@@ -12,9 +12,12 @@
 #define SafeDelete(x) { delete x; x = nullptr; }
 
 #include <memory>
+#include <wrl\client.h>
 
 #include "cameraclass.h"
 #include "Lights.h"
+
+#include "TweakBar.h"
 
 class CloudsClass2
 {
@@ -26,23 +29,26 @@ public:
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* transmittanceSRV);
 
+	void SetBar(std::shared_ptr<TweakBar> Bar);
+
 public:
 	int GenerateClouds(ID3D11DeviceContext1* mImmediateContext);
 
-private:
-	ID3D11ShaderResourceView* mCloudGeneralSRV;
-	ID3D11UnorderedAccessView* mCloudGeneralUAV;
-	ID3D11Texture3D* mCloudGeneral;
+	HRESULT GenerateSeedGrad(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
-	ID3D11ShaderResourceView* mCloudDetailSRV;
-	ID3D11UnorderedAccessView* mCloudDetailUAV;
-	ID3D11Texture3D* mCloudDetail;
+private:
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mCloudGeneralSRV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mCloudGeneralUAV;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mCloudDetailSRV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mCloudDetailUAV;
 
 	ID3D11ShaderResourceView* mCloudCurlSRV;
 	ID3D11ShaderResourceView* mCloudTypesSRV;
 	ID3D11ShaderResourceView* mWeatherSRV;
 
-	ID3D11ComputeShader* mGenerateCS;
+	ID3D11ComputeShader* mGenerateGenCS;
+	ID3D11ComputeShader* mGenerateDetCS;
 
 	ID3D11Buffer* mScreenQuadVB;
 	ID3D11Buffer* mScreenQuadIB;
@@ -67,7 +73,7 @@ private:
 		float bExposure;
 		XMFLOAT3 gSunDir;
 		float pad;
-	};
+	} cbPerFramePSParams;
 
 	ID3D11Buffer* cbPerFrameVS;
 	ID3D11Buffer* cbPerFramePS;
@@ -76,6 +82,6 @@ private:
 	ID3D11BlendState1* mBlendStateClouds;
 	ID3D11DepthStencilState* mDepthStencilState;
 
-	ID3D11Texture3D* mRandomSeed;
-	ID3D11ShaderResourceView* mRandomSeedSRV;
+	Microsoft::WRL::ComPtr<ID3D11Texture3D> mRandomGrad;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mRandomGradSRV;
 };

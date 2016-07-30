@@ -99,6 +99,9 @@ bool SystemClass::Init(std::string filename)
 
 	Performance = std::make_shared<Debug::PerformanceClass>();
 	Performance->Init(D3D->GetDevice(), D3D->GetDeviceContext());
+
+	Bar = std::make_shared<TweakBar>();
+	Bar->Init(D3D->GetDevice(), D3D->GetDeviceContext());
 	
 	/*
 	World
@@ -106,7 +109,7 @@ bool SystemClass::Init(std::string filename)
 	Map = std::make_shared<MapClass>();
 	Map->SetLogger(Logger);
 	Map->SetPerformance(Performance);
-	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
+	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext(), Bar);	
 
 	/*
 	Player
@@ -169,6 +172,9 @@ int SystemClass::Run()
 // Main/game window's proc
 LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (TwEventWin(hwnd, msg, wParam, lParam)) // send event message to AntTweakBar
+		return 0; // event has been handled by AntTweakBar
+
 	switch (msg)
 	{
 		case WM_KEYDOWN:
@@ -312,6 +318,8 @@ bool SystemClass::Frame()
 	Performance->Compute();
 
 	Performance->Draw(D3D->GetDeviceContext());
+
+	Bar->Draw();
 
 	D3D->EndScene();
 	return true;

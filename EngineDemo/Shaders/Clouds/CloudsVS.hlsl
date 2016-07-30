@@ -15,7 +15,7 @@ struct VertexOut
 	float3 Ray : TEXCOORD;
 };
 
-VertexOut main(VertexIn vin)
+VertexOut main( VertexIn vin )
 {
 	VertexOut vout;
 

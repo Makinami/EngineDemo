@@ -13,16 +13,10 @@
 using namespace std;
 using namespace DirectX;
 using namespace noise;
+using namespace Microsoft::WRL;
 
 CloudsClass2::CloudsClass2()
-	: mCloudGeneralSRV(0),
-	mCloudGeneralUAV(0),
-	mCloudGeneral(0),
-	mCloudDetailSRV(0),
-	mCloudDetailUAV(0),
-	mCloudDetail(0),
-	mGenerateCS(0),
-	mScreenQuadIB(0),
+	: mScreenQuadIB(0),
 	mScreenQuadVB(0),
 	mInputLayout(0),
 	mVertexShader(0),
@@ -30,25 +24,13 @@ CloudsClass2::CloudsClass2()
 	cbPerFrameVS(0),
 	cbPerFramePS(0),
 	mSamplerStateTrilinear(0),
-	mDepthStencilState(0),
-	mRandomSeed(0),
-	mRandomSeedSRV(0)
+	mDepthStencilState(0)
 {
 }
 
 
 CloudsClass2::~CloudsClass2()
 {
-	ReleaseCOM(mCloudGeneralSRV);
-	ReleaseCOM(mCloudGeneralUAV);
-	ReleaseCOM(mCloudGeneral);
-
-	ReleaseCOM(mCloudDetailSRV);
-	ReleaseCOM(mCloudDetailUAV);
-	ReleaseCOM(mCloudDetail);
-
-	ReleaseCOM(mGenerateCS);
-
 	ReleaseCOM(mScreenQuadIB);
 	ReleaseCOM(mScreenQuadVB);
 
@@ -61,9 +43,6 @@ CloudsClass2::~CloudsClass2()
 
 	ReleaseCOM(mSamplerStateTrilinear);
 	ReleaseCOM(mDepthStencilState);
-
-	ReleaseCOM(mRandomSeed);
-	ReleaseCOM(mRandomSeedSRV);
 }
 
 int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)
@@ -94,12 +73,13 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	uavDesc.Texture3D.FirstWSlice = 0;
 	uavDesc.Texture3D.WSize = text3Desc.Depth;
 
-	device->CreateTexture3D(&text3Desc, 0, &mCloudGeneral);
-	device->CreateShaderResourceView(mCloudGeneral, &srvDesc, &mCloudGeneralSRV);
-	device->CreateUnorderedAccessView(mCloudGeneral, &uavDesc, &mCloudGeneralUAV);
+	ComPtr<ID3D11Texture3D> mCloud;
+	device->CreateTexture3D(&text3Desc, 0, &mCloud);
+	device->CreateShaderResourceView(mCloud.Get(), &srvDesc, &mCloudGeneralSRV);
+	device->CreateUnorderedAccessView(mCloud.Get(), &uavDesc, &mCloudGeneralUAV);
 
 	// detailed
-	text3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	text3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	text3Desc.Width = 32;
 	text3Desc.Height = 32;
 	text3Desc.Depth = 32;
@@ -109,30 +89,15 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	uavDesc.Format = text3Desc.Format;
 	uavDesc.Texture3D.WSize = text3Desc.Depth;
 
-	device->CreateTexture3D(&text3Desc, 0, &mCloudDetail);
-	device->CreateShaderResourceView(mCloudDetail, &srvDesc, &mCloudDetailSRV);
-	//device->CreateUnorderedAccessView(mCloudDetail, &uavDesc, &mCloudDetailUAV);
+	device->CreateTexture3D(&text3Desc, 0, &mCloud);
+	device->CreateShaderResourceView(mCloud.Get(), &srvDesc, &mCloudDetailSRV);
+	device->CreateUnorderedAccessView(mCloud.Get(), &uavDesc, &mCloudDetailUAV);
 
-	// random seed
-	text3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	text3Desc.Width = 128;
-	text3Desc.Depth = 128;
-	text3Desc.Height = 128;
-	text3Desc.Format = DXGI_FORMAT_R32_FLOAT;
-	text3Desc.MipLevels = 1;
-	text3Desc.MiscFlags = 0;
-	text3Desc.Usage = D3D11_USAGE_DEFAULT;
 
-	srvDesc.Format = text3Desc.Format;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
-	srvDesc.Texture3D.MipLevels = 1;
-	srvDesc.Texture3D.MostDetailedMip = 0;
+	CreateCSFromFile(L"..\\Debug\\Shaders\\Clouds\\generateGen.cso", device, mGenerateGenCS);
+	CreateCSFromFile(L"..\\Debug\\Shaders\\Clouds\\generateDet.cso", device, mGenerateDetCS);
 
-	device->CreateTexture3D(&text3Desc, 0, &mRandomSeed);
-	device->CreateShaderResourceView(mRandomSeed, &srvDesc, &mRandomSeedSRV);
-
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Clouds\\generate.cso", device, mGenerateCS);
-
+	GenerateSeedGrad(device, mImmediateContext);
 	GenerateClouds(mImmediateContext);
 
 	ID3D11Texture2D* srcTex;
@@ -145,7 +110,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	CreateDDSTextureFromFile(device, L"Textures\\cloudsWeather.dds", (ID3D11Resource**)&srcTex, &mWeatherSRV, 0, nullptr);
 	ReleaseCOM(srcTex);
-
+	
 	// clouds layer quad
 	std::vector<DirectX::XMFLOAT3> patchVertices(4);
 
@@ -283,7 +248,7 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->Map(cbPerFramePS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	dataPS = (cbPerFramePSType*)mappedResource.pData;
 
-	XMStoreFloat3(&(dataPS->gCameraPos), Camera->GetPositionRelSun());
+	XMStoreFloat3(&(dataPS->gCameraPos), Camera->GetPosition());
 	dataPS->gSunDir = light.Direction();
 
 	mImmediateContext->Unmap(cbPerFramePS, 0);
@@ -291,9 +256,9 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 	mImmediateContext->PSSetSamplers(3, 1, &mSamplerStateTrilinear);
 	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceSRV);
-	mImmediateContext->PSSetShaderResources(4, 1, &mCloudGeneralSRV);
-	mImmediateContext->PSSetShaderResources(5, 1, &mCloudDetailSRV);
-	mImmediateContext->PSSetShaderResources(6, 1, &mCloudCurlSRV);
+	mImmediateContext->PSSetShaderResources(4, 1, mCloudGeneralSRV.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(5, 1, mCloudDetailSRV.GetAddressOf());
+	//mImmediateContext->PSSetShaderResources(6, 1, &mCloudCurlSRV);
 	mImmediateContext->PSSetShaderResources(7, 1, &mCloudTypesSRV);
 	mImmediateContext->PSSetShaderResources(8, 1, &mWeatherSRV);
 
@@ -309,164 +274,90 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->OMSetDepthStencilState(0, 0);
 }
 
+void CloudsClass2::SetBar(std::shared_ptr<TweakBar> Bar)
+{
+	TwAddVarRW(Bar->bar, "x", TW_TYPE_FLOAT, &cbPerFramePSParams.pad, "group=Clouds");
+}
+
 int CloudsClass2::GenerateClouds(ID3D11DeviceContext1 * mImmediateContext)
 {
-	bool gpu = false;
+	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
+	mImmediateContext->CSSetShader(mGenerateGenCS, nullptr, 0);
+	mImmediateContext->CSSetShaderResources(0, 1, mRandomGradSRV.GetAddressOf());
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mCloudGeneralUAV.GetAddressOf(), nullptr);
+	mImmediateContext->CSSetUnorderedAccessViews(1, 1, mCloudDetailUAV.GetAddressOf(), nullptr);
 
-	// noise texture generation
-	module::Perlin perlinNoise;
-	module::Voronoi voronoiNoise;
-	module::Billow billowNoise;
-	module::Invert invert;
-	module::Add add;
+	mImmediateContext->Dispatch(GEN_RES / 16, GEN_RES / 16, GEN_RES);
 
-	invert.SetSourceModule(0, voronoiNoise);
-	add.SetSourceModule(0, billowNoise);
-	add.SetSourceModule(1, perlinNoise);
+	mImmediateContext->CSSetShader(mGenerateDetCS, nullptr, 0);
 
-	voronoiNoise.EnableDistance();
-	perlinNoise.SetOctaveCount(1);
+	mImmediateContext->Dispatch(DET_RES / 16, DET_RES / 16, DET_RES);
 
-	std::vector<XMFLOAT4> texture;
-	texture.resize(GEN_RES * GEN_RES * GEN_RES);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 2, ppUAViewNULL, nullptr);
 
-	std::ifstream ifs;
-	std::ofstream ofs;
-	uint size = 0;
-	uint length = texture.size()*sizeof(XMFLOAT4);
-	std::vector<unsigned char> in(length);
+	return S_OK;
+}
 
-	if (gpu)
-	{
-		// random seed generation
-		std::vector<float> seed(128 * 128 * 128);
+HRESULT CloudsClass2::GenerateSeedGrad(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)
+{
+	char grad[12][4] = { {  1,  1,  0, 0},
+						 { -1,  1,  0, 0 },
+						 {  1, -1,  0, 0 },
+						 { -1, -1,  0, 0 },
+						 {  1,  0,  1, 0 },
+						 { -1,  0,  1, 0 },
+						 {  1,  0, -1, 0 },
+						 { -1,  0, -1, 0 },
+						 {  0,  1,  1, 0 },
+						 {  0, -1,  1, 0 },
+						 {  0,  1, -1, 0 },
+						 {  0, -1, -1, 0 } };
 
-		std::default_random_engine generator;
-		std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
-
-		for (int i = 0; i < seed.size(); ++i)
-			seed[i] = distribution(generator);
-
-		mImmediateContext->UpdateSubresource(mRandomSeed, 0, NULL, &(seed[0]), sizeof(float) * 128, sizeof(float) * 128 * 128);
-
-		ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
-		ID3D11ShaderResourceView* ppSRVNULL[4] = { NULL, NULL, NULL, NULL };
-
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &mCloudGeneralUAV, NULL);
-		mImmediateContext->CSSetShaderResources(0, 1, &mRandomSeedSRV);
-		mImmediateContext->CSSetShader(mGenerateCS, NULL, 0);
-
-		mImmediateContext->Dispatch(128 / 16, 128, 128 / 16);
-
-		mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
-	}
-	else
-	{
-		ifs.open("cloudsGeneralNoise.raw", std::ifstream::binary);
-
-		if (ifs.good())
-		{
-			ifs.seekg(0, std::ios::end);
-			size = size_t(ifs.tellg());
-			ifs.seekg(0, std::ios::beg);
-		}
-
-		if (size >= length)
-		{
-			ifs.read((char*)&(texture[0]), texture.size()*sizeof(XMFLOAT4));
-		}
-		else
-		{
-			ofs.open("cloudsGeneralNoise.raw", std::ofstream::trunc);
-			ofs.close();
-			ofs.open("cloudsGeneralNoise.raw", std::ofstream::binary);
-
-			ofs.good();
-
-			ofs.is_open();
-
-			for (int i = 0; i < GEN_RES; ++i)
-			{
-				for (int j = 0; j < GEN_RES; ++j)
-				{
-					for (int k = 0; k < GEN_RES; ++k)
-					{
-						int index = i*GEN_RES *GEN_RES + j*GEN_RES + k;
-						voronoiNoise.SetFrequency(module::DEFAULT_VORONOI_FREQUENCY);
-						texture[index].x = max(0.0, min(1.0f, perlinNoise.GetValue(i * 5 / 128.0f, j * 5 / 128.0f, k * 5 / 128.0f)));
-						texture[index].y = 0;// max(0, voronoiNoise.GetValue(i * 33 / 128.0f + 13 / 3.0f, j * 33 / 128.0f + 17 / 5.0f, k * 33 / 128.0f + 19 / 7.0f));
-						voronoiNoise.SetFrequency(voronoiNoise.GetFrequency() * 2);
-						texture[index].z = 0;// (1.0f + voronoiNoise.GetValue(i * 33 / 128.0f + 19 / 3.0f, j * 33 / 128.0f + 23 / 5.0f, k * 33 / 128.0f + 27 / 7.0f)) / 2.0f;
-						voronoiNoise.SetFrequency(voronoiNoise.GetFrequency() * 2);
-						texture[index].w = 0;// (1.0f + voronoiNoise.GetValue(i * 33 / 128.0f + 31 / 3.0f, j * 33 / 128.0f + 37 / 5.0f, k * 33 / 128.0f + 41 / 7.0f)) / 2.0f;
-					}
-				}
-			}
-
-			ofs.write((const char*)&(texture[0]), length);
-			ofs.flush();
-		}
-
-		ifs.close();
-		ofs.close();
-
-		mImmediateContext->UpdateSubresource(mCloudGeneral, 0, NULL, &(texture[0]), sizeof(XMFLOAT4) * 128, sizeof(XMFLOAT4) * 128 * 128);
-	}
+	BYTE* seed = new BYTE[128*128*128*4];
 	
-	texture.resize(DET_RES * DET_RES * DET_RES);
-	length = texture.size()* sizeof(XMFLOAT4);
-	size = 0;
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dis(0, 11);
 
-	ifs.open("cloudsDetailNoise.raw", std::ifstream::binary);
-
-	if (ifs.good())
+	for (auto i = 0; i < 128; ++i)
 	{
-		ifs.seekg(0, std::ios::end);
-		size = size_t(ifs.tellg());
-		ifs.seekg(0, std::ios::beg);
-	}
-
-	if (size >= length)
-	{
-		ifs.read((char*)&(texture[0]), length);
-	}
-	else
-	{
-		ofs.open("cloudsDetailNoise.raw", std::ofstream::trunc);
-		ofs.close();
-		ofs.open("cloudsDetailNoise.raw", std::ofstream::binary);
-
-		ofs.good();
-
-		ofs.is_open();
-
-		for (int i = 0; i < DET_RES; ++i)
+		for (auto j = 0; j < 128; ++j)
 		{
-			for (int j = 0; j < DET_RES; ++j)
+			for (auto k = 0; k < 128; ++k)
 			{
-				for (int k = 0; k < DET_RES; ++k)
-				{
-					int index = i*DET_RES*DET_RES + j*DET_RES + k;
-					voronoiNoise.SetFrequency(module::DEFAULT_VORONOI_FREQUENCY);
-					texture[index].x = billowNoise.GetValue(i * 5 / 32.0f, j * 5 / 32.0f, k * 5 / 32.0f);
-					voronoiNoise.SetFrequency(voronoiNoise.GetFrequency() * 2);
-					texture[index].y = 0; // (1.0f + voronoiNoise.GetValue(i * 33 / 32.0f + 13 / 3.0f, j * 33 / 32.0f + 17 / 5.0f, k * 33 / 32.0f + 19 / 7.0f)) / 2.0f;
-					voronoiNoise.SetFrequency(voronoiNoise.GetFrequency() * 2);
-					texture[index].y = 0; // (1.0f + voronoiNoise.GetValue(i * 33 / 32.0f + 19 / 3.0f, j * 33 / 32.0f + 21 / 5.0f, k * 33 / 32.0f + 27 / 7.0f)) / 2.0f;
-					texture[index].z = 0;
-				}
+				auto id = dis(gen);
+				for (auto l = 0; l < 4; ++l)
+					seed[4*(i*128*128 + j*128 + k) + l] = grad[id][l];
 			}
 		}
-
-		ofs.write((const char*)&(texture[0]), length);
-		ofs.flush();
 	}
 
-	ifs.close();
-	ofs.close();	
+	D3D11_TEXTURE3D_DESC seedGrad3Desc;
+	seedGrad3Desc.Format = DXGI_FORMAT_R8G8B8A8_SINT;
+	seedGrad3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	seedGrad3Desc.Depth = 128;
+	seedGrad3Desc.CPUAccessFlags = 0;
+	seedGrad3Desc.Height = 128;
+	seedGrad3Desc.MipLevels = 1;
+	seedGrad3Desc.MiscFlags = 0;
+	seedGrad3Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	seedGrad3Desc.Width = 128;
 
-	mImmediateContext->UpdateSubresource(mCloudDetail, 0, NULL, &(texture[0]), sizeof(XMFLOAT4)*DET_RES, sizeof(XMFLOAT4)*DET_RES*DET_RES);
+	D3D11_SUBRESOURCE_DATA initData;
+	initData.pSysMem = seed;
+	initData.SysMemPitch = sizeof(grad[0]) * 128;
+	initData.SysMemSlicePitch = sizeof(grad[0]) * 128 * 128;
 
-	return 0;
+	D3D11_SHADER_RESOURCE_VIEW_DESC seedGrad3DSRVDesc;
+	seedGrad3DSRVDesc.Format = seedGrad3Desc.Format;
+	seedGrad3DSRVDesc.Texture3D.MipLevels = 1;
+	seedGrad3DSRVDesc.Texture3D.MostDetailedMip = 0;
+	seedGrad3DSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+
+	device->CreateTexture3D(&seedGrad3Desc, &initData, &mRandomGrad);
+	device->CreateShaderResourceView(mRandomGrad.Get(), &seedGrad3DSRVDesc, &mRandomGradSRV);
+
+	delete[] seed;
+
+	return S_OK;
 }

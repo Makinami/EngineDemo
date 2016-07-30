@@ -18,6 +18,7 @@
 #include "timerclass.h"
 #include "playerclass.h"
 #include "map.h"
+#include "TweakBar.h"
 
 #include "Performance.h"
 
@@ -90,6 +91,8 @@ class SystemClass
 		std::shared_ptr<PlayerClass> Player;
 
 		std::shared_ptr<Debug::PerformanceClass> Performance;
+
+		std::shared_ptr<TweakBar> Bar;
 
 		/*
 		World

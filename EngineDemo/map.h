@@ -35,7 +35,7 @@ public:
 	MapClass();
 	~MapClass();
 
-	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc);
+	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, std::shared_ptr<TweakBar> Bar);
 	
 	void Shutdown();
 
@@ -44,7 +44,7 @@ public:
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 	void Draw20(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 
-	void DrawDebug(ID3D11DeviceContext1* mImmediateContext);
+	void DrawDebug(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera);
 
 	float GetHeight(float x, float y);
 
@@ -71,7 +71,15 @@ private:
 	struct MatrixBufferType
 	{
 		XMMATRIX gWorldProj;
-	};
+	} MatrixBufferParams;
+
+	// CUBE
+	ID3D11Buffer* mCubeVB;
+	ID3D11Buffer* mCubeIB;
+
+	ID3D11InputLayout* mCubeIL;
+	ID3D11VertexShader* mCubeVS;
+	ID3D11PixelShader* mCubePS;
 
 	ID3D11Buffer* MatrixBuffer;
 };
