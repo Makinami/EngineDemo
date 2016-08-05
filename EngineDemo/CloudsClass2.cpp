@@ -52,7 +52,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	// general
 	text3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	text3Desc.CPUAccessFlags = 0;
-	text3Desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	text3Desc.Format = DXGI_FORMAT_R16_FLOAT;
 	text3Desc.Width = GEN_RES;
 	text3Desc.Height = GEN_RES;
 	text3Desc.Depth = GEN_RES;
@@ -173,7 +173,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	// sampler state
 	D3D11_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;

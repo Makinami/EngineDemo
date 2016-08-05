@@ -1,7 +1,8 @@
+Texture3D<float4> inscatterTex : register(t0);
 Texture2D<float3> transmittance : register(t1);
 TextureCube gCubeMap : register(t3);
 Texture3D<float> cloudsGeneral : register(t4);
-Texture3D<float4> cloudsDetail : register(t5);
+Texture3D<float> cloudsDetail : register(t5);
 Texture2D<float4> cloudsCurl : register(t6);
 Texture2D<float4> cloudsType : register(t7);
 Texture2D<float4> weatherPar : register(t8);
@@ -9,6 +10,7 @@ Texture2D<float4> weatherPar : register(t8);
 static const float Rl = 6361.5;
 static const float Rh = 6364.0;
 
+SamplerState samInscatter : register(s0);
 SamplerState samTransmittance : register(s1);
 
 SamplerState samTrilinearSam : register(s3);
@@ -16,6 +18,7 @@ SamplerState samTrilinearSam : register(s3);
 #define FIX
 
 #define USE_TRANSMITTANCE
+#define USE_INSCATTER
 
 #pragma warning(disable:3568)
 #include <..//Sky//resolutions.h>
@@ -27,15 +30,17 @@ static const float ISun = 100.0;
 static const float G_SCATTERING = 0.9f;
 
 static float3 sunLight;
+static float3 skyLight;
 static float3 bSunDir1;
 static float cosViewSun;
 static float4 weatherData;
 
 static float3 viewRay;
 
-static const float3 absorptionFactor = float3(1.0, 0.9, 0.8);
-static const float absFac = 1.0;
-static const float3 scatteringFactor = float3(0.6, 0.8, 1.0);
+static const float3 absorptionFactor = float3(1.5, 2.0, 2.5);
+static const float absFac = 2.0;
+static const float scatteringCoef = 0.25;
+static const float3 scatteringFactor = float3(1.0, 1.0, 1.0);
 
 /*
 dystrybuanta gaussa
@@ -93,42 +98,11 @@ float3 HDR(float3 L)
 	return L;
 }
 
-//// Utility function that maps a value from one range to another
-//float Remap(float original_value, float original_min, float original_max, float new_min, float new_max)
-//{
-//	return new_min + (((clamp(original_value, original_min, original_max) - original_min) /
-//		(original_max - original_min)) * (new_max - new_min));
-//}
-
 // remaping and calmping value to new range
 float Remap(float original_value, float original_min, float original_max, float new_min, float new_max)
 {
 	return new_min + (original_value - original_min) / (original_max - original_min) * (new_max - new_min);
 }
-
-//float SampleCloudDensity(float3 p, float3 weather_data, uint mip_level, bool skip_details)
-//{
-//	// Read the low-frequency Perlin-Worley
-//	float base_cloud = cloudsGeneral.SampleLevel(samTrilinearSam, p, mip_level).r;
-//
-//	// Get the density-height gradient using the density height function
-//	float density_height_gradient = GetDensityHeightGradient(p, weather_data);
-//
-//	// Apply the height function to the base cloud shape
-//	base_cloud *= density_height_gradient;
-//
-//	// CLoud coverage is store in weather_data's red channel
-//	float cloud_coverage = weather_data.r;
-//
-//	// Use remap to apply the cloud coverage attribute
-//	//float base_cloud_with_coverage = Remap(base_cloud, cloud_coverage, 1.0, 0.0, 1.0);
-//	float base_cloud_with_coverage = smoothstep(1.0 - cloud_coverage, 1.0, base_cloud);
-//
-//	// Multiply the result by the cloud coverage
-//	base_cloud_with_coverage *= cloud_coverage;
-//
-//	return base_cloud_with_coverage;
-//}
 
 // height in cloud [0..1]
 float GetHeightFractionForPoint(in float3 pos)
@@ -138,22 +112,45 @@ float GetHeightFractionForPoint(in float3 pos)
 	return saturate(height_fraction);
 }
 
+float GetDensityHeightGradient(float3 p)
+{
+	float normalized_height = GetHeightFractionForPoint(p);
+	float density = cloudsType.SampleLevel(samTrilinearSam, float2(weatherData.g, normalized_height), 0).r;
+	// TODO: more dependent on the weather
+	return density * (1.0 - normalized_height);
+}
+
 // get cloud density from pos
-float SampleCloudDensity(in float3 pos)
+float SampleCloudDensity(in float3 pos, in bool detailed = false)
 {
 	// read low-frequency noise 
 	float base_cloud = cloudsGeneral.SampleLevel(samTrilinearSam, pos / 5, 0);
 
-	float density_height_gradient = 1.0 - GetHeightFractionForPoint(pos);
+	float density_height_gradient = GetDensityHeightGradient(pos);
 
 	base_cloud *= density_height_gradient;
 
-	float cloud_coverage = 0.67;
+	weatherData = weatherPar.SampleLevel(samTrilinearSam, (pos.xz - 35.0) / 70.0, 0);
+	float cloud_coverage = weatherData.b;
 
 	float base_cloud_with_coverage = Remap(base_cloud, 1.0 - cloud_coverage, 1.0, 0.0, 1.0);
+	//float base_cloud_with_coverage = (base_cloud < 1.0 - cloud_coverage ? 0.0 : base_cloud);
 	base_cloud_with_coverage *= cloud_coverage;
+	//float base_cloud_with_coverage = smoothstep(1.0 - cloud_coverage, 1.0, base_cloud);
 
-	return max(base_cloud_with_coverage, 0.0);
+	if (!detailed) return saturate(base_cloud_with_coverage);
+
+	float high_frequency_noises = cloudsDetail.SampleLevel(samTrilinearSam, pos / (16 * 5.0), 0);
+	float high_freq_FBM = high_frequency_noises;
+	//float high_freq_FBM = dot(high_frequency_noises, float3(0.625, 0.25, 0.125));
+
+	float heigh_fraction = GetHeightFractionForPoint(pos);
+
+	float high_freq_noise_modifier = lerp(high_freq_FBM, 1.0 - high_freq_FBM, saturate(heigh_fraction * 10.0));
+
+	float final_cloud = Remap(base_cloud_with_coverage, high_freq_noise_modifier * 0.2, 1.0, 0.0, 1.0);
+
+	return saturate(final_cloud);
 }
 
 // direct light reaching point pos from global bSunDir1
@@ -178,7 +175,14 @@ float HenyeyGreenstein(float cos_theta, float inG)
 	return ((1.0 - inG * inG) / pow((1.0 + inG * inG - 2.0 * inG * cos_theta), 3.0 / 2.0)) / (4.0 * 3.14159);
 }
 
-float3 IncidentLighting(in float3 pos)
+// Exponential Integral
+// (http://en.wikipedia.org/wiki/Exponential_integral)
+float Ei(float z)
+{
+	return 0.5772156649015328606065 + log(1e-4 + abs(z)) + z * (1.0 + z * (0.25 + z * ((1.0 / 18.0) + z * ((1.0 / 96.0) + z * (1.0 / 600.0))))); // For z != 0
+}
+
+float3 IncidentLighting(in float3 pos, bool detailed)
 {
 	float density = 0.0;
 	//float3 sunLight = GetDirectSunlight(pos);
@@ -187,28 +191,122 @@ float3 IncidentLighting(in float3 pos)
 	float coneSpreadMultiplier = length(lightStep);
 
 	// short cone
+	[unroll(6)]
 	for (uint i = 0; i <= 5; ++i)
 	{
 		pos += lightStep + coneSpreadMultiplier * noise_kernel[i] * float(i);
-		density += 0.5*SampleCloudDensity(pos);// max(cloudsGeneral.SampleLevel(samTrilinearSam, pos, 0), 0);
+		density += SampleCloudDensity(pos, detailed) * 0.3;
 	}
 
 	// one long sample
-	density += max(cloudsGeneral.SampleLevel(samTrilinearSam, pos + lightStep * 1.8, 0), 0);
+	density += SampleCloudDensity(pos + lightStep * 1.8, detailed) * 1.8; // max(cloudsGeneral.SampleLevel(samTrilinearSam, pos + lightStep * 1.8, 0), 0);
 
-	float HG = HenyeyGreenstein(cosViewSun, 0.2);
+																		  //float HG = HenyeyGreenstein(cosViewSun, 0.2);
+	float rain = 1.0;
 
-	return 2.0 * sunLight * HG * exp(-absFac * density) * (1.0 - exp(-absFac * density * 2));
+	return sunLight * exp(-rain * density) * (1.0 - exp(-density * 2.0)) * 2.0;
+	//return 2.0 * sunLight * HG * exp(-absFac * density) * (1.0 - exp(-absFac * density * 2));
 }
+
+float3 AmbientLighting(in float3 pos, float density)
+{
+	float avg_density = density * weatherData.g / 2.0;
+	float alpha = avg_density * (Rh - length(pos));
+	float3 IsotropicScatteringTop = skyLight * max(0.0, exp(alpha) - alpha * Ei(alpha));
+
+	return IsotropicScatteringTop;
+}
+
+// inscattered ligth taking ray x+tv, when the Sun in direction s (=S[L]-T(x, x0)S[L]x0)
+float3 inscatter(in float3 x, in float t, float3 v, float3 s, out float r, out float mu, out float3 attenuation)
+{
+	float3 result;
+	r = length(x);
+	mu = dot(x, v) / r;
+	float d = -r * mu - sqrt(r*r*(mu*mu - 1.0) + Rt*Rt);
+	if (d > 0.0) // if x in space and ray intersects atmosphere
+	{
+		// move x to nearest intersection of ray with top athosphere boundary
+		x += d * v;
+		t -= d;
+		mu = (r*mu + d) / Rt;
+		r = Rt;
+	}
+	if (r <= Rt) // if ray insersects atmosphere
+	{
+		float nu = dot(v, s);
+		float muS = dot(x, s) / r;
+		float phaseR = phaseFunctionR(nu);
+		float phaseM = phaseFunctionM(nu);
+		float4 inscatter = max(getInscatter(r, mu, muS, nu), float4(0.0, 0.0, 0.0, 0.0));
+		if (t > 0.0)
+		{
+			float3 x0 = x * t*v;
+			float r0 = length(x0);
+			float rMu0 = dot(x0, v);
+			float mu0 = rMu0 / r0;
+			float muS0 = dot(x0, s) / r0;
+#ifdef FIX
+			// avoids imprecision problems in transmittance computation based on textures
+			attenuation = analyticTransmittance(r, mu, t);
+#else
+			attenuation = getTransmittance(r, mu, v, x0);
+#endif
+			if (r0 > Rg + 0.01)
+			{
+				// computes S[L]-T[(x,x0)S[L]x0
+				inscatter = max(inscatter - attenuation.rgbr*getInscatter(r0, mu0, muS0, nu), float4(0.0, 0.0, 0.0, 0.0));
+#ifdef FIX
+				// avoids imprecision problems near horizon by interpolating between two points above and below horizon
+				const float EPS = 0.004;
+				float muHorizon = -sqrt(1.0 - (Rg / r)*(Rg / r));
+				if (abs(mu - muHorizon) < EPS)
+				{
+					float a = ((mu - muHorizon) + EPS) / (2.0*EPS);
+					mu = muHorizon - EPS;
+					r0 = sqrt(r*r + t* t + 2.0 * r * t * mu);
+					mu0 = (r * mu + t) / r0;
+					float4 inScatter0 = getInscatter(r, mu, muS, nu);
+					float4 inScatter1 = getInscatter(r0, mu0, muS0, nu);
+					float4 inScatterA = max(inScatter0 - attenuation.rgbr*inScatter1, 0.0);
+
+					mu = muHorizon + EPS;
+					r0 = sqrt(r*r + t*t + 1.0*r*t*mu);
+					mu0 = (r*mu + t) / r0;
+					inScatter0 = getInscatter(r, mu, muS, nu);
+					inScatter1 = getInscatter(r0, mu0, muS0, nu);
+					float4 inScatterB = max(inScatter0 - attenuation.rbgr*inScatter1, 0.0);
+
+					inscatter = inScatterA*(1 - a) + inScatterB*a;
+				}
+#endif
+			}
+		}
+#ifdef FIX
+		// avoid imprecision problems in Mie scattering when sun isbelow horizon
+		inscatter.w *= smoothstep(0.0, 0.02, muS);
+#endif
+		result = max(inscatter.rgb*phaseR + getMie(inscatter)*phaseM, 0.0);
+	}
+	else // x in spacce and ray looking in space
+	{
+		result = float3(0.0, 0.0, 0.0);
+	}
+
+	return result*ISun;
+}
+
 
 float4 MarchClouds(in float3 camera, in float3 ray, in float from, in float to)
 {
-	float r = length(camera);
+	float3 pos = camera + ray * from;
+	float r = length(pos);
 	// cos zenith angle
-	float mu = dot(camera, viewRay) / r;
+	float mu = dot(pos, viewRay) / r;
 
-	uint numsteps = ceil(64 * (2.0 - mu));
+	uint numsteps = ceil(64 * (2.0 - abs(mu)));
 	float ds = (to - from) / float(numsteps);
+	//ds = 0.05; numsteps = ceil((to - from) / ds);
 	float3 step = ray * ds;
 
 	float3 transmittanceAll = 1.0.xxx;
@@ -217,36 +315,92 @@ float4 MarchClouds(in float3 camera, in float3 ray, in float from, in float to)
 	float3 colour = 0.0.xxx;
 
 	float3 incidentLight;
-
-	float3 pos = camera + ray * from;
+	float3 ambientLight;
 
 	sunLight = GetDirectSunlight(pos);
+	float3 attenuation = 0.0.xxx;
+	skyLight = inscatter(pos, Rg - r, normalize(pos), bSunDir1, r, mu, attenuation);
 	weatherData = weatherPar.SampleLevel(samTrilinearSam, (pos.xz - 35.0) / 70.0, 0);
 
-	uint i;
-	for (i = 0; i <= numsteps; ++i)
+	float density = 0.0;
+	bool detailed = 0.0;
+	uint zero_density_sample_count = 0;
+
+	for (float t = from; t <= to; )
 	{
-		float density = 8 * SampleCloudDensity(pos);// max(cloudsGeneral.SampleLevel(samTrilinearSam, pos, 0), 0);
+		pos = camera + ray * t;
+
+		density = SampleCloudDensity(pos, detailed);
+
 		if (density == 0.0)
+			++zero_density_sample_count;
+
+		if (detailed)
 		{
-			pos += step;
-			continue;
+			if (zero_density_sample_count >= 6)
+			{
+				zero_density_sample_count = 0;
+				detailed = false;
+				ds *= 2.5;
+				t += ds;
+				continue;
+			}
+		}
+		else
+		{
+			if (density > 0.0 && opacity < 0.3)
+			{
+				ds /= 2.5;
+				detailed = true;
+				zero_density_sample_count = 0;
+				continue;
+			}
 		}
 
-		transmittance = exp(-absFac * ds * density);
-		transmittanceAll *= transmittance;
+		if (density > 0.0)
+		{
+			// Lighting
+			transmittance = exp(-absorptionFactor * ds * density);
+			transmittanceAll *= transmittance;
 
-		incidentLight = IncidentLighting(pos);
-		colour += (1.0 - transmittance) * incidentLight * transmittanceAll / absFac;
+			incidentLight = IncidentLighting(pos, detailed);
+			ambientLight = AmbientLighting(pos, density);
+			colour += (1.0 - transmittance) * scatteringFactor * (incidentLight * HenyeyGreenstein(cosViewSun, 0.2) + ambientLight * HenyeyGreenstein(mu, 0.2)) * transmittanceAll;
+			// TODO: wyrzuci? oba HG poza loop (const per pixel)
+			opacity += (1.0 - dot(transmittance, 1.0.xxx) / 3.0) * (1.0 - opacity);
+		}
 
-		opacity += (1.0 - dot(transmittance, 1.0.xxx) / 3.0)*(1.0 - opacity);
-		pos += step;
-
+		// if opaque no point in further raymarching
 		if (opacity > 0.99)
 		{
 			opacity = 1.0;
 			break;
 		}
+
+		// move
+		t += ds;
+
+		//density = 8 * SampleCloudDensity(pos, false);// max(cloudsGeneral.SampleLevel(samTrilinearSam, pos, 0), 0);
+		//if (density == 0.0)
+		//{
+		//	t += ds;
+		//	continue;
+		//}
+
+		//transmittance = exp(-absFac * (ds/5.0) * density);
+		//transmittanceAll *= transmittance;
+
+		//incidentLight = IncidentLighting(pos, false);
+		//colour += (1.0 - transmittance) * incidentLight * transmittanceAll / absFac;
+
+		//opacity += (1.0 - dot(transmittance, 1.0.xxx) / 3.0)*(1.0 - opacity);
+		//t += ds/5.0;
+
+		//if (opacity > 0.99)
+		//{
+		//	opacity = 1.0;
+		//	break;
+		//}
 	}
 	return float4(colour, opacity);
 }
@@ -298,7 +452,7 @@ cosViewSun = dot(viewRay, bSunDir1);
 
 float4 clouds = MarchClouds(posRelSun, viewRay, tCloudBase, tCloudTop);
 
-//clouds.rgb = HDR(clouds.rgb);
+clouds.rgb = HDR(clouds.rgb);
 
 return clouds;
 
