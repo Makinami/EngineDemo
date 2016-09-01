@@ -44,7 +44,7 @@ class SystemClass
 		LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		// Message proc for status window
 		LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
+		
 	private:
 		// Run each frame
 		bool Frame();
@@ -63,7 +63,7 @@ class SystemClass
 		LPCWSTR		 mAppName;
 		std::wstring mWndCap;
 		bool		 mAppPaused;
-
+		
 		enum
 		{
 			WndStateNormal, WndStateMaximized, WndStateFullScreen, WndStateMinimized, WndStateResizing

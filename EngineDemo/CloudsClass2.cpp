@@ -108,7 +108,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	CreateDDSTextureFromFile(device, L"Textures\\cloudsTypes.dds", (ID3D11Resource**)&srcTex, &mCloudTypesSRV, 0, nullptr);
 	ReleaseCOM(srcTex);
 
-	CreateDDSTextureFromFile(device, L"Textures\\cloudsWeather.dds", (ID3D11Resource**)&srcTex, &mWeatherSRV, 0, nullptr);
+	CreateDDSTextureFromFile(device, L"Textures\\cloudsWeatherFlat.dds", (ID3D11Resource**)&srcTex, &mWeatherSRV, 0, nullptr);
 	ReleaseCOM(srcTex);
 	
 	// clouds layer quad

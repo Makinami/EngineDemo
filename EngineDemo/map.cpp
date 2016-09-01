@@ -217,7 +217,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 	XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);
 
-	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_2PI/(60.f*2.0f)));
+	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_2PI/(60.f*5.0f)));
 
 	XMStoreFloat3(&dir_f, dir);
 	light.Direction(dir_f);
