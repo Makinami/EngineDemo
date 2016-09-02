@@ -37,7 +37,7 @@ static float4 weatherData;
 
 static float3 viewRay;
 
-static const float3 absorptionFactor = float3(2.5, 2.0, 1.5);
+static const float3 absorptionFactor = float3(2., 1.5, 1.0);
 static const float absFac = 2.0;
 static const float scatteringCoef = 0.25;
 static const float3 scatteringFactor = float3(1.0, 1.0, 1.0);
@@ -196,27 +196,27 @@ float3 IncidentLighting(in float3 pos, bool detailed)
 	for (uint i = 0; i <= 5; ++i)
 	{
 		pos += lightStep + coneSpreadMultiplier * noise_kernel[i] * float(i);
-		density += SampleCloudDensity(pos, detailed) * 0.3;
+		density += SampleCloudDensity(pos, detailed) * 0.2;
 	}
 
 	// one long sample
-	density += SampleCloudDensity(pos + lightStep * 1.8, detailed) * 1.8; // max(cloudsGeneral.SampleLevel(samTrilinearSam, pos + lightStep * 1.8, 0), 0);
+	//density += SampleCloudDensity(pos + lightStep * 1.8, detailed) * 1.8; // max(cloudsGeneral.SampleLevel(samTrilinearSam, pos + lightStep * 1.8, 0), 0);
 
-																		  //float HG = HenyeyGreenstein(cosViewSun, 0.2);
+	//float HG = HenyeyGreenstein(cosViewSun, 0.2);
 	float chances_of_rain = 0.25;
 	float rain = chances_of_rain * chances_of_rain * 10 + 1.0;
 
-	return sunLight * exp(-rain * density) * (1.0 - exp(-density * 2.0)) * 2.0;
+	return sunLight * exp(-rain * density) * (1.0 - exp(-density * 2.0)) * 2.0 *(SampleCloudDensity(pos + lightStep * 1.8, detailed) > 0.5 ? 0.5 : 1.0);
 	//return 2.0 * sunLight * HG * exp(-absFac * density) * (1.0 - exp(-absFac * density * 2));
 }
 
 float3 AmbientLighting(in float3 pos, float density)
 {
-	float avg_density = density * weatherData.b / 2.0;
+	float avg_density = density * weatherData.r * 0.95 /*weatherData.g*/ / 2.0;
 	float alpha = avg_density * (Rh - length(pos));
 	float3 IsotropicScatteringTop = skyLight * max(0.0, exp(alpha) - alpha * Ei(alpha));
 
-	return IsotropicScatteringTop;
+	return IsotropicScatteringTop * 0;
 }
 
 // inscattered ligth taking ray x+tv, when the Sun in direction s (=S[L]-T(x, x0)S[L]x0)
@@ -306,7 +306,7 @@ float4 MarchClouds(in float3 camera, in float3 ray, in float from, in float to)
 	// cos zenith angle
 	float mu = dot(pos, viewRay) / r;
 
-	uint numsteps = ceil(64 * (2.0 - abs(mu)));
+	uint numsteps = ceil(64 * (2.0 - sqrt(abs(mu))));
 	float ds = (to - from) / float(numsteps);
 	//ds = 0.05; numsteps = ceil((to - from) / ds);
 	float3 step = ray * ds;
@@ -367,7 +367,7 @@ float4 MarchClouds(in float3 camera, in float3 ray, in float from, in float to)
 
 			incidentLight = IncidentLighting(pos, detailed);
 			ambientLight = AmbientLighting(pos, density);
-			colour += ds * scatteringFactor * (incidentLight * HenyeyGreenstein(cosViewSun, 0.3) + ambientLight * HenyeyGreenstein(mu, 0.3)) * transmittanceAll;
+			colour += ds * scatteringFactor * (incidentLight * HenyeyGreenstein(cosViewSun, 0.2) + ambientLight * HenyeyGreenstein(mu, 0.3)) * transmittanceAll;
 			// TODO: wyrzuci? oba HG poza loop (const per pixel)
 			opacity += (1.0 - dot(transmittance, 1.0.xxx) / 3.0) * (1.0 - opacity);
 		}
