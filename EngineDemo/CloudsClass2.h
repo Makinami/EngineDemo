@@ -79,6 +79,7 @@ private:
 	ID3D11Buffer* cbPerFramePS;
 
 	ID3D11SamplerState* mSamplerStateTrilinear;
+	ID3D11SamplerState* mSamplerStateBilinearClamp;
 	ID3D11BlendState1* mBlendStateClouds;
 	ID3D11DepthStencilState* mDepthStencilState;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#pragma comment(lib, "AntTweakBar.lib")
+#pragma comment(lib, "AntTweakBar/lib/AntTweakBar.lib")
 
 #include <AntTweakBar.h>
 #include <d3d11_1.h>

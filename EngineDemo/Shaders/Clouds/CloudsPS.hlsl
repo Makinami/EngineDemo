@@ -14,6 +14,7 @@ SamplerState samInscatter : register(s0);
 SamplerState samTransmittance : register(s1);
 
 SamplerState samTrilinearSam : register(s3);
+SamplerState samBilinearClamp : register(s4);
 
 #define FIX
 

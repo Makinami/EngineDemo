@@ -189,6 +189,13 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	device->CreateSamplerState(&samplerDesc, &mSamplerStateTrilinear);
 
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	samplerDesc.AddressU =
+		samplerDesc.AddressV =
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+	device->CreateSamplerState(&samplerDesc, &mSamplerStateBilinearClamp);
+
 	// blend state
 	D3D11_BLEND_DESC1 blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = false;
@@ -255,6 +262,7 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 	mImmediateContext->PSSetSamplers(3, 1, &mSamplerStateTrilinear);
+	mImmediateContext->PSSetSamplers(4, 1, &mSamplerStateBilinearClamp);
 	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceSRV);
 	mImmediateContext->PSSetShaderResources(4, 1, mCloudGeneralSRV.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(5, 1, mCloudDetailSRV.GetAddressOf());
