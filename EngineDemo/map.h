@@ -18,6 +18,8 @@
 
 #include "shadowmapclass.h"
 
+#include "HDR.h"
+
 /*struct DirectionalLight
 {
 	DirectionalLight() { ZeroMemory(this, sizeof(this)); }
@@ -55,6 +57,8 @@ private:
 	std::shared_ptr<CloudsClass> Clouds;
 	std::shared_ptr<CloudsClass2> Clouds2;
 	std::unique_ptr<WaterBruneton> WaterB;
+
+	std::unique_ptr<PostFX::HDR> HDR;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;

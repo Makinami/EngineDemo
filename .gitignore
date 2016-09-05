@@ -189,3 +189,18 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 PDF/
+
+# Custom
+*.VC.opendb
+*.VC.db
+Automatic\ Versions/
+EngineDemo/Textures/
+/EngineDemo/cloudsGeneralNoise2.raw
+/EngineDemo/cloudsGeneralNoise.raw
+/EngineDemo/cloudsDetailNoise2.raw
+/EngineDemo/cloudsDetailNoise.raw
+/EngineDemo/irradiance.raw
+/EngineDemo/inscatter.raw
+/EngineDemo/log.txt
+/IMPORTANT.txt
+/EngineDemo/transmittance.raw
