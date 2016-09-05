@@ -1,7 +1,7 @@
 #include "d3dclass.h"
 
-std::stack< std::pair<UINT, ID3D11RenderTargetView**> > RenderTargetStack::Targetviews;
-std::stack< ID3D11DepthStencilView** > RenderTargetStack::DepthStencilDSV;
+std::stack< std::pair<UINT, ID3D11RenderTargetView* const*> > RenderTargetStack::Targetviews;
+std::stack< ID3D11DepthStencilView* > RenderTargetStack::DepthStencilDSV;
 
 std::stack< std::pair<UINT, D3D11_VIEWPORT*> > ViewportStack::Viewports;
 
@@ -185,8 +185,8 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 	mDevice->CreateTexture2D(&depthStencilDesc, 0, &mDepthStencilBuffer);
 	mDevice->CreateDepthStencilView(mDepthStencilBuffer, 0, &mDepthStencilView);
 
-	if (RenderTargetStack::Empty()) RenderTargetStack::Push(mImmediateContext, &mRenderTargetView, &mDepthStencilView);
-	else RenderTargetStack::Update(mImmediateContext, &mRenderTargetView, &mDepthStencilView);
+	if (RenderTargetStack::Empty()) RenderTargetStack::Push(mImmediateContext, &mRenderTargetView, mDepthStencilView);
+	else RenderTargetStack::Update(mImmediateContext, &mRenderTargetView, mDepthStencilView);
 
 	// Set viewport
 	mScreenViewport.TopLeftX = 0;

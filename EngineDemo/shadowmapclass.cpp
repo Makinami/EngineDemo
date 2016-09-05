@@ -61,7 +61,7 @@ void ShadowMapClass::BindDsvAndSetNullRenderTarget(ID3D11DeviceContext1 * dc)
 	ViewportStack::Push(dc, &mViewport);
 
 	ID3D11RenderTargetView* renderTargets[1] = { 0 };
-	RenderTargetStack::Push(dc, renderTargets, &mDepthMapDSV);
+	RenderTargetStack::Push(dc, renderTargets, mDepthMapDSV);
 
 	dc->ClearDepthStencilView(mDepthMapDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }

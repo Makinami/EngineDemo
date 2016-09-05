@@ -1,5 +1,7 @@
 #include "systemclass.h"
 
+#include "Utilities\Texture.h"
+
 // 'Hack for inability to set class member function as window proc
 namespace
 {
@@ -82,6 +84,9 @@ bool SystemClass::Init(std::string filename)
 	D3D->SetLogger(Logger);
 	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	Logger->Success(L"DirectX initiated.");
+
+	// Pass device to TextureFactory
+	TextureFactory::SetDevice(D3D->GetDevice());
 
 	Input = std::make_shared<InputClass>();
 	
