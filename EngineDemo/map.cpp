@@ -39,6 +39,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
 
+	Sky2 = std::make_unique<SkyClass2>();
+	Sky2->Init(device, dc);
+
 	/*Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
@@ -196,6 +199,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToCube(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
+	Sky2->Draw(mImmediateContext);
 	Sky->Draw(mImmediateContext, Camera, light);
 
 	//WaterB->Draw(mImmediateContext, Camera, light);

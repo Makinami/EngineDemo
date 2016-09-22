@@ -15,6 +15,7 @@
 #include "Sky.h"
 #include "CloudsClass.h"
 #include "CloudsClass2.h"
+#include "Sky2.h"
 
 #include "shadowmapclass.h"
 
@@ -55,6 +56,7 @@ private:
 	std::shared_ptr<CloudsClass> Clouds;
 	std::shared_ptr<CloudsClass2> Clouds2;
 	std::unique_ptr<WaterBruneton> WaterB;
+	std::unique_ptr<SkyClass2> Sky2;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;
