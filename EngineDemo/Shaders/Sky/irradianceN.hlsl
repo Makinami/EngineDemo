@@ -38,7 +38,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
 	for (int iphi = 0; iphi < 2 * IRRADIANCE_INTEGRAL_SAMPLES; ++iphi)
 	{
 		float phi = (float(iphi) + 0.5) * dphi;
-		for (int itheta = 0; itheta < /*IRRADIANCE_INTEGRAL_SAMPLES / 2*/ 1; ++itheta)
+		for (int itheta = 0; itheta < IRRADIANCE_INTEGRAL_SAMPLES / 2; ++itheta)
 		{
 			float theta = (float(itheta) + 0.5) * dtheta;
 			float dw = dtheta * dphi * sin(theta);
@@ -48,11 +48,11 @@ void main( uint3 DTid : SV_DispatchThreadID )
 			{
 				// first iteration is special because Rayleigh and Mie ware stored separately,
 				// without the phase factors; they must be reintroduced here
-				float pr1 = 1.0;// phaseFunctionR(nu);
-				float pm1 = 0.0;// phaseFunctionM(nu);
+				float pr1 = phaseFunctionR(nu);
+				float pm1 = phaseFunctionM(nu);
 				float3 ray1 = getDeltaSR(r, w.z, muS, nu);
 				float3 mie1 = getDeltaSM(r, w.z, muS, nu);
-				result += (ray1*pr1 + mie1*pm1);// *w.z*dw;
+				result += (ray1*pr1 + mie1*pm1)*w.z*dw;
 			}
 			else
 			{

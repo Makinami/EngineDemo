@@ -10,25 +10,22 @@
 class RenderTargetStack
 {
 public:
-	RenderTargetStack();
-	~RenderTargetStack();
-
 	static bool Empty()
 	{
 		return !Targetviews.size();
 	}
 	
-	static bool Push(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView** targetviews, _In_ ID3D11DepthStencilView** depthstencil, _In_opt_ UINT number = 1)
+	static bool Push(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView* const* targetviews, _In_ ID3D11DepthStencilView* depthstencil, _In_opt_ UINT number = 1)
 	{
 		Targetviews.push({ number, targetviews });
 		DepthStencilDSV.push(depthstencil);
 
-		mImmediateContext->OMSetRenderTargets(number, targetviews, *depthstencil);
+		mImmediateContext->OMSetRenderTargets(number, targetviews, depthstencil);
 
 		return true;
 	}
 
-	static bool Swap(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView** targetviews, _In_ ID3D11DepthStencilView** depthstencil, _In_opt_ UINT number = 1)
+	static bool Swap(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView** targetviews, _In_ ID3D11DepthStencilView* depthstencil, _In_opt_ UINT number = 1)
 	{
 		while (Targetviews.size())
 		{
@@ -51,32 +48,29 @@ public:
 				Targetviews.pop();
 				DepthStencilDSV.pop();
 
-				mImmediateContext->OMSetRenderTargets(std::get<UINT>(Targetviews.top()), std::get<ID3D11RenderTargetView**>(Targetviews.top()), *(DepthStencilDSV.top()));
+				mImmediateContext->OMSetRenderTargets(std::get<UINT>(Targetviews.top()), std::get<ID3D11RenderTargetView* const*>(Targetviews.top()), DepthStencilDSV.top());
 
 				return true;
 		}		
 	}
 
-	static bool Update(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView** targetviews, _In_ ID3D11DepthStencilView** depthstencil, _In_opt_ UINT number = 1)
+	static bool Update(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView** targetviews, _In_ ID3D11DepthStencilView* depthstencil, _In_opt_ UINT number = 1)
 	{
-		if (Targetviews.size() && std::get<ID3D11RenderTargetView**>(Targetviews.top()) == targetviews && DepthStencilDSV.top() == depthstencil)
+		if (Targetviews.size() && std::get<ID3D11RenderTargetView* const*>(Targetviews.top()) == targetviews && DepthStencilDSV.top() == depthstencil)
 		{
-			mImmediateContext->OMSetRenderTargets(number, targetviews, *depthstencil);
+			mImmediateContext->OMSetRenderTargets(number, targetviews, depthstencil);
 			return true;
 		}
 		return false;
 	}
 private:
-	static std::stack< std::pair<UINT, ID3D11RenderTargetView**> > Targetviews;
-	static std::stack< ID3D11DepthStencilView** > DepthStencilDSV;
+	static std::stack< std::pair<UINT, ID3D11RenderTargetView* const*> > Targetviews;
+	static std::stack< ID3D11DepthStencilView* > DepthStencilDSV;
 };
 
 class ViewportStack
 {
 public:
-	ViewportStack();
-	~ViewportStack();
-
 	static bool Empty()
 	{
 		return !Viewports.size();

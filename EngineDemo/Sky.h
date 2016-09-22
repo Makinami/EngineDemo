@@ -17,6 +17,8 @@
 
 #include "Performance.h"
 
+#include "Utilities\Texture.h"
+
 using namespace std;
 using namespace DirectX;
 
@@ -29,9 +31,7 @@ public:
 	int Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
-
-	void DrawToCube(ID3D11DeviceContext1* mImmediateContext, DirectionalLight& light);
-
+	
 	void DrawToMap(ID3D11DeviceContext1* mImmediateContext, DirectionalLight& light);
 
 	void DrawToScreen(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
@@ -42,32 +42,22 @@ private:
 	int Precompute(ID3D11DeviceContext1* mImmediateContext);
 
 private:
-	ID3D11ShaderResourceView* transmitanceSRV;
-	ID3D11UnorderedAccessView* transmitanceUAV;
-	ID3D11Texture2D* transmittanceText;
+	std::unique_ptr<Texture> newTransmittanceText;
 
-	ID3D11ShaderResourceView* deltaESRV;
-	ID3D11UnorderedAccessView* deltaEUAV;
+	std::unique_ptr<Texture> newDeltaEText;
 
-	ID3D11ShaderResourceView** deltaSSRV;
-	ID3D11UnorderedAccessView** deltaSUAV;
+	std::vector<ID3D11ShaderResourceView*> deltaSSRV;
+	std::vector<ID3D11UnorderedAccessView*> deltaSUAV;
 
-	ID3D11ShaderResourceView* irradianceSRV;
-	ID3D11UnorderedAccessView* irradianceUAV;
-	ID3D11Texture2D* irradianceText;
-	ID3D11ShaderResourceView* copyIrradianceSRV;
-	ID3D11UnorderedAccessView* copyIrradianceUAV;
-	ID3D11Texture2D* copyIrradianceText;
+	std::vector<std::unique_ptr<Texture>> newDeltaSText;
 
-	ID3D11ShaderResourceView* inscatterSRV;
-	ID3D11UnorderedAccessView* inscatterUAV;
-	ID3D11Texture3D* inscatterText;
-	ID3D11ShaderResourceView* copyInscatterSRV;
-	ID3D11UnorderedAccessView* copyInscatterUAV;
-	ID3D11Texture3D* copyInscatterText;
+	std::unique_ptr<Texture> newIrradainceText;
+	std::unique_ptr<Texture> newCopyIrradianceText;
 
-	ID3D11ShaderResourceView* deltaJSRV;
-	ID3D11UnorderedAccessView* deltaJUAV;
+	std::unique_ptr<Texture> newInscatterText;
+	std::unique_ptr<Texture> newCopyInscatterText;
+
+	std::unique_ptr<Texture> newDeltaJText;
 
 	ID3D11ComputeShader* transmittanceCS;
 	ID3D11ComputeShader* irradiance1CS;
@@ -78,6 +68,7 @@ private:
 	ID3D11ComputeShader* inscatterNCS;
 	ID3D11ComputeShader* copyIrradianceCS;
 	ID3D11ComputeShader* copyInscatterNCS;
+	ID3D11ComputeShader* zeroIrradiance;
 
 	int cos = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT;
 
@@ -111,22 +102,12 @@ private:
 	ID3D11Buffer* cbPerFramePS;
 	ID3D11Buffer* skyMapCB;
 
-	const int CubeMapSize = 512;
+	D3D11_VIEWPORT skyMapViewport;
 
-	ID3D11RenderTargetView** cubeTextRTV; // 6 faces
-	ID3D11ShaderResourceView* cubeTextSRV;
-	ID3D11DepthStencilView* cubeMapDSV;
-	D3D11_VIEWPORT cubeViewport;
-
-	ID3D11RenderTargetView* mapRTV;
-	ID3D11ShaderResourceView* mapSRV;
+	std::unique_ptr<Texture> newMapText;
 	
 	UINT skyMapSize;
-
-	std::shared_ptr<CameraClass> mCubeMapCamera[6];
-
-	void BuildCubeFaceCamera(float x, float y, float z);
-
+	
 	ID3D11Buffer* mScreenQuadVB;
 	ID3D11Buffer* mScreenQuadIB;
 

@@ -1,4 +1,4 @@
-cbuffer WaterParams : register(c0)
+cbuffer WaterParams : register(b0)
 {
 	matrix screenToCamera; // screen space to camera space
 	matrix cameraToWorld; // camera space to world space
