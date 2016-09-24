@@ -38,6 +38,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	HDR = std::make_unique<PostFX::HDR>();
 	HDR->Init(device, 1280, 720);
 
+	Canvas = std::make_unique<PostFX::Canvas>();
+	Canvas->Init(device, 1280, 720);
+
 	Sky = std::make_shared<SkyClass>();
 	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
@@ -177,7 +180,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	HDR->StarRegister(mImmediateContext);
+	Canvas->StartRegister(mImmediateContext);
 	/*light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
 
 	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
@@ -216,9 +219,9 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Clouds2->GenerateClouds(mImmediateContext);
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
-	HDR->StopRegister(mImmediateContext);
-	HDR->Process(mImmediateContext);
-	HDR->Present(mImmediateContext);
+	Canvas->StopRegister(mImmediateContext);
+	HDR->Process(mImmediateContext, Canvas);
+	Canvas->Present(mImmediateContext);
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)

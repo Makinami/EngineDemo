@@ -121,11 +121,11 @@
     <ClCompile Include="loggerclass.cpp">
       <Filter>Debug</Filter>
     </ClCompile>
-    <ClCompile Include="HDR.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Utilities\Texture.cpp">
       <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="PostFX.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -345,11 +345,11 @@
     <ClInclude Include="loggerclass.h">
       <Filter>Debug</Filter>
     </ClInclude>
-    <ClInclude Include="HDR.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Utilities\Texture.h">
       <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="PostFX.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

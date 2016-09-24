@@ -18,7 +18,7 @@
 
 #include "shadowmapclass.h"
 
-#include "HDR.h"
+#include "PostFX.h"
 
 /*struct DirectionalLight
 {
@@ -58,6 +58,7 @@ private:
 	std::shared_ptr<CloudsClass2> Clouds2;
 	std::unique_ptr<WaterBruneton> WaterB;
 
+	std::unique_ptr<PostFX::Canvas> Canvas;
 	std::unique_ptr<PostFX::HDR> HDR;
 
 	// temp
