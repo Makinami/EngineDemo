@@ -7,7 +7,7 @@
 
 #pragma warning(disable:4838)
 #include <DirectXMath.h>
-#pragma warning(default:4838
+#pragma warning(default:4838)
 
 #include <wrl\client.h>
 

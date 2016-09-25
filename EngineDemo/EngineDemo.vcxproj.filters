@@ -127,6 +127,9 @@
     <ClCompile Include="PostFX.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ShadersManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -349,6 +352,9 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="PostFX.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadersManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

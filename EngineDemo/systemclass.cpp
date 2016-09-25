@@ -2,6 +2,9 @@
 
 #include "Utilities\Texture.h"
 
+// NOTE: here?
+#include "ShadersManager.h"
+
 // 'Hack for inability to set class member function as window proc
 namespace
 {
@@ -85,6 +88,9 @@ bool SystemClass::Init(std::string filename)
 	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	Logger->Success(L"DirectX initiated.");
 
+	// Pass device to shader manager
+	ShadersManager::Instance()->SetDevice(D3D->GetDevice());
+
 	// Pass device to TextureFactory
 	TextureFactory::SetDevice(D3D->GetDevice());
 
@@ -133,6 +139,7 @@ void SystemClass::Shutdown()
 {
 	//RenderTargetStack::Shutdown(D3D->GetDeviceContext());
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
+	ShadersManager::Instance()->ReleaseAll();
 
 	D3D->Shutdown();
 

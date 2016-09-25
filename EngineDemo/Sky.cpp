@@ -6,6 +6,9 @@
 #include "Utilities\CreateBuffer.h"
 #include "Utilities\MapResources.h"
 
+// NOTE: here?
+#include "ShadersManager.h"
+
 #include <DirectXColors.h>
 
 SkyClass::SkyClass()
@@ -266,7 +269,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 	CreateVSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyMapVS.cso", device, mMapVertexShader, "SkyMapVS - mMapVertexShader");
 
-	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyMapPS.cso", device, mMapPixelShader, "SkyMapPS - mMapPixelShader");
+	mMapPixelShader = ShadersManager::Instance()->GetPS("Sky::SkyMapPS");
 
 	CreateConstantBuffer(device, sizeof(skyMapBufferType), skyMapCB, "skyMapCB");
 
