@@ -119,11 +119,7 @@ private:
 	ID3D11VertexShader* mMapVertexShader;
 	ID3D11PixelShader* mMapPixelShader;
 
-	ID3D11RasterizerState* mRastStateBasic;
 	ID3D11SamplerState** mSamplerStateBasic; // 4 identical basic states
-	ID3D11SamplerState* mSamplerStateTrilinear;
-	ID3D11SamplerState* mSamplerAnisotropic;
-	ID3D11DepthStencilState* mDepthStencilStateSky;
 
 	struct Vertex
 	{

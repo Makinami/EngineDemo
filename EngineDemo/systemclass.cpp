@@ -4,6 +4,7 @@
 
 // NOTE: here?
 #include "ShadersManager.h"
+#include "RenderStates.h"
 
 // 'Hack for inability to set class member function as window proc
 namespace
@@ -94,6 +95,9 @@ bool SystemClass::Init(std::string filename)
 	// Pass device to TextureFactory
 	TextureFactory::SetDevice(D3D->GetDevice());
 
+	// RenderStates
+	RenderStates::InitAll(D3D->GetDevice());
+
 	Input = std::make_shared<InputClass>();
 	
 	if (!Input->Init(mhAppInstance, mhMainWnd, mClientWidth, mClientHeight))
@@ -139,6 +143,7 @@ void SystemClass::Shutdown()
 {
 	//RenderTargetStack::Shutdown(D3D->GetDeviceContext());
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
+	RenderStates::ReleaseAll();
 	ShadersManager::Instance()->ReleaseAll();
 
 	D3D->Shutdown();
