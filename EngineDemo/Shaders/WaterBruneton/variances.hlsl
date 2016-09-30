@@ -1,4 +1,4 @@
-cbuffer variancesBuffer : register(c0)
+cbuffer variancesBuffer : register(b0)
 {
 	float4 GRID_SIZE;
 	float slopeVarianceDelta;

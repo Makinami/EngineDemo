@@ -1,6 +1,6 @@
 #include <..\WaterBruneton\atmosphere.hlsli>
 
-cbuffer SkyMap : register(c0)
+cbuffer SkyMap : register(b0)
 {
 	float3 sunDir;
 	float pad;

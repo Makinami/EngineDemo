@@ -52,6 +52,9 @@
     <Filter Include="Shaders\WaterBruneton">
       <UniqueIdentifier>{275b03d0-e732-48bc-af35-fc53c977b8b7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\PostFX">
+      <UniqueIdentifier>{fc5a97e6-4d16-4e91-af13-533778bd6af6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -117,6 +120,18 @@
     </ClCompile>
     <ClCompile Include="loggerclass.cpp">
       <Filter>Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\Texture.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="PostFX.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadersManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshBuffer.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -336,6 +351,18 @@
     <ClInclude Include="loggerclass.h">
       <Filter>Debug</Filter>
     </ClInclude>
+    <ClInclude Include="Utilities\Texture.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="PostFX.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadersManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -457,6 +484,12 @@
     </FxCompile>
     <FxCompile Include="Shaders\WaterBruneton\Bffty.hlsl">
       <Filter>Shaders\WaterBruneton</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl">
+      <Filter>Shaders\PostFX</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
+      <Filter>Shaders\PostFX</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

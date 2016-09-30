@@ -22,6 +22,7 @@
     <ProjectGuid>{04087101-6A41-45A8-95FA-028CC62ED012}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>EngineDemo</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -159,6 +160,8 @@
     <ClCompile Include="CloudsClass2.cpp" />
     <ClCompile Include="d3dclass.cpp" />
     <ClCompile Include="FFT.cpp" />
+    <ClCompile Include="MeshBuffer.cpp" />
+    <ClCompile Include="PostFX.cpp" />
     <ClCompile Include="inih\cpp\INIReader.cpp" />
     <ClCompile Include="inih\ini.c" />
     <ClCompile Include="inputclass.cpp" />
@@ -168,12 +171,14 @@
     <ClCompile Include="map.cpp" />
     <ClCompile Include="Performance.cpp" />
     <ClCompile Include="playerclass.cpp" />
+    <ClCompile Include="ShadersManager.cpp" />
     <ClCompile Include="shadowmapclass.cpp" />
     <ClCompile Include="Sky.cpp" />
     <ClCompile Include="systemclass.cpp" />
     <ClCompile Include="terrain.cpp" />
     <ClCompile Include="timerclass.cpp" />
     <ClCompile Include="Utilities\CreateShader.cpp" />
+    <ClCompile Include="Utilities\Texture.cpp" />
     <ClCompile Include="Water.cpp" />
     <ClCompile Include="WaterBruneton.cpp" />
   </ItemGroup>
@@ -184,6 +189,8 @@
     <ClInclude Include="d3dclass.h" />
     <ClInclude Include="FFT.h" />
     <ClInclude Include="FW1FontWrapper.h" />
+    <ClInclude Include="MeshBuffer.h" />
+    <ClInclude Include="PostFX.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="inih\cpp\INIReader.h" />
     <ClInclude Include="inih\ini.h" />
@@ -237,6 +244,7 @@
     <ClInclude Include="noise\vectortable.h" />
     <ClInclude Include="Performance.h" />
     <ClInclude Include="playerclass.h" />
+    <ClInclude Include="ShadersManager.h" />
     <ClInclude Include="Shaders\Sky\resolutions.h" />
     <ClInclude Include="shadowmapclass.h" />
     <ClInclude Include="Sky.h" />
@@ -247,6 +255,7 @@
     <ClInclude Include="Utilities\CreateShader.h" />
     <ClInclude Include="Utilities\MapResources.h" />
     <ClInclude Include="Utilities\RenderViewTargetStack.h" />
+    <ClInclude Include="Utilities\Texture.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="Water.h" />
     <ClInclude Include="WaterBruneton.h" />
@@ -302,6 +311,26 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)%(RelativeDir)%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Shaders\Sky\copyInscatterN.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
