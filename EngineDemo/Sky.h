@@ -110,9 +110,6 @@ private:
 	UINT skyMapSize;
 
 	MeshBuffer mScreenQuad;
-	
-	ID3D11Buffer* mScreenQuadVB;
-	ID3D11Buffer* mScreenQuadIB;
 
 	ID3D11InputLayout* mInputLayout;
 	ID3D11VertexShader* mVertexShader;

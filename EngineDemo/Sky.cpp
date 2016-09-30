@@ -33,9 +33,6 @@ SkyClass::~SkyClass()
 	ReleaseCOM(cbPerFramePS);
 	ReleaseCOM(cbPerFrameVS);
 
-	ReleaseCOM(mScreenQuadIB);
-	ReleaseCOM(mScreenQuadVB);
-
 	ReleaseCOM(mInputLayout);
 	ReleaseCOM(mVertexShader);
 	ReleaseCOM(mPixelShaderToCube);
