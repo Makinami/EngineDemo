@@ -130,6 +130,9 @@
     <ClCompile Include="ShadersManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MeshBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -355,6 +358,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ShadersManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

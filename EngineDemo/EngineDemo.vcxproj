@@ -160,6 +160,7 @@
     <ClCompile Include="CloudsClass2.cpp" />
     <ClCompile Include="d3dclass.cpp" />
     <ClCompile Include="FFT.cpp" />
+    <ClCompile Include="MeshBuffer.cpp" />
     <ClCompile Include="PostFX.cpp" />
     <ClCompile Include="inih\cpp\INIReader.cpp" />
     <ClCompile Include="inih\ini.c" />
@@ -188,6 +189,7 @@
     <ClInclude Include="d3dclass.h" />
     <ClInclude Include="FFT.h" />
     <ClInclude Include="FW1FontWrapper.h" />
+    <ClInclude Include="MeshBuffer.h" />
     <ClInclude Include="PostFX.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="inih\cpp\INIReader.h" />

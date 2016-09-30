@@ -202,17 +202,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	patchVertices[2] = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	patchVertices[3] = XMFLOAT3(1.0f, -1.0f, 1.0f);
 
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(XMFLOAT3) * patchVertices.size();
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-	vbd.MiscFlags = 0;
-	vbd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA vinitData;
-	vinitData.pSysMem = &patchVertices[0];
-	device->CreateBuffer(&vbd, &vinitData, &mScreenQuadVB);
+	mScreenQuad.SetVertices(device, &patchVertices[0], patchVertices.size());
 
 	vector<USHORT> indices(6);
 
@@ -223,11 +213,17 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	indices[4] = 2;
 	indices[5] = 3;
 
-	vbd.ByteWidth = sizeof(USHORT)*indices.size();
-	vbd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	mScreenQuad.SetIndices(device, &indices[0], indices.size());
 
-	vinitData.pSysMem = &indices[0];
-	device->CreateBuffer(&vbd, &vinitData, &mScreenQuadIB);
+	vector<MeshBuffer::Subset> subsets;
+	MeshBuffer::Subset sub;
+	sub.Id = 0;
+	sub.VertexStart = 0;
+	sub.VertexCount = 4;
+	sub.FaceStart = 0;
+	sub.FaceCount = 2;
+	subsets.push_back(sub);
+	mScreenQuad.SetSubsetTable(subsets);
 
 	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyToCubePS.cso", device, mPixelShaderToCube);
 
@@ -287,8 +283,6 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	UINT offset = 0;
 
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
-	mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mInputLayout);
 
 	// VS
@@ -330,7 +324,7 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilStateSky, 0);
 	
-	mImmediateContext->DrawIndexed(6, 0, 0);
+	mScreenQuad.Draw(mImmediateContext);
 
 	mImmediateContext->OMSetDepthStencilState(0, 0);
 
@@ -351,8 +345,6 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 	UINT offset = 0;
 
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
-	mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mInputLayout);
 
 	// VS
@@ -376,7 +368,7 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilStateSky, 0);
 
-	mImmediateContext->DrawIndexed(6, 0, 0);
+	mScreenQuad.Draw(mImmediateContext);
 
 	mImmediateContext->OMSetDepthStencilState(nullptr, 0);
 

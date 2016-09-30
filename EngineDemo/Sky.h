@@ -19,6 +19,8 @@
 
 #include "Utilities\Texture.h"
 
+#include "MeshBuffer.h"
+
 using namespace std;
 using namespace DirectX;
 
@@ -106,6 +108,8 @@ private:
 	std::unique_ptr<Texture> newMapText;
 	
 	UINT skyMapSize;
+
+	MeshBuffer mScreenQuad;
 	
 	ID3D11Buffer* mScreenQuadVB;
 	ID3D11Buffer* mScreenQuadIB;
