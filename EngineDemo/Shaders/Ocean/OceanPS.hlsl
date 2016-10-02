@@ -202,5 +202,5 @@ float4 main( VertexOut pin ) : SV_TARGET
 
 	//return float4(ua, ub, uc, 1.0);
 
-	return float4(HDR(result), 1.0);
+	return float4((result), 1.0);
 }

@@ -189,22 +189,20 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 PDF/
-/DirectXTK
-/Automatic Versions
-/EngineDemo/Textures
+
+# Custom
+*.VC.opendb
+*.VC.db
+Automatic\ Versions/
+EngineDemo/Textures/
 /EngineDemo/cloudsGeneralNoise2.raw
 /EngineDemo/cloudsGeneralNoise.raw
 /EngineDemo/cloudsDetailNoise2.raw
 /EngineDemo/cloudsDetailNoise.raw
-/EngineDemo/log.txt
-*.db
-*.opendb
-/IMPORTANT.txt
-/EngineDemo/Automatic Versions.exe
-/EngineDemo/FW1FontWrapper.dll
-/EngineDemo/FW1FontWrapper.lib
-/EngineDemo/inscatter.raw
 /EngineDemo/irradiance.raw
-/EngineDemo/libnoise.lib
+/EngineDemo/inscatter.raw
+/EngineDemo/log.txt
+/IMPORTANT.txt
 /EngineDemo/transmittance.raw
-EngineDemo/Version.h_old
+/EngineDemo.VC.VC.opendb
+/EngineDemo.VC.db

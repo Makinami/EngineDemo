@@ -962,6 +962,6 @@ float OceanClass::Fresnel(float dot, float n1, float n2, bool schlick)
 		float Rs = pow((n1 * dot - n2 * root) / (n1 * dot + n2 * root), 2.0);
 		float Rp = pow((n1 * root - n2 * dot) / (n1 * root + n2 * dot), 2.0);
 
-		return clamp(0.5 * (Rs + Rp), 0.0, 1.0);
+		return min(max(0.5 * (Rs + Rp), 0.0), 1.0);
 	}
 }
