@@ -18,6 +18,8 @@
 #include "cameraclass.h"
 #include "Lights.h"
 
+#include "CDLODQuadTree.h"
+
 using namespace std;
 using namespace DirectX;
 
@@ -85,6 +87,14 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> perFrameCB;
 
+	struct TileData
+	{
+		XMFLOAT2 offset;
+		int lod;
+		float pad;
+	};
+
+	std::vector<TileData> instanceData;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> gridMeshVB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> gridMeshIB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> gridInstancesVB;
@@ -106,6 +116,9 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mGerstnerDS;
 
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> mQuadVS;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> mQuadIL;
+
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerAnisotropic;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerClamp;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerBilinear;
@@ -113,6 +126,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateFrame;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRastStateSolid;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState;
+
+	CDLODFlatQuadTree oceanQuadTree;
 
 	int indicesPerRow;
 	int screenGridSize;
@@ -137,6 +152,11 @@ private:
 		XMFLOAT3 camLookAt;
 		float pad;
 	} perFrameParams;
+
+	struct LODLevel
+	{
+
+	};
 
 private:
 	void getSpectrumSample(int i, int j, float lengthScale, float kMin, float* result);

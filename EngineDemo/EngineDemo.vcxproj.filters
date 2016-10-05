@@ -142,6 +142,9 @@
     <ClCompile Include="Ocean.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CDLODQuadTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -378,6 +381,9 @@
     <ClInclude Include="Ocean.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CDLODQuadTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -512,9 +518,6 @@
     <FxCompile Include="Shaders\Ocean\OceanPS.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
-      <Filter>Shaders\Ocean</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Ocean\JacobianInject.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
@@ -531,6 +534,12 @@
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Ocean\OceanPSGerstner.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
   </ItemGroup>

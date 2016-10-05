@@ -129,6 +129,7 @@ float3 meanSkyRadiance(float3 V, float3 N, float3 Tx, float3 Ty, float2 sigma2)
 
 float4 main( VertexOut pin ) : SV_TARGET
 {
+	return float4(pin.PosF.zzz/2.0 + 0.5, 1.0f);
 	float dist = pin.PosF.z;
 
 	float2 slope = float2(0.0, 0.0);

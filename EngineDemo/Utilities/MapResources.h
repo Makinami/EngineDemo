@@ -9,6 +9,6 @@ void MapResources(ID3D11DeviceContext1* mImmediateContext, PtrType* constantBuff
 {
 	D3D11_MAPPED_SUBRESOURCE mappedResources;
 	mImmediateContext->Map(constantBuffer, 0, MapFlags, 0, &mappedResources);
-	memcpy(mappedResources.pData, &resources, size ? size : sizeof(BufType));
+	memcpy(mappedResources.pData, &resources, min(size ? size : sizeof(BufType), mappedResources.RowPitch));
 	mImmediateContext->Unmap(constantBuffer, 0);
 }

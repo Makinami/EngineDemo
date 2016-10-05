@@ -8,6 +8,8 @@
 #include "Utilities\CreateBuffer.h"
 #include "Utilities\MapResources.h"
 
+#include "RenderStates.h"
+
 using Microsoft::WRL::ComPtr;
 
 void ExtractFrustrumPlanes(XMFLOAT4 planes[6], CXMMATRIX M);
@@ -33,7 +35,7 @@ OceanClass::OceanClass() :
 	FFT_SIZE(256),
 	GRID_SIZE{ 5488.0, 392.0, 28.0, 2.0 },
 	varianceRes(16),
-	windSpeed(5.0),
+	windSpeed(25.0),
 	waveAge(0.84),
 	cm(0.23),
 	km(370.0),
@@ -84,6 +86,8 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
+	oceanQuadTree.Init(device, -40960.0f, -40960.0f, 81920.0f, 81920.0f, 15, 4);
+
 	return S_OK;
 }
 
@@ -124,9 +128,11 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 	3000.0, 0.0, 0.0, 1.0
 	));*/
 
+	oceanQuadTree.GenerateTree(mImmediateContext, Camera);
+
 	D3D11_MAPPED_SUBRESOURCE mappedResources;
 	mImmediateContext->Map(gridInstancesVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
-	memcpy(mappedResources.pData, &instances[0][0], sizeof(instances[0][0]) * instances[0].size());
+	//memcpy(mappedResources.pData, &instances[0][0], sizeof(instances[0][0]) * instances[0].size());
 	mImmediateContext->Unmap(gridInstancesVB.Get(), 0);
 
 	ID3D11Buffer* pp = perFrameCB.Get();
@@ -224,23 +230,23 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	UINT stride[] = { sizeof(XMFLOAT2), sizeof(XMFLOAT4X4) };
 	UINT offset[] = { 0, 0 };
 	ID3D11Buffer* vbs[] = { gridMeshVB.Get(), gridInstancesVB.Get() };
-	mImmediateContext->IASetInputLayout(mInputLayout.Get());
+	mImmediateContext->IASetInputLayout(mQuadIL.Get());
 	mImmediateContext->IASetIndexBuffer(discMeshIB.Get(), DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetVertexBuffers(0, 1, discMeshVB.GetAddressOf(), stride, offset);
-	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// VS
-	mImmediateContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
+	mImmediateContext->VSSetShader(mQuadVS.Get(), nullptr, 0);
 	mImmediateContext->VSSetConstantBuffers(0, 2, buffers);
 	mImmediateContext->VSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
 	mImmediateContext->VSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
 
 	// HS
-	mImmediateContext->HSSetShader(mHullShader.Get(), nullptr, 0);
+	//mImmediateContext->HSSetShader(mHullShader.Get(), nullptr, 0);
 	mImmediateContext->HSSetConstantBuffers(0, 2, buffers);
 
 	// DS
-	mImmediateContext->DSSetShader(mDomainShader.Get(), nullptr, 0);
+	//mImmediateContext->DSSetShader(mDomainShader.Get(), nullptr, 0);
 	mImmediateContext->DSSetConstantBuffers(0, 2, buffers);
 	mImmediateContext->DSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
 	mImmediateContext->DSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
@@ -258,11 +264,15 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetSamplers(3, 1, mSamplerBilinear.GetAddressOf());
 
 	// RS & OM
-	mImmediateContext->RSSetState(mRastStateSolid.Get());
+	//mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
 
-	mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
+	//mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
 	//mImmediateContext->DrawIndexedInstanced(indicesToRender, instances[0].size(), 0, 0, 0);
+
+	oceanQuadTree.Draw(mImmediateContext);
+
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
 
 	mImmediateContext->VSSetShaderResources(0, 1, ppSRVNULL);
 	mImmediateContext->HSSetShader(nullptr, nullptr, 0);
@@ -305,6 +315,19 @@ HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
 	UINT numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
 
 	EXIT_ON_FAILURE(CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Ocean\\OceanVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout));
+
+	// vs & il quad
+	const D3D11_INPUT_ELEMENT_DESC vertexQuadDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "PSIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "PSIZE", 1, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
+	};
+
+	numElements = sizeof(vertexQuadDesc) / sizeof(vertexQuadDesc[0]);
+
+	EXIT_ON_FAILURE(CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Ocean\\OceanQuadVS.cso", device, mQuadVS, vertexQuadDesc, numElements, mQuadIL));
 
 	return S_OK;
 }
@@ -580,13 +603,15 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	*/
 	D3D11_BUFFER_DESC instanceDesc;
 	instanceDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	instanceDesc.ByteWidth = sizeof(XMFLOAT4X4) * 200;
+	instanceDesc.ByteWidth = sizeof(TileData) * 160;
 	instanceDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	instanceDesc.MiscFlags = 0;
 	instanceDesc.StructureByteStride = 0;
 	instanceDesc.Usage = D3D11_USAGE_DYNAMIC;
 
 	EXIT_ON_FAILURE(device->CreateBuffer(&instanceDesc, nullptr, &gridInstancesVB));
+
+	instanceData.reserve(160);
 
 	/*
 	* NOISE
@@ -743,16 +768,16 @@ HRESULT OceanClass::CreateGridMesh(ID3D11Device1 *& device)
 {
 	float vmargin = 0.1;
 	float hmargin = 0.1;
-	float step = 100.0f;
+	float step = 0.1f;
 
-	vector<XMFLOAT2> vertices(401 * 401);
+	vector<XMFLOAT2> vertices(101 * 101);
 
 	int n = 0;
 	int nx;
-	for (float j = -100.0f; j <= 100.0f; j += step)
+	for (float j = -5.0f; j <= 5.0f; j += step)
 	{
 		nx = 0;
-		for (float i = -100.0f; i <= 100.0f; i += step, ++nx)
+		for (float i = -5.0f; i <= 5.0f; i += step, ++nx)
 		{
 			vertices[n++] = XMFLOAT2(i, j);
 		}
@@ -775,14 +800,14 @@ HRESULT OceanClass::CreateGridMesh(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(device->CreateBuffer(&vbd, &vinitData, &gridMeshVB));
 
 	// indices
-	vector<UINT> indices(6 * 400 * 400);
+	vector<UINT> indices(6 * 100 * 100);
 
 	int nj = 0;
 	n = 0;
-	for (float j = -100.0f; j < 100.0f; j += step, ++nj)
+	for (float j = -5.0f; j < 5.0f; j += step, ++nj)
 	{
 		int ni = 0;
-		for (float i = -100.0f; i < 100.0f; i += step, ++ni)
+		for (float i = -5.0f; i < 5.0f; i += step, ++ni)
 		{
 			indices[n++] = ni + (nj + 1) * nx;
 			indices[n++] = (ni + 1) + (nj + 1) * nx;

@@ -260,7 +260,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	
 	Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
-	Sky->Draw(mImmediateContext, Camera, light);
+	//Sky->Draw(mImmediateContext, Camera, light);
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
@@ -282,7 +282,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
 	Canvas->StopRegister(mImmediateContext);
-	HDR->Process(mImmediateContext, Canvas);
+	//HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
 }
 

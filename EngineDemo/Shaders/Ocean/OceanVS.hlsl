@@ -1,5 +1,19 @@
 #include "perFrameCB.hlsli" // b1
 
+struct LODConstsStruct
+{
+	float size;
+	float2 morphConsts;
+	float pad;
+};
+
+#define MAX_LOD_LEVELS 15
+
+cbuffer LODconstBuffer : register(b3)
+{
+	LODConstsStruct LODConsts[MAX_LOD_LEVELS];
+}
+
 cbuffer constBuffer : register(b0)
 {
 	float4 INVERSE_GRID_SIZE;

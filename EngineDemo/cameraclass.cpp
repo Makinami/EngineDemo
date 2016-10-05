@@ -196,6 +196,11 @@ float CameraClass::GetHorizon()
 	return 1.0f - XMVectorGetY(look);
 }
 
+ContainmentType CameraClass::Contains(const BoundingBox & box)
+{
+	return mCameraFrustum.Contains(box);
+}
+
 void CameraClass::RotateY(float angle)
 {
 	XMMATRIX R = XMMatrixRotationY(angle);
@@ -218,6 +223,9 @@ inline void CameraClass::UpdateViewMatrix()
 	XMStoreFloat4x4(&mViewProjTrans, XMMatrixTranspose(mViewProjMatrix));
 	XMStoreFloat4x4(&mViewRelSun, mViewRelSunMatrix);
 	XMStoreFloat4x4(&mViewRelSunTrans, XMMatrixTranspose(mViewRelSunMatrix));
+
+	BoundingFrustum::CreateFromMatrix(mCameraFrustum, GetProjMatrix());
+	mCameraFrustum.Transform(mCameraFrustum, XMMatrixInverse(nullptr, mViewMatrix));
 
 	mValid = true;
 }
