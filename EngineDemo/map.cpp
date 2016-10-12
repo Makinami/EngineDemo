@@ -282,7 +282,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
 	Canvas->StopRegister(mImmediateContext);
-	//HDR->Process(mImmediateContext, Canvas);
+	HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
 }
 

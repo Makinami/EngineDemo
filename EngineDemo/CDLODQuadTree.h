@@ -13,7 +13,7 @@ public:
 	CDLODFlatQuadTree();
 	~CDLODFlatQuadTree();
 
-	HRESULT Init(ID3D11Device1* device, int _x, int _z, int _sizeX, int _sizeZ, UINT16 _lods, UINT16 granularity);
+	HRESULT Init(ID3D11Device1* device, int _x, int _z, int _sizeX, int _sizeZ, UINT16 _lods, UINT16 granularity, XMFLOAT3 buffer);
 
 	void GenerateTree(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> & Camera);
 
@@ -24,8 +24,8 @@ private:
 	{
 		XMFLOAT2 offset;
 		UINT LODid;
-		float pad;
-		QuadType(XMFLOAT2 _offset, UINT _LODid) : offset(_offset), LODid(_LODid) {};
+		float size;
+		QuadType(XMFLOAT2 _offset, UINT _LODid, float _size) : offset(_offset), LODid(_LODid), size(_size) {};
 	};
 
 	struct LODConstsStruct
@@ -47,6 +47,7 @@ private:
 	int z;
 	int sizeX;
 	int sizeZ;
+	XMFLOAT3 tile_buffer;
 	UINT maxLOD;
 };
 
