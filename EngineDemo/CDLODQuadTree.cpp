@@ -21,25 +21,21 @@ HRESULT CDLODFlatQuadTree::Init(ID3D11Device1 * device, int _x, int _z, int _siz
 	tile_buffer = buffer;
 
 	// lod details
-	float viewDistance = 40960.0f * 8.0;
-	float currentSize = 40960.0f * 2.0;
+	float viewDistance = _sizeX*4.05f; // sqrt(2)*(10/7)*2
 	float morphStart, morphEnd;
-	LODConstsStruct currentLOD;
+
+	CDLODQuadTreeConsts.gridDim = XMFLOAT3(granularity, granularity / 2.0, 2.0 / granularity);
 
 	for (auto i = 0; i < maxLOD; ++i)
 	{
-		morphStart = viewDistance*0.85 * 2.0;
-		morphEnd = viewDistance * 1.00* 2.0;
+		morphStart = viewDistance*0.85;
+		morphEnd = viewDistance * 1.00;
 
-		currentLOD.size = currentSize;
-		currentLOD.morphConsts.x = morphEnd / (morphEnd - morphStart);
-		currentLOD.morphConsts.y = 1.0 / (morphEnd - morphStart);
-		currentLOD.distance = viewDistance;
-
-		mLODConsts.push_back(currentLOD);
-
+		CDLODQuadTreeConsts.LODConsts[i].morphConsts.x = morphEnd / (morphEnd - morphStart);
+		CDLODQuadTreeConsts.LODConsts[i].morphConsts.y = 1.0 / (morphEnd - morphStart);
+		CDLODQuadTreeConsts.LODConsts[i].distance = viewDistance;
+		
 		viewDistance /= 2.0;
-		currentSize /= 2.0;
 	}
 
 	D3D11_BUFFER_DESC constantBufferDesc;
@@ -48,10 +44,10 @@ HRESULT CDLODFlatQuadTree::Init(ID3D11Device1 * device, int _x, int _z, int _siz
 	constantBufferDesc.MiscFlags = 0;
 	constantBufferDesc.StructureByteStride = 0;
 	constantBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	constantBufferDesc.ByteWidth = mLODConsts.size() * sizeof(LODConstsStruct);
+	constantBufferDesc.ByteWidth = sizeof(CDLODQuadTreeConsts);
 
 	D3D11_SUBRESOURCE_DATA cbData;
-	cbData.pSysMem = &mLODConsts[0];
+	cbData.pSysMem = &CDLODQuadTreeConsts;
 
 	if (FAILED(device->CreateBuffer(&constantBufferDesc, &cbData, &mLODConstsCB))) return false;
 
@@ -133,7 +129,7 @@ void CDLODFlatQuadTree::ParseQuad(std::shared_ptr<CameraClass> & Camera, std::ve
 {
 	if (lod + 1 == maxLOD)
 	{
-		instances.push_back(QuadType({ x + sizeX / 2.0f, z + sizeZ / 2.0f }, lod+1, sizeX));
+		instances.push_back(QuadType({ x + sizeX / 2.0f, z + sizeZ / 2.0f }, lod, sizeX));
 		return;
 	}
 
@@ -147,59 +143,19 @@ void CDLODFlatQuadTree::ParseQuad(std::shared_ptr<CameraClass> & Camera, std::ve
 
 	XMFLOAT3 camPos;
 	XMStoreFloat3(&camPos, Camera->GetPosition());
-	ContainmentType containsOutside = BoundingSphere(camPos, mLODConsts[lod].distance).Contains(quadBox);
-	ContainmentType containsInside = BoundingSphere(camPos, mLODConsts[lod + 1].distance).Contains(quadBox);
+	ContainmentType containsInside = BoundingSphere(camPos, CDLODQuadTreeConsts.LODConsts[lod + 1].distance).Contains(quadBox);
 
-	if (containsInside == DISJOINT)
-	{
-		instances.push_back(QuadType({ x + sizeX / 2.0f, z + sizeZ / 2.0f }, lod+1, sizeX));
-		return;
-	}
-	else if (containsInside == INTERSECTS && containsOutside == INTERSECTS)
-	{
-		ParseQuad(Camera, instances, x, z, sizeX / 2.0, sizeZ / 2.0, lod);
-		ParseQuad(Camera, instances, x, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod);
-		ParseQuad(Camera, instances, x + sizeX / 2.0, z, sizeX / 2.0, sizeZ / 2.0, lod);
-		ParseQuad(Camera, instances, x + sizeX / 2.0, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod);
-	}
-	else if (containsInside != DISJOINT && containsOutside == CONTAINS)
-	{
-		ParseQuad(Camera, instances, x, z, sizeX / 2.0, sizeZ / 2.0, lod+1);
-		ParseQuad(Camera, instances, x, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod+1);
-		ParseQuad(Camera, instances, x + sizeX / 2.0, z, sizeX / 2.0, sizeZ / 2.0, lod+1);
-		ParseQuad(Camera, instances, x + sizeX / 2.0, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod+1);
-	}
-
-	return;
-
-	/*if (lod == maxLOD - 1)
-	{
-		instances.push_back(QuadType({ x + sizeX / 2.0f, z + sizeZ / 2.0f }, lod));
-		return;
-	}
-
-	BoundingBox quadBox(XMFLOAT3(x+sizeX/2.0, 0.0, z+sizeZ/2.0), XMFLOAT3(sizeX/2.0 + tile_buffer.x, tile_buffer.y, sizeZ/2.0 + tile_buffer.z));
-
-	ContainmentType contains = Camera->Contains(quadBox);
-
-	if (contains == DISJOINT) return;
-
-	XMFLOAT3 camPos;
-	XMStoreFloat3(&camPos, Camera->GetPosition());
-	BoundingSphere lodSphere(camPos, mLODConsts[lod].distance);
-
-	contains = lodSphere.Contains(quadBox);
-	if (contains == DISJOINT)
-	{
-		instances.push_back(QuadType( { x + sizeX / 2.0f, z + sizeZ / 2.0f }, lod));
-	}
-	else
+	if (containsInside != DISJOINT)
 	{
 		ParseQuad(Camera, instances, x, z, sizeX / 2.0, sizeZ / 2.0, lod + 1);
 		ParseQuad(Camera, instances, x, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod + 1);
 		ParseQuad(Camera, instances, x + sizeX / 2.0, z, sizeX / 2.0, sizeZ / 2.0, lod + 1);
 		ParseQuad(Camera, instances, x + sizeX / 2.0, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod + 1);
-	}*/
+	}
+	else
+	{
+		instances.push_back(QuadType({ x + sizeX / 2.0f, z + sizeZ / 2.0f }, lod, sizeX));
+	}
 
 	return;
 }

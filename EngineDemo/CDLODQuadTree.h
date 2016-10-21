@@ -28,14 +28,16 @@ private:
 		QuadType(XMFLOAT2 _offset, UINT _LODid, float _size) : offset(_offset), LODid(_LODid), size(_size) {};
 	};
 
-	struct LODConstsStruct
-	{
-		float size;
-		XMFLOAT2 morphConsts;
-		float distance;
-	};
-
-	std::vector<LODConstsStruct> mLODConsts;
+	struct {
+		XMFLOAT3 gridDim;
+		float pad;
+		struct 
+		{
+			float size;
+			XMFLOAT2 morphConsts;
+			float distance;
+		} LODConsts[16];
+	} CDLODQuadTreeConsts;
 
 	void ParseQuad(std::shared_ptr<CameraClass> & Camera, std::vector<QuadType>& instances, int x, int z, int sizeX, int sizeZ, int lod);
 

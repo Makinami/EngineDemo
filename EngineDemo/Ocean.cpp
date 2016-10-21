@@ -86,7 +86,7 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
-	oceanQuadTree.Init(device, -40960.0f, -40960.0f, 81920.0f, 81920.0f, 14, 4, XMFLOAT3(30.0, 15.0, 30.0));
+	oceanQuadTree.Init(device, -40960.0f, -40960.0f, 81920.0f, 81920.0f, 14, 12, XMFLOAT3(30.0, 15.0, 30.0));
 
 	return S_OK;
 }
@@ -264,7 +264,7 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetSamplers(3, 1, mSamplerBilinear.GetAddressOf());
 
 	// RS & OM
-	//mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
 
 	//mImmediateContext->DrawIndexed(indicesToRender, 0, 0);

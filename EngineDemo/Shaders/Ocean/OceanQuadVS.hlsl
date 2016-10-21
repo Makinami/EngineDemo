@@ -11,6 +11,8 @@ struct LODConstsStruct
 
 cbuffer LODconstBuffer : register(b3)
 {
+	float3 g_gridDim;
+	float pad1;
 	LODConstsStruct LODConsts[MAX_LOD_LEVELS];
 }
 
@@ -39,7 +41,7 @@ struct VertexOut
 	float3 PosW : TEXTCOORD1;
 };
 
-static float3 g_gridDim = 0.0f.xxx;
+//static float3 g_gridDim = 0.0f.xxx;
 static float2 g_quadScale = 0.0f;
 
 // morphs vertex xy from from high to low detailed mesh position
@@ -57,15 +59,11 @@ VertexOut main( VertexIn vin )
 	vout.PosF.z = length(camPos - vout.PosW);
 
 	float morphK = 1.0f - clamp(LODConsts[vin.LOD].morphConsts.x - vout.PosF.z * LODConsts[vin.LOD].morphConsts.y, 0.0, 1.0);
-	g_gridDim.x = 4.0;
-	g_gridDim.y = g_gridDim.x / 2.0f;
-	g_gridDim.z = 1.0f / g_gridDim.y;
 	g_quadScale = vin.size.xx;
 
 	float2 morphedVertex = morphVertex(vin.Pos, vin.Pos, morphK);
 	vout.PosF.xy = morphedVertex * vin.size + float2(vin.offsetx, vin.offsety);
 	vout.PosW = float3(vout.PosF.x, 0.0, vout.PosF.y);
-	//vout.PosF.z = morphK;
 	vout.PosF.z = length(camPos - vout.PosW);
 
 
