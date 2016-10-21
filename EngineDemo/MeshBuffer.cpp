@@ -59,3 +59,22 @@ void MeshBuffer::Draw(ID3D11DeviceContext1 * mImmediateContext, UINT subsetId)
 										   subset.FaceStart * 3,
 										   0);
 }
+
+void MeshBuffer::DrawInstanced(ID3D11DeviceContext1 * mImmediateContext, UINT subsetId)
+{
+	mImmediateContext->IASetVertexBuffers(0, 1, mVertexBuffer.GetAddressOf(), &mVertexStride, &offset);
+	mImmediateContext->IASetVertexBuffers(1, 1, mInstanceBuffer.GetAddressOf(), &mInstanceStride, &offset);
+	mImmediateContext->IASetIndexBuffer(mIndexBuffer.Get(), mIndexBufferFormat, 0);
+
+	if (subsetId != -1)
+		mImmediateContext->DrawIndexedInstanced(mSubsetTable[subsetId].FaceCount * 3, 
+												mInstanceCount,
+												mSubsetTable[subsetId].FaceStart * 3, 
+												0, 0);
+	else
+		for (auto& subset : mSubsetTable)
+			mImmediateContext->DrawIndexedInstanced(subset.FaceCount * 3, 
+													mInstanceCount,
+													subset.FaceStart * 3, 
+													0, 0);
+}

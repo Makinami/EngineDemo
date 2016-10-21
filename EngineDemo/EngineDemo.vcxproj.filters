@@ -55,6 +55,9 @@
     <Filter Include="Shaders\PostFX">
       <UniqueIdentifier>{fc5a97e6-4d16-4e91-af13-533778bd6af6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Ocean">
+      <UniqueIdentifier>{67ccc6a7-80f7-452b-b6db-6d7118d9012d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -134,6 +137,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RenderStates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ocean.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDLODQuadTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -369,6 +378,12 @@
     <ClInclude Include="RenderStates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Ocean.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CDLODQuadTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -497,6 +512,36 @@
     <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
       <Filter>Shaders\PostFX</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\initFFT.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\JacobianInject.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\slopeVariance.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanDS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanHS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanDSGerstner.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPSGerstner.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
@@ -509,9 +554,8 @@
     <None Include="Shaders\WaterBruneton\atmosphere.hlsli">
       <Filter>Shaders\WaterBruneton</Filter>
     </None>
-    <None Include="ClassDiagram.cd" />
-    <None Include="ClassDiagram1.cd" />
-    <None Include="ClassDiagram2.cd" />
-    <None Include="ClassDiagram3.cd" />
+    <None Include="Shaders\Ocean\perFrameCB.hlsli">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
   </ItemGroup>
 </Project>

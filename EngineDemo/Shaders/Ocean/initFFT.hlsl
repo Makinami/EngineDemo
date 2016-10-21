@@ -1,8 +1,9 @@
-cbuffer initFFTBuffer
+#include "perFrameCB.hlsli" // b1
+
+cbuffer constBuffer : register(b0)
 {
 	float4 INVERSE_GRID_SIZE;
-	float time;
-	float3 pad;
+	float4 GRID_SIZE;
 };
 
 Texture2DArray<float2> spectrum : register(t0);
@@ -24,10 +25,10 @@ float2 i(float2 z) // i * z (complex)
 }
 
 [numthreads(16, 16, 1)]
-void main( int3 DTid : SV_DispatchThreadID )
+void main(int3 DTid : SV_DispatchThreadID)
 {
-	float x = DTid.x >= FFT_SIZE / 2 ? DTid.x - FFT_SIZE : DTid.x;
-	float y = DTid.y >= FFT_SIZE / 2 ? DTid.y - FFT_SIZE : DTid.y;
+	float x = DTid.x >= FFT_SIZE >> 1 ? DTid.x - FFT_SIZE : DTid.x;
+	float y = DTid.y >= FFT_SIZE >> 1 ? DTid.y - FFT_SIZE : DTid.y;
 
 	float4 spec1 = float4(spectrum[uint3(DTid.xy, 0)], spectrum[uint3(FFT_SIZE - DTid.xy, 0)]);
 	float4 spec2 = float4(spectrum[uint3(DTid.xy, 1)], spectrum[uint3(FFT_SIZE - DTid.xy, 1)]);
@@ -56,7 +57,7 @@ void main( int3 DTid : SV_DispatchThreadID )
 
 	float4 slope = float4(i(k1.x * h1) - k1.y * h1, i(k2.x * h2) - k2.y * h2);
 	fftWaves[uint3(DTid.xy, 0)] = float4(slope.xy * IK1, h1); // grid size 1 displacement
-	fftWaves[uint3(DTid.xy, 1)] = float4(slope.zw * IK2, h2); // grid size 2 displacement
+	fftWaves[uint3(DTid.xy, 1)] = float4(slope.zw* IK2, h2); // grid size 2 displacement
 	fftWaves[uint3(DTid.xy, 4)] = slope; // grid size 1 & 2 slope
 
 	slope = float4(i(k3.x * h3) - k3.y * h3, i(k4.x * h4) - k4.y * h4);
