@@ -58,6 +58,9 @@
     <Filter Include="Shaders\Ocean">
       <UniqueIdentifier>{67ccc6a7-80f7-452b-b6db-6d7118d9012d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Terrain2">
+      <UniqueIdentifier>{58303a86-f9ed-4043-9478-9590c99c8696}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -143,6 +146,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CDLODQuadTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -384,6 +390,9 @@
     <ClInclude Include="CDLODQuadTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Terrain2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -541,6 +550,21 @@
     </FxCompile>
     <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
       <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\OceanDF.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\initJFA.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\stepJFA.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\postJFA.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\procesHeighmap.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

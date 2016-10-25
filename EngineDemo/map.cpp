@@ -27,6 +27,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	}
 	LogSuccess(L"WaterBruneton initiated");
 
+	Terrain2 = std::make_unique<TerrainClass2>();
+	Terrain2->Init(device, dc);
+
 	/*Water = std::make_shared<WaterClass>();
 	Water->SetPerformance(Performance);
 	if (!Water->Init(device, dc))

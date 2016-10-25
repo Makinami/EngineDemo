@@ -17,6 +17,8 @@
 #include "CloudsClass2.h"
 #include "Ocean.h"
 
+#include "Terrain2.h"
+
 #include "shadowmapclass.h"
 
 #include "PostFX.h"
@@ -59,6 +61,7 @@ private:
 	std::shared_ptr<CloudsClass2> Clouds2;
 	std::unique_ptr<WaterBruneton> WaterB;
 	std::unique_ptr<OceanClass> Ocean;
+	std::unique_ptr<TerrainClass2> Terrain2;
 
 	std::unique_ptr<PostFX::Canvas> Canvas;
 	std::unique_ptr<PostFX::HDR> HDR;
