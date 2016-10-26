@@ -27,6 +27,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	}
 	LogSuccess(L"WaterBruneton initiated");
 
+	Terrain2 = std::make_unique<TerrainClass2>();
+	Terrain2->Init(device, dc);
+
 	/*Water = std::make_shared<WaterClass>();
 	Water->SetPerformance(Performance);
 	if (!Water->Init(device, dc))
@@ -260,11 +263,12 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	
 	Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
-	//Sky->Draw(mImmediateContext, Camera, light);
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
+
+	Terrain2->Draw(mImmediateContext, Camera, light);
 
 	//DrawDebug(mImmediateContext, Camera);
 	
@@ -276,6 +280,8 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	if (++counter == 1) counter = 0;
 	
 	Sky->DrawToScreen(mImmediateContext, Camera, light);*/
+
+	Sky->Draw(mImmediateContext, Camera, light);
 
 	//Clouds->Draw(mImmediateContext, Camera, light);
 	//Clouds2->GenerateClouds(mImmediateContext);

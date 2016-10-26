@@ -22,7 +22,9 @@ D3DClass::D3DClass()
 	mEnable4xMSAA(true),
 
 	mRenderHeight(0),
-	mRenderWidth(0)
+	mRenderWidth(0),
+
+	mVSync(0)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
 
@@ -131,6 +133,8 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	// Rest of initialization can be done throught OnResize()
 	OnResize(mClientWidth, mClientHeight);
 
+	mVSync = Settings->GetBoolean("Rendering", "VSync", false);
+
 	return true;
 }
 
@@ -231,7 +235,7 @@ void D3DClass::BeginScene()
 // Present frame
 void D3DClass::EndScene()
 {
-	mSwapChain->Present(0, 0);
+	mSwapChain->Present(mVSync, 0);
 }
 
 ID3D11Device1* D3DClass::GetDevice() const

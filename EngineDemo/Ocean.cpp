@@ -35,7 +35,7 @@ OceanClass::OceanClass() :
 	FFT_SIZE(256),
 	GRID_SIZE{ 5488.0, 392.0, 28.0, 2.0 },
 	varianceRes(16),
-	windSpeed(25.0),
+	windSpeed(10.0),
 	waveAge(0.84),
 	cm(0.23),
 	km(370.0),
@@ -264,7 +264,7 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetSamplers(3, 1, mSamplerBilinear.GetAddressOf());
 
 	// RS & OM
-	mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
+	//mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
 	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
 
 	//mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
