@@ -9,6 +9,9 @@
 #include "Utilities\Texture.h"
 
 #include "loggerclass.h"
+#include "Lights.h"
+#include "cameraclass.h"
+#include "CDLODQuadTree.h"
 
 class TerrainClass2 : public HasLogger
 {
@@ -17,6 +20,8 @@ public:
 	~TerrainClass2();
 
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
+
+	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mHeighmapRawSRV;
@@ -39,5 +44,20 @@ private:
 	} JFAParams;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> mJFACB;
+
+	CDLODFlatQuadTree terrainQuadTree;
+
+	struct {
+		XMMATRIX gWorldProj;
+		XMFLOAT3 camPos;
+		float pad;
+	} MatrixBuffer;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> mMatrixCB;
+	ID3D11PixelShader* mPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
+
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> mQuadIL;
+	ID3D11VertexShader* mQuadVS;
 };
 

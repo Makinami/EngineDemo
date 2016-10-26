@@ -80,6 +80,9 @@ class D3DClass : public HasLogger
 		ID3D11DepthStencilView* mDepthStencilView;
 		D3D11_VIEWPORT mScreenViewport;
 
+		// V-sync (?)
+		BOOL mVSync;
+
 #if defined(DEBUG) || defined(_DEBUG)
 		ID3D11Debug* mDebug;
 #endif

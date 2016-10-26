@@ -268,6 +268,8 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
+	Terrain2->Draw(mImmediateContext, Camera, light);
+
 	//DrawDebug(mImmediateContext, Camera);
 	
 	/*static int counter = 0;

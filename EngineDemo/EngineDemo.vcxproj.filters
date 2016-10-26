@@ -566,6 +566,12 @@
     <FxCompile Include="Shaders\Terrain2\procesHeighmap.hlsl">
       <Filter>Shaders\Terrain2</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\TerrainVS.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\TerrainPS.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
