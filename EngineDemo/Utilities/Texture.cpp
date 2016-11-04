@@ -55,115 +55,6 @@ std::unique_ptr<Texture> TextureFactory::CreateTexture(UINT bind, DXGI_FORMAT fo
 	}
 }
 
-std::unique_ptr<Texture> TextureFactory::CreateTexture(const D3D11_TEXTURE2D_DESC & textDesc)
-{
-	if (!device) return nullptr;
-
-	unique_ptr<Texture> texture = make_unique<Texture>();
-
-	texture->TextureType = texture->Texture2D;
-	texture->bind = textDesc.BindFlags;
-
-	if (FAILED(device->CreateTexture2D(&textDesc, nullptr, &texture->mTexture2D)))
-		return nullptr;
-
-	// Create RTV
-	if (textDesc.BindFlags & D3D11_BIND_RENDER_TARGET)
-	{
-		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
-
-		rtvDesc.Format = textDesc.Format;
-		if (textDesc.ArraySize > 1)
-		{
-			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-			rtvDesc.Texture2DArray.MipSlice = 0;
-			rtvDesc.Texture2DArray.FirstArraySlice = 0;
-			rtvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
-		}
-		else
-		{
-			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-			rtvDesc.Texture2D.MipSlice = 0;
-		}
-
-		if (FAILED(device->CreateRenderTargetView(texture->mTexture2D.Get(), &rtvDesc, &texture->mRenderTargetView)))
-			return nullptr;
-	}
-
-	// Create DSV
-	if (textDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
-	{
-		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-
-		dsvDesc.Format = textDesc.Format;
-		if (textDesc.ArraySize > 1)
-		{
-			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-			dsvDesc.Texture2DArray.MipSlice = 0;
-			dsvDesc.Texture2DArray.FirstArraySlice = 0;
-			dsvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
-		}
-		else
-		{
-			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-			dsvDesc.Texture2D.MipSlice = 0;
-		}
-
-		if (FAILED(device->CreateDepthStencilView(texture->mTexture2D.Get(), &dsvDesc, &texture->mDepthStencilView)))
-			return nullptr;
-	}
-
-	// Create SRV
-	if (textDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
-	{
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-
-		srvDesc.Format = textDesc.Format;
-		if (textDesc.ArraySize > 1)
-		{
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-			srvDesc.Texture2DArray.MostDetailedMip = 0;
-			srvDesc.Texture2DArray.MipLevels = -1;
-			srvDesc.Texture2DArray.FirstArraySlice = 0;
-			srvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
-		}
-		else
-		{
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			srvDesc.Texture2D.MostDetailedMip = 0;
-			srvDesc.Texture2D.MipLevels = -1;
-		}
-
-		if (FAILED(device->CreateShaderResourceView(texture->mTexture2D.Get(), &srvDesc, &texture->mShaderResourceView)))
-			return nullptr;
-	}
-
-	// Create UAV
-	if (textDesc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
-	{
-		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
-
-		uavDesc.Format = textDesc.Format;
-		if (textDesc.ArraySize > 1)
-		{
-			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
-			uavDesc.Texture2DArray.MipSlice = 0;
-			uavDesc.Texture2DArray.FirstArraySlice = 0;
-			uavDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
-		}
-		else
-		{
-			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
-			uavDesc.Texture2D.MipSlice = 0;
-		}
-
-		if (FAILED(device->CreateUnorderedAccessView(texture->mTexture2D.Get(), &uavDesc, &texture->mUnorderedAccessView)))
-			return nullptr;
-	}
-
-	return texture;
-}
-
 std::unique_ptr<Texture> TextureFactory::CreateTexture(const D3D11_TEXTURE3D_DESC & textDesc)
 {
 	if (!device) return nullptr;
@@ -217,6 +108,113 @@ std::unique_ptr<Texture> TextureFactory::CreateTexture(const D3D11_TEXTURE3D_DES
 		uavDesc.Texture3D.WSize = -1;
 
 		if (FAILED(device->CreateUnorderedAccessView(texture->mTexture3D.Get(), &uavDesc, &texture->mUnorderedAccessView)))
+			return nullptr;
+	}
+
+	return texture;
+}
+
+std::unique_ptr<Texture> TextureFactory::CreateTexture(const D3D11_TEXTURE2D_DESC & textDesc, ViewFormats const& formats)
+{
+	unique_ptr<Texture> texture = make_unique<Texture>();
+
+	texture->TextureType = texture->Texture2D;
+	texture->bind = textDesc.BindFlags;
+
+	if (FAILED(device->CreateTexture2D(&textDesc, nullptr, &texture->mTexture2D)))
+		return nullptr;
+
+	// Create RTV
+	if (textDesc.BindFlags & D3D11_BIND_RENDER_TARGET)
+	{
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+
+		rtvDesc.Format = formats.rtv ? formats.rtv : textDesc.Format;
+		if (textDesc.ArraySize > 1)
+		{
+			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+			rtvDesc.Texture2DArray.MipSlice = 0;
+			rtvDesc.Texture2DArray.FirstArraySlice = 0;
+			rtvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
+		}
+		else
+		{
+			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			rtvDesc.Texture2D.MipSlice = 0;
+		}
+
+		if (FAILED(device->CreateRenderTargetView(texture->mTexture2D.Get(), &rtvDesc, &texture->mRenderTargetView)))
+			return nullptr;
+	}
+
+	// Create DSV
+	if (textDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+	{
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+
+		dsvDesc.Format = formats.dsv ? formats.dsv : textDesc.Format;
+		if (textDesc.ArraySize > 1)
+		{
+			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+			dsvDesc.Texture2DArray.MipSlice = 0;
+			dsvDesc.Texture2DArray.FirstArraySlice = 0;
+			dsvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
+		}
+		else
+		{
+			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+			dsvDesc.Texture2D.MipSlice = 0;
+		}
+
+		if (FAILED(device->CreateDepthStencilView(texture->mTexture2D.Get(), &dsvDesc, &texture->mDepthStencilView)))
+			return nullptr;
+	}
+
+	// Create SRV
+	if (textDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+
+		srvDesc.Format = formats.srv ? formats.srv : textDesc.Format;
+		if (textDesc.ArraySize > 1)
+		{
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+			srvDesc.Texture2DArray.MostDetailedMip = 0;
+			srvDesc.Texture2DArray.MipLevels = -1;
+			srvDesc.Texture2DArray.FirstArraySlice = 0;
+			srvDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
+		}
+		else
+		{
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			srvDesc.Texture2D.MipLevels = -1;
+		}
+
+		if (FAILED(device->CreateShaderResourceView(texture->mTexture2D.Get(), &srvDesc, &texture->mShaderResourceView)))
+			return nullptr;
+	}
+
+	// Create UAV
+	if (textDesc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+	{
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+
+		uavDesc.Format = formats.uav ? formats.uav : textDesc.Format;
+		if (textDesc.ArraySize > 1)
+		{
+			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+			uavDesc.Texture2DArray.MipSlice = 0;
+			uavDesc.Texture2DArray.FirstArraySlice = 0;
+			uavDesc.Texture2DArray.ArraySize = textDesc.ArraySize;
+		}
+		else
+		{
+			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+			uavDesc.Texture2D.MipSlice = 0;
+		}
+
+		if (FAILED(device->CreateUnorderedAccessView(texture->mTexture2D.Get(), &uavDesc, &texture->mUnorderedAccessView)))
 			return nullptr;
 	}
 

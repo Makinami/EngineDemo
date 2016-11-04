@@ -189,6 +189,23 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 PDF/
+
+# Custom
+*.VC.opendb
+*.VC.db
+Automatic\ Versions/
+EngineDemo/Textures/
+/EngineDemo/cloudsGeneralNoise2.raw
+/EngineDemo/cloudsGeneralNoise.raw
+/EngineDemo/cloudsDetailNoise2.raw
+/EngineDemo/cloudsDetailNoise.raw
+/EngineDemo/irradiance.raw
+/EngineDemo/inscatter.raw
+/EngineDemo/log.txt
+/IMPORTANT.txt
+/EngineDemo/transmittance.raw
+/EngineDemo.VC.VC.opendb
+/EngineDemo.VC.db
 DirectXTK/
 /EngineDemo/Textures/terrain_mine.raw
 /EngineDemo/Textures/terrain_basic.raw
@@ -212,14 +229,3 @@ DirectXTK/
 /EngineDemo/Textures/cloudsDetails.dds
 /EngineDemo/Textures/cloudsCurlNoise.dds
 /EngineDemo/Textures/blend.dds
-/EngineDemo.VC.VC.opendb
-/EngineDemo.VC.db
-/IMPORTANT.txt
-/EngineDemo/transmittance.raw
-/EngineDemo/irradiance.raw
-/EngineDemo/inscatter.raw
-/EngineDemo/cloudsGeneralNoise2.raw
-/EngineDemo/cloudsGeneralNoise.raw
-/EngineDemo/cloudsDetailNoise2.raw
-/EngineDemo/cloudsDetailNoise.raw
-/EngineDemo/log.txt

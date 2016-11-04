@@ -2,6 +2,10 @@
 
 #include "Utilities\Texture.h"
 
+// NOTE: here?
+#include "ShadersManager.h"
+#include "RenderStates.h"
+
 // 'Hack for inability to set class member function as window proc
 namespace
 {
@@ -85,8 +89,14 @@ bool SystemClass::Init(std::string filename)
 	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	Logger->Success(L"DirectX initiated.");
 
+	// Pass device to shader manager
+	ShadersManager::Instance()->SetDevice(D3D->GetDevice());
+
 	// Pass device to TextureFactory
 	TextureFactory::SetDevice(D3D->GetDevice());
+
+	// RenderStates
+	RenderStates::InitAll(D3D->GetDevice());
 
 	Input = std::make_shared<InputClass>();
 	
@@ -133,6 +143,8 @@ void SystemClass::Shutdown()
 {
 	//RenderTargetStack::Shutdown(D3D->GetDeviceContext());
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
+	RenderStates::ReleaseAll();
+	ShadersManager::Instance()->ReleaseAll();
 
 	D3D->Shutdown();
 
@@ -305,7 +317,7 @@ bool SystemClass::Frame()
 	Input->Capture();
 
 	Player->React(dt);	
-	Map->Update(dt, D3D->GetDeviceContext());
+	Map->Update(dt, D3D->GetDeviceContext(), Camera);
 	
 	D3D->BeginScene();
 

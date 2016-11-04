@@ -18,6 +18,7 @@ cbuffer WaterParams : register(b0)
 Texture2DArray<float4> gDisplacement : register(t0);
 Texture3D<float4> gSlopeVariance : register(t1);
 SamplerState samFFTMap : register(s2);
+SamplerState samVariance : register(s3);
 
 struct VertexOut
 {
@@ -86,7 +87,7 @@ float2 U(float2 zeta, float3 V, float3 N, float3 Tx, float3 Ty)
 	float3 f = normalize(float3(-zeta, 1.0)); // tangent space
 	float3 F = f.x*Tx + f.y*Ty + f.z*N; // world space
 	float3 R = 2.0 * dot(F, V) * F - V;
-	return R.xy / (1.0 + R.z);
+	return R.xz / (1.0 + R.y);
 }
 
 float meanFresnel(float cosThetaV, float sigmaV)
@@ -123,13 +124,13 @@ float3 meanSkyRadiance(float3 V, float3 N, float3 Tx, float3 Ty, float2 sigmaSq)
 
 float4 main(VertexOut pin) : SV_TARGET
 {
+	//return float4(0.0, 0.0, 1.0, 1.0);
 	float3 V = normalize(worldCamera - pin.PosW);
 
 	float2 slopes = float2(0.0, 0.0);
-	slopes += gDisplacement.Sample(samFFTMap, float3(pin.u / GRID_SIZES.x, 4.0)).xy;
-	slopes += gDisplacement.Sample(samFFTMap, float3(pin.u / GRID_SIZES.y, 4.0)).zw;
-	slopes += gDisplacement.Sample(samFFTMap, float3(pin.u / GRID_SIZES.z, 5.0)).xy;
-	slopes += gDisplacement.Sample(samFFTMap, float3(pin.u / GRID_SIZES.w, 5.0)).zw;
+	[unroll(4)]
+	for (int i = 0; i < 4; ++i)
+		slopes += gDisplacement.Sample(samFFTMap, float3(pin.u / GRID_SIZES[i], i/2 + 4)).xy;
 
 	float3 N = normalize(float3(-slopes.x, 1.0, -slopes.y));
 	if (dot(V, N) < 0.0)
@@ -146,15 +147,17 @@ float4 main(VertexOut pin) : SV_TARGET
 	float ua = pow(A / SCALE, 0.25);
 	float ub = 0.5 + 0.5 * B / sqrt(A * C);
 	float uc = pow(C / SCALE, 0.25);
-	float4 sigmaSq = gSlopeVariance.Sample(samFFTMap, float3(ua, ub, uc));
-	
+	float2 sigmaSq = gSlopeVariance.Sample(samVariance, float3(ua, ub, uc)).rg;
+	//return float4(sigmaSq, 0.0, 1.0);
+	//return float4(Jxy*Jxy, 0, 0.0, 1.0)*1;
+	// TODO: za duze Jxy. Why?!!
 	sigmaSq = max(sigmaSq, 2e-5);
 
 	float3 Ty = normalize(float3(0.0, N.z, -N.y));
 	float3 Tx = cross(Ty, N);
 
 	float fresnel = 0.02 + 0.98 * meanFresnel(V, N, sigmaSq);
-
+	
 	float3 Lsun;
 	float3 Esky;
 	float3 extinction;

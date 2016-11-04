@@ -6,11 +6,14 @@
 #include "Utilities\CreateBuffer.h"
 #include "Utilities\MapResources.h"
 
+// NOTE: here?
+#include "ShadersManager.h"
+#include "RenderStates.h"
+
 #include <DirectXColors.h>
 
 SkyClass::SkyClass()
-	: mRastStateBasic(nullptr),
-	skyMapSize(512)
+	: skyMapSize(512)
 {
 }
 
@@ -30,20 +33,13 @@ SkyClass::~SkyClass()
 	ReleaseCOM(cbPerFramePS);
 	ReleaseCOM(cbPerFrameVS);
 
-	ReleaseCOM(mScreenQuadIB);
-	ReleaseCOM(mScreenQuadVB);
-
 	ReleaseCOM(mInputLayout);
 	ReleaseCOM(mVertexShader);
 	ReleaseCOM(mPixelShaderToCube);
 	ReleaseCOM(mPixelShaderToScreen);
 
-	ReleaseCOM(mRastStateBasic);
 	// release only first (rest point to the same resource)
-	ReleaseCOM(mSamplerStateBasic[0]);
 	delete[] mSamplerStateBasic;
-	ReleaseCOM(mSamplerStateTrilinear);
-	ReleaseCOM(mDepthStencilStateSky);
 	
 }
 
@@ -123,41 +119,9 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\zeroIrradiance.cso", device, zeroIrradiance);
 
 	// sampler states
-	D3D11_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = FLT_MAX;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.BorderColor[0] =
-		samplerDesc.BorderColor[1] = 
-		samplerDesc.BorderColor[2] =
-		samplerDesc.BorderColor[3] = 0.0f;
-	
 	mSamplerStateBasic = new ID3D11SamplerState*[4];
-	device->CreateSamplerState(&samplerDesc, &mSamplerStateBasic[0]);
-	for (size_t i = 1; i < 4; i++) mSamplerStateBasic[i] = mSamplerStateBasic[0];
+	for (size_t i = 0; i < 4; i++) mSamplerStateBasic[i] = RenderStates::Sampler::TriLinearClampSS;
 
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	device->CreateSamplerState(&samplerDesc, &mSamplerStateTrilinear);
-
-	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-	samplerDesc.MaxAnisotropy = 16;
-	device->CreateSamplerState(&samplerDesc, &mSamplerAnisotropic);
-
-	// depth stencil state
-	D3D11_DEPTH_STENCIL_DESC dsDesc;
-	dsDesc.DepthEnable = true;
-	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-	dsDesc.StencilEnable = false;
-	
-	device->CreateDepthStencilState(&dsDesc, &mDepthStencilStateSky);
 
 	D3D11_BUFFER_DESC cbDesc = {};
 	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -165,17 +129,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	cbDesc.MiscFlags = 0;
 	cbDesc.StructureByteStride = 0;
-
-	// rastarizer state
-	D3D11_RASTERIZER_DESC rastDesc;
-	ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
-	rastDesc.FillMode = D3D11_FILL_SOLID;
-	rastDesc.CullMode = D3D11_CULL_BACK;
-	rastDesc.FrontCounterClockwise = false;
-	rastDesc.DepthClipEnable = true;
-
-	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateBasic))) return false;
-	
+		
 	// precompute buffer
 	cbDesc.ByteWidth = sizeof(cbNOrderType);
 
@@ -200,17 +154,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	patchVertices[2] = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	patchVertices[3] = XMFLOAT3(1.0f, -1.0f, 1.0f);
 
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(XMFLOAT3) * patchVertices.size();
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-	vbd.MiscFlags = 0;
-	vbd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA vinitData;
-	vinitData.pSysMem = &patchVertices[0];
-	device->CreateBuffer(&vbd, &vinitData, &mScreenQuadVB);
+	mScreenQuad.SetVertices(device, &patchVertices[0], patchVertices.size());
 
 	vector<USHORT> indices(6);
 
@@ -221,11 +165,17 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	indices[4] = 2;
 	indices[5] = 3;
 
-	vbd.ByteWidth = sizeof(USHORT)*indices.size();
-	vbd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	mScreenQuad.SetIndices(device, &indices[0], indices.size());
 
-	vinitData.pSysMem = &indices[0];
-	device->CreateBuffer(&vbd, &vinitData, &mScreenQuadIB);
+	vector<MeshBuffer::Subset> subsets;
+	MeshBuffer::Subset sub;
+	sub.Id = 0;
+	sub.VertexStart = 0;
+	sub.VertexCount = 4;
+	sub.FaceStart = 0;
+	sub.FaceCount = 2;
+	subsets.push_back(sub);
+	mScreenQuad.SetSubsetTable(subsets);
 
 	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyToCubePS.cso", device, mPixelShaderToCube);
 
@@ -267,7 +217,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 	CreateVSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyMapVS.cso", device, mMapVertexShader, "SkyMapVS - mMapVertexShader");
 
-	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyMapPS.cso", device, mMapPixelShader, "SkyMapPS - mMapPixelShader");
+	mMapPixelShader = ShadersManager::Instance()->GetPS("Sky::SkyMapPS");
 
 	CreateConstantBuffer(device, sizeof(skyMapBufferType), skyMapCB, "skyMapCB");
 
@@ -389,8 +339,6 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	UINT offset = 0;
 
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
-	mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mInputLayout);
 
 	// VS
@@ -407,7 +355,7 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
 
-	mImmediateContext->RSSetState(mRastStateBasic);
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
 
 	// PS
 	cbPerFramePSType* dataPS;
@@ -425,17 +373,14 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 
 	mImmediateContext->PSSetShaderResources(0, 1, &inscatterFile);
-	mImmediateContext->PSSetShaderResources(9, 1, newInscatterText->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceFile);
-	mImmediateContext->PSSetShaderResources(10, 1, newTransmittanceText->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(2, 1, &irradianceFile);
-	mImmediateContext->PSSetShaderResources(11, 1, newIrradainceText->GetAddressOfSRV());
 	mImmediateContext->PSSetSamplers(0, 3, mSamplerStateBasic);
 	mImmediateContext->PSSetShader(mPixelShaderToCube, NULL, 0);
 
-	mImmediateContext->OMSetDepthStencilState(mDepthStencilStateSky, 0);
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteLessEqualDSS, 0);
 	
-	mImmediateContext->DrawIndexed(6, 0, 0);
+	mScreenQuad.Draw(mImmediateContext);
 
 	mImmediateContext->OMSetDepthStencilState(0, 0);
 
@@ -458,13 +403,11 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 	UINT offset = 0;
 
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
-	mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mInputLayout);
 
 	// VS
 	mImmediateContext->VSSetShader(mMapVertexShader, nullptr, 0);
-	mImmediateContext->RSSetState(mRastStateBasic);
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
 
 	// PS
 	skyMapParams.sunDir = light.Direction();
@@ -475,15 +418,15 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 	mImmediateContext->PSSetConstantBuffers(0, 1, &skyMapCB);
 	mImmediateContext->PSSetShader(mMapPixelShader, nullptr, 0);
 
-	mImmediateContext->PSSetShaderResources(101, 1, newInscatterText->GetAddressOfSRV());
-	mImmediateContext->PSSetShaderResources(102, 1, newTransmittanceText->GetAddressOfSRV());
-	mImmediateContext->PSSetShaderResources(103, 1, newDeltaEText->GetAddressOfSRV());
+	mImmediateContext->PSSetShaderResources(101, 1, &inscatterFile);
+	mImmediateContext->PSSetShaderResources(102, 1, &transmittanceFile);
+	mImmediateContext->PSSetShaderResources(103, 1, &irradianceFile);
 
 	mImmediateContext->PSSetSamplers(0, 1, mSamplerStateBasic);
 
-	mImmediateContext->OMSetDepthStencilState(mDepthStencilStateSky, 0);
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteLessEqualDSS, 0);
 
-	mImmediateContext->DrawIndexed(6, 0, 0);
+	mScreenQuad.Draw(mImmediateContext);
 
 	mImmediateContext->OMSetDepthStencilState(nullptr, 0);
 
@@ -492,7 +435,7 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 
 	mImmediateContext->GenerateMips(newMapText->GetSRV());
 	mImmediateContext->PSSetShaderResources(100, 1, newMapText->GetAddressOfSRV());
-	mImmediateContext->PSSetSamplers(1, 1, &mSamplerAnisotropic);
+	mImmediateContext->PSSetSamplers(1, 1, &RenderStates::Sampler::AnisotropicWrapSS);
 
 	
 }

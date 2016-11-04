@@ -149,8 +149,8 @@ bool CreateGSFromFile(_In_ std::wstring fileName, ID3D11Device1 * device, T &gs,
 	return false;
 }
 
-template <typename T>
-bool CreateVSAndInputLayout(_In_ std::wstring fileName, ID3D11Device1 * device, ID3D11VertexShader* &vs, const D3D11_INPUT_ELEMENT_DESC* ilDesc, UINT numElements, T &il, const std::string& vsname = "", const std::string& ilname = "")
+template <typename Tvs, typename Til>
+bool CreateVSAndInputLayout(_In_ std::wstring fileName, ID3D11Device1 * device, Tvs &vs, const D3D11_INPUT_ELEMENT_DESC* ilDesc, UINT numElements, Til &il, const std::string& vsname = "", const std::string& ilname = "")
 {
 	size_t size;
 	char* data;
@@ -165,7 +165,7 @@ bool CreateVSAndInputLayout(_In_ std::wstring fileName, ID3D11Device1 * device, 
 
 		if (FAILED(device->CreateInputLayout(ilDesc, numElements, data, size, &il)))
 		{
-			vs->Release();
+			//vs->Release();
 			vs = nullptr;
 
 			delete[] data;

@@ -208,5 +208,5 @@ float4 main( VertexOut vout ) : SV_TARGET
 	float3 groundColour = ground(x, t, v, bSunDir1, r, mu, attenuation); //R[L0]+R[L*]
 	float3 sunColour = sun(x, t, v, bSunDir1, r, mu); // L0
 	
-	return float4(HDR(sunColour + groundColour + inscatterColour), 1.0); // Eq(16)
+	return float4((sunColour + groundColour + inscatterColour), 1.0); // Eq(16)
 }

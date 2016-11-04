@@ -19,6 +19,8 @@
 
 #include "Utilities\Texture.h"
 
+#include "MeshBuffer.h"
+
 using namespace std;
 using namespace DirectX;
 
@@ -35,6 +37,8 @@ public:
 	void DrawToMap(ID3D11DeviceContext1* mImmediateContext, DirectionalLight& light);
 
 	void DrawToScreen(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
+	void SetTransmittance(ID3D11DeviceContext1* mImmediateContext, int slot);
 
 	ID3D11ShaderResourceView* getTransmittanceSRV();
 
@@ -107,9 +111,8 @@ private:
 	std::unique_ptr<Texture> newMapText;
 	
 	UINT skyMapSize;
-	
-	ID3D11Buffer* mScreenQuadVB;
-	ID3D11Buffer* mScreenQuadIB;
+
+	MeshBuffer mScreenQuad;
 
 	ID3D11InputLayout* mInputLayout;
 	ID3D11VertexShader* mVertexShader;
@@ -119,11 +122,7 @@ private:
 	ID3D11VertexShader* mMapVertexShader;
 	ID3D11PixelShader* mMapPixelShader;
 
-	ID3D11RasterizerState* mRastStateBasic;
 	ID3D11SamplerState** mSamplerStateBasic; // 4 identical basic states
-	ID3D11SamplerState* mSamplerStateTrilinear;
-	ID3D11SamplerState* mSamplerAnisotropic;
-	ID3D11DepthStencilState* mDepthStencilStateSky;
 
 	struct Vertex
 	{
