@@ -18,14 +18,14 @@ MapClass::~MapClass()
 
 bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 {
-	WaterB = std::make_unique<WaterBruneton>();
+	/*WaterB = std::make_unique<WaterBruneton>();
 	WaterB->SetPerformance(Performance);
 	if (!WaterB->Init(device, dc))
 	{
 		LogError(L"Failed to initiate water bruneton");
 		return false;
 	}
-	LogSuccess(L"WaterBruneton initiated");
+	LogSuccess(L"WaterBruneton initiated");*/
 
 	/*Water = std::make_shared<WaterClass>();
 	Water->SetPerformance(Performance);
@@ -46,15 +46,15 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
 
-	Ocean = std::make_unique<OceanClass>();
+	/*Ocean = std::make_unique<OceanClass>();
 	if (FAILED(Ocean->Init(device, dc)))
 	{
 		LogError(L"Failed to initiate ocean");
 		return false;
 	}
-	LogSuccess(L"Ocean initiated");
+	LogSuccess(L"Ocean initiated");*/
 
-	Terrain = std::make_shared<TerrainClass>();
+	//Terrain = std::make_shared<TerrainClass>();
 	Sky2 = std::make_unique<SkyClass2>();
 	Sky2->Init(device, dc);
 
@@ -201,7 +201,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	iinitData.pSysMem = &cubeIndices[0];
 	device->CreateBuffer(&ibd, &iinitData, &mCubeIB);
 
-	CreatePSFromFile(L"..\\Debug\\cubePS.cso", device, mCubePS);
+	CreatePSFromFile(L"..\\Debug\\BasicPS.cso", device, mCubePS);
 
 	D3D11_INPUT_ELEMENT_DESC cubeVertexDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -262,16 +262,16 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	//Water->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 	
-	Sky->DrawToMap(mImmediateContext, light);
+	//Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
-	Sky2->Draw(mImmediateContext);
-	Sky->Draw(mImmediateContext, Camera, light);
+	//Sky2->Draw(mImmediateContext);
+	//Sky->Draw(mImmediateContext, Camera, light);
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
+	//Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
-	//DrawDebug(mImmediateContext, Camera);
+	DrawDebug(mImmediateContext, Camera);
 	
 	/*static int counter = 0;
 
@@ -289,7 +289,14 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
 	Canvas->StopRegister(mImmediateContext);
-	HDR->Process(mImmediateContext, Canvas);
+
+	Canvas->Swap();
+
+	Canvas->StartRegister(mImmediateContext);
+	Sky->Process(mImmediateContext, Canvas, Camera, light);
+	Canvas->StopRegister(mImmediateContext);
+
+	//HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
 }
 
@@ -316,7 +323,7 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
 
 	mImmediateContext->PSSetShader(mCubePS, nullptr, 0);
-
+	
 	mImmediateContext->DrawIndexed(36, 0, 0);
 
 	// SHADOW MAP

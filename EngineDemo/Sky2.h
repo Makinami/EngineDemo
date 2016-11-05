@@ -26,6 +26,8 @@ public:
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext);
 
+	//void Process(ID3D11DeviceContext1* mImmediateContext, std::unique_ptr<PostFX::Canvas> const& Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
 private:
 	HRESULT Precompute(ID3D11DeviceContext1* mImmediateContext);
 

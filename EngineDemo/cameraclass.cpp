@@ -4,7 +4,7 @@ CameraClass::CameraClass()
 : mValid(false),
 pitch(0.0f)
 {
-	mPosition = XMFLOAT3(0.0f, 10.7f, 0.0f);
+	mPosition = XMFLOAT3(-4.0f, 0.1f, 0.0f);
 	mUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	mLook = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	mRight = XMFLOAT3(0.0f, 0.0f, -1.0f);
@@ -44,6 +44,8 @@ void CameraClass::SetRight(float x, float y, float z)
 void CameraClass::SetLens(float fovY, float aspect, float zn, float zf)
 {
 	XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, aspect, zn, zf);
+	XMMATRIX reverse_Z = XMMATRIX(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 1, 0);
+	proj = proj*reverse_Z;
 
 	XMStoreFloat4x4(&mProj, proj);
 	XMStoreFloat4x4(&mProjTrans, XMMatrixTranspose(proj));
@@ -122,7 +124,7 @@ XMMATRIX CameraClass::GetViewProjMatrix()
 
 XMMATRIX CameraClass::GetViewProjTransMatrix()
 {
-	if (mValid) UpdateViewMatrix();
+	if (!mValid) UpdateViewMatrix();
 	return XMLoadFloat4x4(&mViewProjTrans);
 }
 

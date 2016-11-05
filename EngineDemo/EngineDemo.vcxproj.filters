@@ -518,12 +518,6 @@
     <FxCompile Include="Shaders\WaterBruneton\Bffty.hlsl">
       <Filter>Shaders\WaterBruneton</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl">
-      <Filter>Shaders\PostFX</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
-      <Filter>Shaders\PostFX</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Ocean\initFFT.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
@@ -546,12 +540,6 @@
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Ocean\OceanPSGerstner.hlsl">
-      <Filter>Shaders\Ocean</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
-      <Filter>Shaders\Ocean</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Sky2\transmittance.hlsl">
@@ -587,6 +575,18 @@
     <FxCompile Include="Shaders\Sky2\inscatterAdd.hlsl">
       <Filter>Shaders\Sky2</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl">
+      <Filter>Shaders\PostFX</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
+      <Filter>Shaders\PostFX</Filter>
+    </FxCompile>
+    <FxCompile Include="cubeVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyPostFX.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
@@ -599,10 +599,6 @@
     <None Include="Shaders\WaterBruneton\atmosphere.hlsli">
       <Filter>Shaders\WaterBruneton</Filter>
     </None>
-    <None Include="ClassDiagram.cd" />
-    <None Include="ClassDiagram1.cd" />
-    <None Include="ClassDiagram2.cd" />
-    <None Include="ClassDiagram3.cd" />
     <None Include="Shaders\Sky2\Structures.hlsli">
       <Filter>Shaders\Sky2</Filter>
     </None>

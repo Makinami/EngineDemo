@@ -103,7 +103,7 @@ HRESULT SkyClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediat
 
 	CreateConstantBuffer(device, sizeof(nOrderType), nOrderCB, "nOrderCB");
 
-	Precompute(mImmediateContext);
+	//Precompute(mImmediateContext);
 	
 	return S_OK;
 }
@@ -133,6 +133,10 @@ void SkyClass2::Draw(ID3D11DeviceContext1 * mImmediateContext)
 	mImmediateContext->PSSetShaderResources(28, 1, mInscatterTex->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(29, 1, mDeltaJTex->GetAddressOfSRV());
 }
+
+//void SkyClass2::Process(ID3D11DeviceContext1 * mImmediateContext, std::unique_ptr<PostFX::Canvas> const & Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
+//{
+//}
 
 HRESULT SkyClass2::Precompute(ID3D11DeviceContext1 * mImmediateContext)
 {

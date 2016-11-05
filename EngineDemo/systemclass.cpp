@@ -98,6 +98,8 @@ bool SystemClass::Init(std::string filename)
 	// RenderStates
 	RenderStates::InitAll(D3D->GetDevice());
 
+	D3D->GetDeviceContext()->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
+
 	Input = std::make_shared<InputClass>();
 	
 	if (!Input->Init(mhAppInstance, mhMainWnd, mClientWidth, mClientHeight))
@@ -108,7 +110,7 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"Input initiated");
 
 	Camera = std::make_shared<CameraClass>();
-	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.2f, 2000000.0f);
+	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.1f, 100000.0f);
 
 	Timer = std::make_shared<TimerClass>();
 

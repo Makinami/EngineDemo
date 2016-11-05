@@ -21,8 +21,7 @@
 
 #include "MeshBuffer.h"
 
-using namespace std;
-using namespace DirectX;
+#include "PostFX.h"
 
 class SkyClass : public Debug::HasPerformance
 {
@@ -32,68 +31,68 @@ public:
 
 	int Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
+	HRESULT Shutdown();
+
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 	
 	void DrawToMap(ID3D11DeviceContext1* mImmediateContext, DirectionalLight& light);
 
 	void DrawToScreen(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
+	void Process(ID3D11DeviceContext1* mImmediateContext, std::unique_ptr<PostFX::Canvas> const& Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
 	void SetTransmittance(ID3D11DeviceContext1* mImmediateContext, int slot);
 
 	ID3D11ShaderResourceView* getTransmittanceSRV();
 
 private:
-	int Precompute(ID3D11DeviceContext1* mImmediateContext);
+	HRESULT Precompute(ID3D11DeviceContext1* mImmediateContext);
 
 private:
-	std::unique_ptr<Texture> newTransmittanceText;
+	std::unique_ptr<Texture> mTransmittanceTex;
+	std::unique_ptr<Texture> mDeltaETex;
+	std::unique_ptr<Texture> mIrradianceTex;
+	std::unique_ptr<Texture> mIrradianceCopyTex;
+	std::unique_ptr<Texture> mInscatterTex;
+	std::unique_ptr<Texture> mInscatterCopyTex;
+	std::unique_ptr<Texture> mDeltaJTex;
 
-	std::unique_ptr<Texture> newDeltaEText;
-
+	std::vector<std::unique_ptr<Texture>> mDeltaSTex;
 	std::vector<ID3D11ShaderResourceView*> deltaSSRV;
 	std::vector<ID3D11UnorderedAccessView*> deltaSUAV;
 
-	std::vector<std::unique_ptr<Texture>> newDeltaSText;
+	ID3D11ComputeShader* mTransmittanceCS;
+	ID3D11ComputeShader* mIrradianceZeroCS;
+	ID3D11ComputeShader* mIrradianceSingleCS;
+	ID3D11ComputeShader* mIrradianceMultipleCS;
+	ID3D11ComputeShader* mIrradianceAddCS;
+	ID3D11ComputeShader* mInscatterSingleCS;
+	ID3D11ComputeShader* mInscatterMultipleACS;
+	ID3D11ComputeShader* mInscatterMultipleBCS;
+	ID3D11ComputeShader* mInscatterCopyCS;
+	ID3D11ComputeShader* mInscatterAddCS;
 
-	std::unique_ptr<Texture> newIrradainceText;
-	std::unique_ptr<Texture> newCopyIrradianceText;
-
-	std::unique_ptr<Texture> newInscatterText;
-	std::unique_ptr<Texture> newCopyInscatterText;
-
-	std::unique_ptr<Texture> newDeltaJText;
-
-	ID3D11ComputeShader* transmittanceCS;
-	ID3D11ComputeShader* irradiance1CS;
-	ID3D11ComputeShader* inscatter1CS;
-	ID3D11ComputeShader* copyInscatter1CS;
-	ID3D11ComputeShader* inscatterSCS;
-	ID3D11ComputeShader* irradianceNCS;
-	ID3D11ComputeShader* inscatterNCS;
-	ID3D11ComputeShader* copyIrradianceCS;
-	ID3D11ComputeShader* copyInscatterNCS;
-	ID3D11ComputeShader* zeroIrradiance;
-
-	int cos = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT;
-
-	struct cbNOrderType
+	struct nOrderType
 	{
 		int order[4];
-	};
+	} nOrderParams;
+
+	ID3D11Buffer* nOrderCB;
 
 	struct cbPerFrameVSType
 	{
 		XMMATRIX gViewInverse;
 		XMMATRIX gProjInverse;
-	};
+	} cbPerFrameVSParams;
 
 	struct cbPerFramePSType
 	{
 		XMFLOAT3 gCameraPos;
-		float gExposure;
+		float pad1;
 		XMFLOAT3 gSunDir;
-		float pad;
-	};
+		float pad2;
+		XMFLOAT4 gProj;
+	} cbPerFramePSParams;
 
 	struct skyMapBufferType
 	{
@@ -118,6 +117,7 @@ private:
 	ID3D11VertexShader* mVertexShader;
 	ID3D11PixelShader* mPixelShaderToCube;
 	ID3D11PixelShader* mPixelShaderToScreen;
+	ID3D11PixelShader* mPixelShaderPostFX;
 
 	ID3D11VertexShader* mMapVertexShader;
 	ID3D11PixelShader* mMapPixelShader;
