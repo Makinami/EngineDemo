@@ -1,3 +1,177 @@
+Texture2D depth : register(t0);
+
+Texture3D<float4> inscatter : register(t4);
+Texture2D<float3> transmittance : register(t5);
+Texture2D<float4> deltaE : register(t6);
+
+#define USE_TRANSMITTANCE
+#define USE_IRRADIANCE
+#define USE_INSCATTER
+
+#include "..\\Sky2\\Common.hlsli"
+
+struct VertexOut
+{
+	float4 PosH : SV_POSITION;
+	float3 Ray : TEXCOORD;
+};
+
+cbuffer cbPerFramePS : register(b0)
+{
+	float3 bCameraPos;
+	float pad1;
+	float3 bSunDir;
+	float pad2;
+	float4 gProj;
+};
+
+/*
+	GLOBAL VARIABLES
+*/
+static float Zview = 0.0f;
+static float3 surfacePos = 0.0f.xxx;
+
+// calculate intersection with atmosphere
+bool intersectAtmosphere(in float3 viewDir, out float offset, out float maxPathLength)
+{
+	offset = 0.0f;
+	maxPathLength = 0.0f;
+
+	float3 toCenter = -bCameraPos;
+	float toCenter2 = dot(toCenter, toCenter);
+	float projToView = dot(toCenter, viewDir);
+
+	// adjusted atmosphere radius
+	float R = topR - EPSILON_ATMOSPHERE;
+	float R2 = R*R;
+
+	if (toCenter2 <= R2)
+	{
+		// camera inside the atmosphere
+		float projToRadius = toCenter2 - (projToView*projToView);
+		float halfIntersection = sqrt(R2 - projToRadius);
+		maxPathLength = projToView + halfIntersection;
+
+		return true;
+	}
+	else if (projToView >= 0)
+	{
+		// camera outside
+		float projToRadius = toCenter2 - (projToView*projToView);
+		
+		if (projToRadius <= R2)
+		{
+			// looking at atmosphere
+			float halfIntersection = sqrt(R2 - projToRadius);
+			offset = projToView - halfIntersection;
+			maxPathLength = 2.0f * halfIntersection;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+float3 GetInscatter(in float3 viewDir, out float3 attenuation, inout float irradianceFactor)
+{
+	float3 inscatteredLight = 0.0f.xxx;
+
+	attenuation = 0.0.xxxx;
+	float offset;
+	float maxPathLength;
+
+	if (intersectAtmosphere(viewDir, offset, maxPathLength) && Zview > offset)
+	{
+		// offset camera
+		float3 startPos = bCameraPos + offset * viewDir;
+		float startPosR = length(startPos);
+		float pathLength = Zview - offset;
+		// now startPos definitely inside atmosphere
+
+		float vzAngleStart = dot(startPos, viewDir) / startPosR;
+		float vsAngle = dot(viewDir, bSunDir);
+		float szAngleStart = dot(startPos, bSunDir) / startPosR;
+
+		float4 inscatter = getInscatter(startPosR, vzAngleStart, szAngleStart, vsAngle);
+
+		//return inscatter;
+		float surfacePosR = length(surfacePos);
+		float szAngleEnd = dot(surfacePos, bSunDir) / surfacePosR;
+		//return (maxPathLength - pathLength).xxx;
+		// if surface if inside the atmosphere
+		if (pathLength < maxPathLength)
+		{
+			// reduce inscatter light to start-surface path
+			attenuation = analyticTransmittance(startPosR, vzAngleStart, pathLength);
+
+			float vzAngleEnd = dot(surfacePos, viewDir) / surfacePosR;
+			float4 inscatterAtSurface = getInscatter(surfacePosR, vzAngleEnd, szAngleEnd, vsAngle);
+
+			inscatter = max(inscatter - attenuation.rgbr*inscatterAtSurface, 0.0f);
+			irradianceFactor = 1.0f;
+		}
+		else
+		{
+			// extinction factor for infinite ray
+			attenuation = analyticTransmittance(startPosR, vzAngleStart, maxPathLength);
+		}
+
+		// avoids imprecision problems near horizon by interpolating between two points above and below horizon
+		float vzHorizon = -sqrt(1.0f - (groundR / startPosR)*(groundR / startPosR));
+		if (abs(vzAngleStart - vzHorizon) < EPSILON_INSCATTER)
+		{
+			float vzAngle = vzHorizon - EPSILON_INSCATTER;
+			float samplePosR = sqrt(startPosR*startPosR + pathLength*pathLength + 2.0*startPosR*pathLength*vzAngle);
+
+			// TODO: I don't get the next line.
+			float vzAngleSample = (startPosR*vzAngle + pathLength) / samplePosR;
+			float4 inScatter0 = getInscatter(startPosR, vzAngle, szAngleStart, vsAngle);
+			float4 inScatter1 = getInscatter(samplePosR, vzAngleSample, szAngleEnd, vsAngle);
+			float4 inScatterA = max(inScatter0 - attenuation.rgbr*inScatter1, 0.0f);
+
+			vzAngle = vzHorizon + EPSILON_INSCATTER;
+			samplePosR = sqrt(startPosR*startPosR + pathLength*pathLength + 2.0*startPosR*pathLength*vzAngle);
+		
+			// TODO: I don't get the next line.
+			vzAngleSample = (startPosR*vzAngle + pathLength) / samplePosR;
+			inScatter0 = getInscatter(startPosR, vzAngle, szAngleStart, vsAngle);
+			inScatter1 = getInscatter(samplePosR, vzAngleSample, szAngleEnd, vsAngle);
+			float4 inScatterB = max(inScatter0 - attenuation.rgbr*inScatter1, 0.0f);
+
+			float t = ((vzAngleStart - vzHorizon) + EPSILON_INSCATTER) / (2.0f * EPSILON_INSCATTER);
+
+			inscatter = lerp(inScatterA, inScatterB, t);
+		}
+
+		// avoid imprecision problems in Mie scattering when sun is below horizon
+		inscatter.w *= smoothstep(0.00f, 0.02f, szAngleStart);
+		float phaseR = phaseFunctionR(vsAngle);
+		float phaseM = phaseFunctionM(vsAngle);
+		inscatteredLight = max(inscatter.rgb*phaseR + getMie(inscatter)*phaseM, 0.0f);
+
+	}
+
+	return inscatteredLight * 100.0;
+}
+
+float4 main( VertexOut vout ) : SV_TARGET
+{
+	return float4(depth[vout.PosH.xy].ggg, 1.0);
+	float Zndc = depth[vout.PosH.xy];
+	Zview = Zndc == 0.0f ? 1.0f/0.0f : -(Zndc*gProj.w - gProj.z) / (Zndc*gProj.y - gProj.x) / 1000.0f;
+	surfacePos = bCameraPos + Zview * vout.Ray;
+
+	float3 attenuation = 0.0f.xxx;
+	float irradianceFactor = 0.0f;
+
+	float3 inscatterLight = GetInscatter(normalize(vout.Ray), attenuation, irradianceFactor);
+
+	return float4(inscatterLight, 1.0);
+	//return float4((Zview > 100.0 ? 1.0 : 0.0).xxx, 1.0);
+}
+
+/*
 Texture3D<float4> inscatterTex : register(t0);
 Texture2D<float3> transmittance : register(t1);
 Texture2D<float4> deltaE : register(t2);
@@ -207,3 +381,4 @@ float4 main(VertexOut vout) : SV_TARGET
 
 	return float4((sunColour + groundColour + inscatterColour), 1.0); // Eq(16)
 }
+*/

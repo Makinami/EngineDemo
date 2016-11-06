@@ -488,12 +488,12 @@ void SkyClass::Process(ID3D11DeviceContext1 * mImmediateContext, std::unique_ptr
 	mImmediateContext->PSSetConstantBuffers(1, 1, &cbPerFrameVS);
 	mImmediateContext->PSSetShader(mPixelShaderPostFX, nullptr, 0);
 
-	mImmediateContext->PSSetShaderResources(0, 1, &inscatterFile);
-	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceFile);
-	mImmediateContext->PSSetShaderResources(2, 1, &irradianceFile);
+	mImmediateContext->PSSetShaderResources(4, 1, &inscatterFile);
+	mImmediateContext->PSSetShaderResources(5, 1, &transmittanceFile);
+	mImmediateContext->PSSetShaderResources(6, 1, &irradianceFile);
 	mImmediateContext->PSSetSamplers(0, 3, mSamplerStateBasic);
 
-	mImmediateContext->PSSetShaderResources(3, 1, Canvas->GetDepthStencilSRV());
+	mImmediateContext->PSSetShaderResources(0, 1, Canvas->GetDepthStencilSRV());
 
 	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteGreaterEqualDSS, 0);
 

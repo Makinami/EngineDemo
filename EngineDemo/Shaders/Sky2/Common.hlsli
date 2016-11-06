@@ -1,6 +1,24 @@
 #include "Structures.hlsli"
 
 /*
+SAMPLER STATES
+*/
+SamplerState samBilinearClamp
+{
+	Filter = MIN_MAG_LINEAR_MIP_POINT;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+SamplerState samTrilinearClamp
+{
+	Fliter = MIN_MAG_MIP_LINEAR;
+	AddressU = Clamp;
+	AddressV = Clamp;
+	AddressW = Clamp;
+};
+
+/*
 	PHISICAL MODEL PARAMETERS
 */
 static const float AVERAGE_GROUND_REFLECTANCE = 0.1;
@@ -36,7 +54,6 @@ static const uint IRRADIANCE_INTEGRAL_SAMPLES = 32;
 static const uint INSCATTER_SPHERICAL_INTEGRAL_SAMPLES = 16;
 
 static const float PI = 3.141592657f;
-
 
 /*
 	PARAMETRIZATION FUNCTIONS
@@ -147,6 +164,25 @@ float3 getTransmittance(float alt, float vzAngle, float dist)
 }
 #endif
 
+// optical depth for ray (r,mu) o flength d, using analytic formula
+// (mu = cos(view zenith angle)), intersections with groundignored
+// H = height scale of exponential density function
+float opticalDepth(float H, float alt, float vzAngle, float d)
+{
+	float a = sqrt((0.5 / H)*alt);
+	float2 a01 = a*float2(vzAngle, vzAngle + d / alt);
+	float2 a01s = sign(a01);
+	float2 a01sq = a01*a01;
+	float x = a01s.y > a01s.x ? exp(a01sq.x) : 0.0;
+	float2 y = a01s / (2.3193*abs(a01) + sqrt(1.52*a01sq + 4.0))*float2(1.0, exp(-d / H*(d / (2.0*alt) + vzAngle)));
+	return sqrt((6.2831*H)*alt)*exp((groundR - alt) / H)*(x + dot(y, float2(1.0, -1.0)));
+}
+
+float3 analyticTransmittance(float alt, float vzAngle, float d)
+{
+	return exp(-betaR * opticalDepth(HR, alt, vzAngle, d) - betaMEx * opticalDepth(HM, alt, vzAngle, d));
+}
+
 #ifdef USE_IRRADIANCE
 float4 getIrradiance(float alt, float szAngle)
 {
@@ -159,16 +195,16 @@ float4 getDeltaSR(float alt, float vzAngle, float szAngle, float vsAngle)
 {
 	float uAlt, uVzAngle, uSzAngle, uVsAngle, lerp;
 	getTexture4DUVW(alt, vzAngle, szAngle, vsAngle, uAlt, uVzAngle, uSzAngle, uVsAngle, lerp);
-	return deltaSR.SampleLevel(samBilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
-		deltaSR.SampleLevel(samBilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
+	return deltaSR.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
+		deltaSR.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
 }
 
 float4 getDeltaSM(float alt, float vzAngle, float szAngle, float vsAngle)
 {
 	float uAlt, uVzAngle, uSzAngle, uVsAngle, lerp;
 	getTexture4DUVW(alt, vzAngle, szAngle, vsAngle, uAlt, uVzAngle, uSzAngle, uVsAngle, lerp);
-	return deltaSM.SampleLevel(samBilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
-		deltaSM.SampleLevel(samBilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
+	return deltaSM.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
+		deltaSM.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
 }
 #endif
 
@@ -177,8 +213,8 @@ float4 getDeltaJ(float alt, float vzAngle, float szAngle, float vsAngle)
 {
 	float uAlt, uVzAngle, uSzAngle, uVsAngle, lerp;
 	getTexture4DUVW(alt, vzAngle, szAngle, vsAngle, uAlt, uVzAngle, uSzAngle, uVsAngle, lerp);
-	return deltaJ.SampleLevel(samBilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
-		deltaJ.SampleLevel(samBilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
+	return deltaJ.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
+		deltaJ.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
 }
 #endif
 
@@ -197,3 +233,16 @@ float phaseFunctionM(float mu) {
 float3 getMie(float4 rayMie) { // rayMie.rgb=C*, rayMie.w=Cm,r
 	return rayMie.rgb * rayMie.w / max(rayMie.r, 1e-4) * (betaR.r / betaR);
 }
+
+/*
+	PUBLIC FUNCTIONS
+*/
+#ifdef USE_INSCATTER
+float4 getInscatter(float alt, float vzAngle, float szAngle, float vsAngle)
+{
+	float uAlt, uVzAngle, uSzAngle, uVsAngle, lerp;
+	getTexture4DUVW(alt, vzAngle, szAngle, vsAngle, uAlt, uVzAngle, uSzAngle, uVsAngle, lerp);
+	return inscatter.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle) / float(RES_VS), uVzAngle, uAlt), 0) * (1.0 - lerp) +
+		inscatter.SampleLevel(samTrilinearClamp, float3((uVsAngle + uSzAngle + 1.0) / float(RES_VS), uVzAngle, uAlt), 0) * lerp;
+}
+#endif

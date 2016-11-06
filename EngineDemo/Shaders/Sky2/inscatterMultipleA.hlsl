@@ -6,8 +6,6 @@ Texture3D<float4> deltaSM : register(t3);
 
 RWTexture3D<float4> deltaJ : register(u0);
 
-SamplerState samBilinearClamp : register(s0);
-
 #define USE_TRANSMITTANCE
 #define USE_IRRADIANCE
 #define USE_DELTAS

@@ -3,8 +3,6 @@ Texture3D<float4> deltaSM : register(t1);
 
 RWTexture2D<float4> deltaE : register(u0);
 
-SamplerState samBilinearClamp : register(s0);
-
 #define USE_DELTAS
 
 #include "Common.hlsli"

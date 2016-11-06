@@ -20,6 +20,9 @@
 static const float groundR = 6360.0;
 static const float topR = 6420.0;
 
+static const float EPSILON_ATMOSPHERE = 0.002;
+static const float EPSILON_INSCATTER = 0.004;
+
 static const int TRANSMITTANCE_W = 256;
 static const int TRANSMITTANCE_H = 64;
 

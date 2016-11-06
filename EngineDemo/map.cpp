@@ -271,7 +271,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	//Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
-	DrawDebug(mImmediateContext, Camera);
+	//DrawDebug(mImmediateContext, Camera);
 	
 	/*static int counter = 0;
 
@@ -282,7 +282,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	
 	Sky->DrawToScreen(mImmediateContext, Camera, light);*/
 
-	Sky->Draw(mImmediateContext, Camera, light);
+	//Sky->Draw(mImmediateContext, Camera, light);
 
 	//Clouds->Draw(mImmediateContext, Camera, light);
 	//Clouds2->GenerateClouds(mImmediateContext);
@@ -296,7 +296,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	Sky->Process(mImmediateContext, Canvas, Camera, light);
 	Canvas->StopRegister(mImmediateContext);
 
-	//HDR->Process(mImmediateContext, Canvas);
+	HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
 }
 
@@ -316,7 +316,7 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->IASetIndexBuffer(mCubeIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mCubeIL);
 
-	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0, 0.0));
+	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(10000.0f, 0.0, 0.0) * XMMatrixScaling(1.0, 10000.0, 10000.0));
 	MapResources(mImmediateContext, MatrixBuffer, MatrixBufferParams);
 
 	mImmediateContext->VSSetShader(mCubeVS, nullptr, 0);

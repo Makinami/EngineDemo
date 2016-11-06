@@ -2,8 +2,6 @@ Texture3D<float4> inscatter : register(t0);
 Texture3D<float4> deltaS : register(t1);
 RWTexture3D<float4> inscatterCopy : register(u0);
 
-SamplerState samBilinearClamp : register(s0);
-
 #include "Common.hlsli"
 
 [numthreads(16, 16, 1)]

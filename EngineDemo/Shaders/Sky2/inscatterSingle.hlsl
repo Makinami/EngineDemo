@@ -2,8 +2,6 @@ Texture2D<float3> transmittance : register(t0);
 
 RWTexture3D<float4> deltaS[2] : register(u0);
 
-SamplerState samBilinearClamp : register(s0);
-
 #define USE_TRANSMITTANCE
 
 #include "Common.hlsli"

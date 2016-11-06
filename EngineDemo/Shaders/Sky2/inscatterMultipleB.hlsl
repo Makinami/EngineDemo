@@ -3,8 +3,6 @@ Texture3D<float4> deltaJ : register(t1);
 
 RWTexture3D<float4> deltaSR : register(u0);
 
-SamplerState samBilinearClamp : register(s0);
-
 #define USE_TRANSMITTANCE
 #define USE_DELTAJ
 
