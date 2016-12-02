@@ -8,6 +8,8 @@
 #include "Utilities\CreateBuffer.h"
 #include "Utilities\MapResources.h"
 
+#include "ShaderManager.h"
+
 #include "RenderStates.h"
 
 using Microsoft::WRL::ComPtr;
@@ -86,7 +88,7 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
-	oceanQuadTree.Init(device, -40960.0f, -40960.0f, 81920.0f, 81920.0f, 14, 12, XMFLOAT3(30.0, 15.0, 30.0));
+	oceanQuadTree.Init(device, -40960.0f, -40960.0f, 81920.0f, 81920.0f, 15, 12, XMFLOAT3(30.0, 15.0, 30.0));
 
 	return S_OK;
 }
@@ -221,7 +223,7 @@ void OceanClass::DivideTile(XMFLOAT2 pos, float edge, int num)
 	}
 }
 
-void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB)
+void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light)
 {
 	ID3D11ShaderResourceView* ppSRVNULL[] = { NULL, NULL, NULL };
 	ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
@@ -233,7 +235,7 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->IASetInputLayout(mQuadIL.Get());
 	mImmediateContext->IASetIndexBuffer(discMeshIB.Get(), DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetVertexBuffers(0, 1, discMeshVB.GetAddressOf(), stride, offset);
-	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	// VS
 	mImmediateContext->VSSetShader(mQuadVS.Get(), nullptr, 0);
@@ -241,15 +243,23 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->VSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
 	mImmediateContext->VSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
 
+	mImmediateContext->VSSetShader(mVS2.Get(), nullptr, 0);
+
 	// HS
 	//mImmediateContext->HSSetShader(mHullShader.Get(), nullptr, 0);
 	mImmediateContext->HSSetConstantBuffers(0, 2, buffers);
+
+	mImmediateContext->HSSetShader(mHS2, nullptr, 0);
+	mImmediateContext->HSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
+	mImmediateContext->HSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
 
 	// DS
 	//mImmediateContext->DSSetShader(mDomainShader.Get(), nullptr, 0);
 	mImmediateContext->DSSetConstantBuffers(0, 2, buffers);
 	mImmediateContext->DSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
 	mImmediateContext->DSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
+
+	mImmediateContext->DSSetShader(mDS2, nullptr, 0);
 
 	// PS 
 	mImmediateContext->PSSetShader(mPixelShader.Get(), nullptr, 0);
@@ -262,6 +272,9 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetShaderResources(3, 1, noiseSRV.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(4, 1, varianceSRV.GetAddressOf());
 	mImmediateContext->PSSetSamplers(3, 1, mSamplerBilinear.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(13, 1, foamSRV.GetAddressOf());
+
+	mImmediateContext->PSSetShader(mPS2, nullptr, 0);
 
 	// RS & OM
 	//mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
@@ -329,7 +342,12 @@ HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
 	numElements = sizeof(vertexQuadDesc) / sizeof(vertexQuadDesc[0]);
 
 	EXIT_ON_FAILURE(CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Ocean\\OceanQuadVS.cso", device, mQuadVS, vertexQuadDesc, numElements, mQuadIL));
-
+	
+	EXIT_ON_FAILURE(CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Ocean\\OceanVS2.cso", device, mVS2, vertexQuadDesc, numElements, mQuadIL));
+	mPS2 = ShaderManager::Instance()->GetPS("Ocean::OceanPS2");
+	mHS2 = ShaderManager::Instance()->GetHS("Ocean::OceanHS2");
+	mDS2 = ShaderManager::Instance()->GetDS("Ocean::OceanDS2");
+	
 	return S_OK;
 }
 
@@ -618,6 +636,11 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	* NOISE
 	*/
 	CreateDDSTextureFromFile(device, L"Textures/noise.dds", NULL, &noiseSRV);
+
+	/*
+	* FOAM
+	*/
+	CreateDDSTextureFromFile(device, L"Textures/foam.dds", nullptr, &foamSRV);
 
 	return S_OK;
 }

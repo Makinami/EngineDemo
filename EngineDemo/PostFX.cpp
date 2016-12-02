@@ -327,13 +327,17 @@ namespace PostFX
 		// TODO: check if custum soltion will be faster
 		mImmediateContext->GenerateMips(mLuminanceText->GetSRV());
 
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, Canvas->GetAddressOfUAV(), nullptr);
-		mImmediateContext->CSSetShaderResources(0, 1, mLuminanceText->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(0, 1, Canvas->GetAddressOfSRV());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, Canvas->GetAddressOfUAV(true), nullptr);
+		mImmediateContext->CSSetShaderResources(1, 1, mLuminanceText->GetAddressOfSRV());
 		mImmediateContext->CSSetShader(mToneMapPassCS, nullptr, 0);
 
 		mImmediateContext->Dispatch(1280 / 16, 720 / 16, 1);
 
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &uavNULL, nullptr);
 		mImmediateContext->CSSetShaderResources(0, 1, &srvNULL);
+		mImmediateContext->CSSetShaderResources(1, 1, &srvNULL);
+
+		Canvas->Swap();
 	}
 }

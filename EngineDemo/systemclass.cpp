@@ -3,7 +3,7 @@
 #include "Utilities\Texture.h"
 
 // NOTE: here?
-#include "ShadersManager.h"
+#include "ShaderManager.h"
 #include "RenderStates.h"
 
 // 'Hack for inability to set class member function as window proc
@@ -90,7 +90,7 @@ bool SystemClass::Init(std::string filename)
 	Logger->Success(L"DirectX initiated.");
 
 	// Pass device to shader manager
-	ShadersManager::Instance()->SetDevice(D3D->GetDevice());
+	ShaderManager::Instance()->SetDevice(D3D->GetDevice());
 
 	// Pass device to TextureFactory
 	TextureFactory::SetDevice(D3D->GetDevice());
@@ -144,7 +144,7 @@ void SystemClass::Shutdown()
 	//RenderTargetStack::Shutdown(D3D->GetDeviceContext());
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
 	RenderStates::ReleaseAll();
-	ShadersManager::Instance()->ReleaseAll();
+	ShaderManager::Instance()->ReleaseAll();
 
 	D3D->Shutdown();
 

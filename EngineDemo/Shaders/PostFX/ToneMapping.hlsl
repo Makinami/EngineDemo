@@ -1,6 +1,7 @@
-RWTexture2D<float4> frame;
+Texture2D<float4> frameIn :register(t0);
+RWTexture2D<float4> frameOut : register(u0);
 
-Texture2D<float> luminance;
+Texture2D<float> luminance : register(t1);
 
 float3 Uncharted2Tonemap(float3 x)
 {
@@ -19,7 +20,7 @@ float3 Uncharted2Tonemap(float3 x)
 float3 ToneMap(in float3 colour)
 {
 	float AveLogLum = exp(luminance.Load(int3(0, 0, 10))); // for 1280x720 10th mipmap is enough, but just for the peace of mind
-	// TODO: from atributes
+														   // TODO: from atributes
 	float middleGray = 1.03 - 2 / (2 + log10(AveLogLum + 1)); // 0.18;
 	float LumScale = middleGray / AveLogLum;
 
@@ -35,7 +36,7 @@ float3 ToneMap(in float3 colour)
 }
 
 [numthreads(16, 16, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
+void main(uint3 DTid : SV_DispatchThreadID)
 {
-	frame[DTid.xy] = float4(ToneMap(frame[DTid.xy].rgb), 1.0);
+	frameOut[DTid.xy] = float4(ToneMap(frameIn[DTid.xy].rgb), 1.0);
 }

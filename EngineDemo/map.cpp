@@ -18,14 +18,14 @@ MapClass::~MapClass()
 
 bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 {
-	WaterB = std::make_unique<WaterBruneton>();
+	/*WaterB = std::make_unique<WaterBruneton>();
 	WaterB->SetPerformance(Performance);
 	if (!WaterB->Init(device, dc))
 	{
 		LogError(L"Failed to initiate water bruneton");
 		return false;
 	}
-	LogSuccess(L"WaterBruneton initiated");
+	LogSuccess(L"WaterBruneton initiated");*/
 
 	Terrain2 = std::make_unique<TerrainClass2>();
 	Terrain2->Init(device, dc);
@@ -266,7 +266,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
+	Ocean->Draw(mImmediateContext, Camera, light);
 
 	Terrain2->Draw(mImmediateContext, Camera, light);
 

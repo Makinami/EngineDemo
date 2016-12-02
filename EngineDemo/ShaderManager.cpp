@@ -1,4 +1,4 @@
-#include "ShadersManager.h"
+#include "ShaderManager.h"
 
 #include "Utilities\CreateShader.h"
 
@@ -10,15 +10,15 @@
 using namespace std;
 using namespace std::tr2::sys;
 
-std::shared_ptr<ShadersManager> ShadersManager::mInstance = nullptr;
+std::shared_ptr<ShaderManager> ShaderManager::mInstance = nullptr;
 
-std::shared_ptr<ShadersManager> ShadersManager::Instance()
+std::shared_ptr<ShaderManager> ShaderManager::Instance()
 {
-	struct OpenShaderManager : public ShadersManager {};
+	struct OpenShaderManager : public ShaderManager {};
 	return mInstance ? mInstance : mInstance = make_shared<OpenShaderManager>();
 }
 
-void ShadersManager::ReleaseAll()
+void ShaderManager::ReleaseAll()
 {
 	std::for_each(begin(PS), end(PS), [](auto&& it) { 
 		ReleaseCOM(it.second); 
@@ -26,42 +26,42 @@ void ShadersManager::ReleaseAll()
 	PS.clear();
 }
 
-ID3D11PixelShader * ShadersManager::GetPS(string identifier)
+ID3D11PixelShader * ShaderManager::GetPS(string identifier)
 {
 	auto shader = PS.find(identifier);
 	return shader != end(PS) ? shader->second : AddPS(identifier);
 }
 
-ID3D11HullShader * ShadersManager::GetHS(std::string identifier)
+ID3D11HullShader * ShaderManager::GetHS(std::string identifier)
 {
 	auto shader = HS.find(identifier);
 	return shader != end(HS) ? shader->second : AddHS(identifier);
 }
 
-ID3D11DomainShader * ShadersManager::GetDS(std::string identifier)
+ID3D11DomainShader * ShaderManager::GetDS(std::string identifier)
 {
 	auto shader = DS.find(identifier);
 	return shader != end(DS) ? shader->second : AddDS(identifier);
 }
 
-ID3D11GeometryShader * ShadersManager::GetGS(std::string identifier)
+ID3D11GeometryShader * ShaderManager::GetGS(std::string identifier)
 {
 	auto shader = GS.find(identifier);
 	return shader != end(GS) ? shader->second : AddGS(identifier);
 }
 
-ID3D11ComputeShader * ShadersManager::GetCS(std::string identifier)
+ID3D11ComputeShader * ShaderManager::GetCS(std::string identifier)
 {
 	auto shader = CS.find(identifier);
 	return shader != end(CS) ? shader->second : AddCS(identifier);
 }
 
-ShadersManager::~ShadersManager()
+ShaderManager::~ShaderManager()
 {
 	ReleaseAll();
 }
 
-ID3D11PixelShader * ShadersManager::AddPS(string& identifier)
+ID3D11PixelShader * ShaderManager::AddPS(string& identifier)
 {
 	fspath shaderfile = ResolveIdentifierToPath(identifier);
 	
@@ -71,7 +71,7 @@ ID3D11PixelShader * ShadersManager::AddPS(string& identifier)
 	return PS[identifier] = shader;
 }
 
-ID3D11HullShader * ShadersManager::AddHS(std::string identifier)
+ID3D11HullShader * ShaderManager::AddHS(std::string identifier)
 {
 	fspath shaderfile = ResolveIdentifierToPath(identifier);
 
@@ -81,7 +81,7 @@ ID3D11HullShader * ShadersManager::AddHS(std::string identifier)
 	return HS[identifier] = shader;
 }
 
-ID3D11DomainShader * ShadersManager::AddDS(std::string identifier)
+ID3D11DomainShader * ShaderManager::AddDS(std::string identifier)
 {
 	fspath shaderfile = ResolveIdentifierToPath(identifier);
 
@@ -91,7 +91,7 @@ ID3D11DomainShader * ShadersManager::AddDS(std::string identifier)
 	return DS[identifier] = shader;
 }
 
-ID3D11GeometryShader * ShadersManager::AddGS(std::string identifier)
+ID3D11GeometryShader * ShaderManager::AddGS(std::string identifier)
 {
 	fspath shaderfile = ResolveIdentifierToPath(identifier);
 
@@ -101,7 +101,7 @@ ID3D11GeometryShader * ShadersManager::AddGS(std::string identifier)
 	return GS[identifier] = shader;
 }
 
-ID3D11ComputeShader * ShadersManager::AddCS(std::string identifier)
+ID3D11ComputeShader * ShaderManager::AddCS(std::string identifier)
 {
 	fspath shaderfile = ResolveIdentifierToPath(identifier);
 
@@ -111,7 +111,7 @@ ID3D11ComputeShader * ShadersManager::AddCS(std::string identifier)
 	return CS[identifier] = shader;
 }
 
-path ShadersManager::ResolveIdentifierToPath(std::string & identifier)
+path ShaderManager::ResolveIdentifierToPath(std::string & identifier)
 {
 	if (!(mShaderDir != path()))
 	{

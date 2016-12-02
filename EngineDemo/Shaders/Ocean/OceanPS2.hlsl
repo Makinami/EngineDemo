@@ -10,38 +10,23 @@ cbuffer constBuffer : register(b0)
 
 Texture2DArray wavesDisplacement : register(t0);
 SamplerState samAnisotropic : register(s1);
-Texture2DArray turbulenceMap : register(t2);
-Texture2D noise : register(t3);
+
 Texture2D slopeVariance : register(t4);
 
 Texture1DArray<float> fresnelTerm : register(t1);
 SamplerState samClamp : register(s2);
 
-SamplerState samBilinear : register(s3);
-
-Texture2D<float4> distanceField : register(t40);
 Texture2D<float> foam : register(t13);
 
 static const float4 seaColour = float4(10.0, 40.0, 120.0, 25.5) / 255.0;
 
-struct VertexOut
+struct DomainOut
 {
-	float4 PosH : SV_POSITION;
+	float4 PosH  : SV_POSITION;
 	float3 PosF : TEXTCOORD0;
 	float3 PosW : TEXTCOORD1;
+	float4 params : TEXTCOORD2;
 };
-
-float meanFresnel(float cosThetaV, float sigmaV) {
-	return pow(1.0 - cosThetaV, 5.0 * exp(-2.69 * sigmaV)) / (1.0 + 22.7 * pow(sigmaV, 1.5));
-}
-
-// V, N in world space
-float meanFresnel(float3 V, float3 N, float2 sigmaSq) {
-	float2 v = V.xz; // view direction in wind space
-	float2 t = v * v / (1.0 - V.y * V.y); // cos^2 and sin^2 of view direction
-	float sigmaV2 = dot(t, sigmaSq); // slope variance in view direction
-	return meanFresnel(dot(V, N), sqrt(sigmaV2));
-}
 
 // assert x>0
 float erfc(float x)
@@ -65,7 +50,7 @@ float reflectedSunRadiance(float3 L, float3 V, float3 N, float3 Tx, float3 Tz, f
 	/*float3 H = normalize(V + L);
 	float zetax = dot(H, Tx) / dot(H, N);
 	float zetay = dot(H, Tz) / dot(H, N);
-	
+
 	float p = exp(-0.5 * (zetax * zetax / sigma2.x + zetay * zetay / sigma2.y)) / (2.0 * PI * sqrt(sigma2.x * sigma2.y));
 
 	float tanV = atan2(dot(V, Tz), dot(V, Tx));
@@ -94,7 +79,7 @@ float reflectedSunRadiance(float3 L, float3 V, float3 N, float3 Tx, float3 Tz, f
 	float zH2 = zH * zH;
 
 	float p = exp(-0.5 * (zetax * zetax / sigma2.x + zetay * zetay / sigma2.y)) / (2.0 * PI * sqrt(sigma2.x * sigma2.y));
-	
+
 	float tanV = atan2(dot(V, Tz), dot(V, Tx));
 	float cosV2 = 1.0 / (1.0 + tanV * tanV);
 	float sigmaV2 = sigma2.x * cosV2 + sigma2.y * (1.0 - cosV2);
@@ -130,78 +115,48 @@ float3 meanSkyRadiance(float3 V, float3 N, float3 Tx, float3 Ty, float2 sigma2)
 	return skyMap.SampleGrad(samAnisotropic, u0 * (0.5 / 1.1) + 0.5, dux * (0.5 / 1.1), duy * (0.5 / 1.1));
 }
 
-float4 main( VertexOut pin ) : SV_TARGET
+float4 main( DomainOut pin ) : SV_TARGET
 {
-	//return float4(pin.PosF.xy, 0.0, 1.0);
-	//return float4(0.0, 0.0, 1.0, 1.0);
-	//return float4(2.0*pin.PosF.zzz/3.0 + 0.333, 1.0f);
+	float pi = 3.141529;
+	float lambda = 10.0;// 2.0*pi;// A*2.0*pi; // minimal wavelength
+	float k = 2.0*pi / lambda;
 
-	// gernster
-	{
+	float sinp;
+	float cosp; 
+	sincos(pin.params.x, sinp, cosp);
 
-		float dist = pin.PosF.z;
-		float2 pos = pin.PosF.xy;
-		float4 DF = distanceField.SampleLevel(samAnisotropic, (pos + 2048.0f) / 4096.0, 4);
+	float3 Normal;
+	Normal.x = pin.params.z*pin.PosF.z*k*sinp;
+	Normal.y = 1.0 - pin.PosF.z*k*(1.5*sinp + cosp)*pin.params.zw*pin.params.zw;
+	Normal.z = pin.params.w*pin.PosF.z*k*sinp;
+	Normal = normalize(Normal);
 
-		float depth = DF.y;
-
-		float pi = 3.141529;
-		float g = 9.81;
-		float2 wind = float2(-1.0, 0.0);
-
-		float2 gradient = any(DF.zw) ? normalize(normalize(DF.zw) + 0.2*wind) : 0.0.xx;// normalize(float2(10.0, 10.0));
-
-		float wind_dependent = (dot(gradient, wind) + 1.0)*0.5;
-
-		float A = 0.75;
-		float lambda = 10.0;// 2.0*pi;// A*2.0*pi; // minimal wavelength
-		float w = sqrt(g * 2 * pi / lambda);
-
-		float depth_dependent = 1.0 - saturate(2.0*depth / lambda);
-
-		float fft_dependent_noise = (1.0 - smoothstep(GRID_SIZE.x, 1.2*GRID_SIZE.x, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(pos / GRID_SIZE.y, 1), 0.0).b;
-		fft_dependent_noise = max((fft_dependent_noise + 0.5), 0.0);
-
-		float k = 2.0*pi / lambda;
-
-		float3 gern = 0.0.xxx;
-		//gern.y = A*wind_dependent*fft_dependent_noise*depth_dependent*cos(2 * pi*dot(gradient, pos) / lambda - w*time);
-		//gern.xz -= gradient*A*wind_dependent*fft_dependent_noise*depth_dependent*sin(2 * pi*dot(gradient, pos) / lambda - w*time) - gern.y*gradient;
-
-		float x = frac((2 * pi*dot(gradient, pos) / lambda - w*time) / (2 * pi));
-		float y1 = 3.0*x - 2;
-		float y2 = -8 * x + 1;
-		float foam_param = saturate(max(y1, y2))*A*wind_dependent*fft_dependent_noise*depth_dependent;
-		return float4((foam_param*foam.Sample(samAnisotropic, pos/2.0)).xxx, 1.0);
-	}
-
-
-
-	float dist = pin.PosF.z;
-
-	float2 slope = float2(0.0, 0.0);
-	float3 frac = float3(1.0 - smoothstep(2.0*GRID_SIZE.x, 4.0*GRID_SIZE.x, dist), 1.0 - smoothstep(1.0*GRID_SIZE.y, 3.0*GRID_SIZE.y, dist), 1.0 - smoothstep(0.5*GRID_SIZE.z, 4.0*GRID_SIZE.z, dist));
-	slope += wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 4)).xy;
-	if (frac.x > 0.0)
-		slope += frac.x*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
-	if (frac.y > 0.0)
-		slope += frac.y*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
-	if (frac.z > 0.0)
-		slope += frac.z*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
-
-	float3 V = normalize(camPos - pin.PosW);
+	float3 V = camPos - float3(pin.PosF.x, 0.0, pin.PosF.y);
+	float dist = length(V);
+	V /= dist;
 	
-	float3 turbulence = float3(0.0, 0.0, 0.0);
-	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 0)).xyz;
-	if (frac.x > 0.0)
-		turbulence += frac.x*turbulenceMap.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.y, 1)).xyz;
-	//turbulence += (1.0 - smoothstep(3.0*GRID_SIZE.y, 6.0*GRID_SIZE.y, dist))*turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 2)).xyz;
-	//turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 3)).xyz;
-	float samNoise;
-	if (turbulence.z > 0.0) 
-		samNoise = noise.Sample(samBilinear, pin.PosF.xy / 50.12);
-	
-	float3 N = normalize(float3(-slope.x, 1.0, -slope.y));
+	float2 slopebig = 0.0.xx;
+	float2 slopesmall = 0.0.xx;
+
+	float3 resolution = float3(1.0 - smoothstep(2.0*GRID_SIZE.x, 4.0*GRID_SIZE.x, dist), 1.0 - smoothstep(1.0*GRID_SIZE.y, 3.0*GRID_SIZE.y, dist), 1.0 - smoothstep(0.5*GRID_SIZE.z, 4.0*GRID_SIZE.z, dist));
+	slopebig += wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 4)).xy;
+	if (resolution.x > 0.0)
+		slopebig += resolution.x*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
+	if (resolution.y > 0.0)
+		slopesmall += resolution.y*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
+	if (resolution.z > 0.0)
+		slopesmall += resolution.z*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
+
+
+	float3 NormalFFTBig = normalize(float3(-slopebig.x, 1.0, -slopebig.y));
+	float3 NormalFFTSmall = normalize(float3(-slopesmall.x, 1.0, -slopesmall.y));
+
+	Normal = normalize(lerp(NormalFFTBig, Normal, clamp(2.0*pin.params.y, 0.0, 0.8)));
+	Normal = normalize(Normal + NormalFFTSmall);
+
+	float3 N = Normal;
+
+
 	float3 R = reflect(V, N);
 	float3 H = normalize(V + sunDir);
 
@@ -247,8 +202,30 @@ float4 main( VertexOut pin ) : SV_TARGET
 	result += sunLight;
 	//result += turbulence.zzz * (samNoise + turbulence.yyy);// *samNoise;
 
+	float x = frac(pin.params.x / (2 * pi));
+	float y1 = 3.0*x - 2;
+	float y2 = -8 * x + 1;
+	float foam_param = saturate(max(y1, y2))*pin.PosF.z*pin.PosF.z;
+
+	if (foam_param > 0.0)
+	{
+		float foam_text = foam.Sample(samAnisotropic, pin.PosF.xy / 5.0)*5.0;
+		result = lerp(result, foam_text, foam_param);
+	}
 
 	//return float4(ua, ub, uc, 1.0);
 
 	return float4((result), 1.0);
+
+
+	/*float3 view = normalize(camPos - pin.PosW);
+	float diff = dot(sunDir, Normal);
+	float specfactor = 0;
+	if (diff > 0.0)
+	{
+		float3 v = reflect(-sunDir, Normal);
+		specfactor = pow(max(dot(v, view), 0.0f), 4.0);
+	}*/
+
+	//return float4(specfactor.xxx, 1.0f);
 }

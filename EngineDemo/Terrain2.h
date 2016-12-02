@@ -25,6 +25,7 @@ public:
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mHeighmapRawSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mProDF;
 
 	std::unique_ptr<Texture> mOceanDFA;
 	std::unique_ptr<Texture> mOceanDFB;

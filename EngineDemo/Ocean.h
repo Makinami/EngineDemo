@@ -33,7 +33,7 @@ public:
 
 	void Update(ID3D11DeviceContext1* &mImmediateContext, float dt, DirectionalLight& light, std::shared_ptr<CameraClass> Camera);
 
-	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB );
+	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
 	void ChangedWinSize(ID3D11Device1* &device, int width, int height);
 
@@ -77,6 +77,8 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fresnelSRV;
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> foamSRV;
+
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> slopeVarianceCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> initFFTCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> fftCS;
@@ -113,6 +115,11 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11HullShader> mHullShader;
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mDomainShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
+
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> mVS2;
+	ID3D11HullShader* mHS2;
+	ID3D11DomainShader* mDS2;
+	ID3D11PixelShader* mPS2;
 
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mGerstnerDS;
 
