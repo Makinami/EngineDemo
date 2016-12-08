@@ -119,6 +119,10 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 	perFrameParams.scale = 1000 * sqrt(13 * abs(cameraPos.y));
 	perFrameParams.camLookAt = Camera->GetLookAt();
 
+	XMFLOAT4X4 projMatrix;
+	XMStoreFloat4x4(&projMatrix, Camera->GetProjMatrix());
+	perFrameParams.gProj = XMFLOAT4{ projMatrix._33, projMatrix._34, projMatrix._43, projMatrix._44 };
+
 	XMStoreFloat3(&cameraPos, Camera->GetPosition());
 	BuildInstanceBuffer(mImmediateContext, Camera);
 
@@ -295,6 +299,82 @@ void OceanClass::Draw(ID3D11DeviceContext1 *& mImmediateContext, std::shared_ptr
 	mImmediateContext->PSSetShaderResources(0, 3, ppSRVNULL);
 }
 
+void OceanClass::DrawPost(ID3D11DeviceContext1 *& mImmediateContext, std::unique_ptr<PostFX::Canvas> const & Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
+{
+	ID3D11ShaderResourceView* ppSRVNULL[] = { NULL, NULL, NULL };
+	ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
+
+	// IA 
+	UINT stride[] = { sizeof(XMFLOAT2), sizeof(XMFLOAT4X4) };
+	UINT offset[] = { 0, 0 };
+	ID3D11Buffer* vbs[] = { gridMeshVB.Get(), gridInstancesVB.Get() };
+	mImmediateContext->IASetInputLayout(mQuadIL.Get());
+	mImmediateContext->IASetIndexBuffer(discMeshIB.Get(), DXGI_FORMAT_R16_UINT, 0);
+	mImmediateContext->IASetVertexBuffers(0, 1, discMeshVB.GetAddressOf(), stride, offset);
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	// VS
+	mImmediateContext->VSSetShader(mQuadVS.Get(), nullptr, 0);
+	mImmediateContext->VSSetConstantBuffers(0, 2, buffers);
+	mImmediateContext->VSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
+	mImmediateContext->VSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
+
+	mImmediateContext->VSSetShader(mVS2.Get(), nullptr, 0);
+
+	// HS
+	//mImmediateContext->HSSetShader(mHullShader.Get(), nullptr, 0);
+	mImmediateContext->HSSetConstantBuffers(0, 2, buffers);
+
+	mImmediateContext->HSSetShader(mHS2, nullptr, 0);
+	mImmediateContext->HSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
+	mImmediateContext->HSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
+
+	// DS
+	//mImmediateContext->DSSetShader(mDomainShader.Get(), nullptr, 0);
+	mImmediateContext->DSSetConstantBuffers(0, 2, buffers);
+	mImmediateContext->DSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
+	mImmediateContext->DSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
+
+	mImmediateContext->DSSetShader(mDS2, nullptr, 0);
+
+	// PS 
+	mImmediateContext->PSSetShader(mPixelShader.Get(), nullptr, 0);
+	mImmediateContext->PSSetConstantBuffers(0, 2, buffers);
+	mImmediateContext->PSSetShaderResources(0, 1, wavesSRV[0].GetAddressOf());
+	mImmediateContext->PSSetSamplers(1, 1, mSamplerAnisotropic.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(1, 1, fresnelSRV.GetAddressOf());
+	mImmediateContext->PSSetSamplers(2, 1, mSamplerClamp.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(2, 1, turbulenceSRV[turbulenceTextReadId].GetAddressOf());
+	mImmediateContext->PSSetShaderResources(3, 1, noiseSRV.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(4, 1, varianceSRV.GetAddressOf());
+	mImmediateContext->PSSetSamplers(3, 1, mSamplerBilinear.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(13, 1, foamSRV.GetAddressOf());
+
+	mImmediateContext->PSSetShaderResources(14, 1, Canvas->GetDepthCopySRV());
+	mImmediateContext->PSSetShaderResources(15, 1, Canvas->GetAddressOfSRV(true));
+
+	mImmediateContext->PSSetShader(mPS3, nullptr, 0);
+
+	// RS & OM
+	//mImmediateContext->RSSetState(RenderStates::Rasterizer::WireframeRS);
+	mImmediateContext->OMSetDepthStencilState(mDepthStencilState.Get(), 0);
+
+	//mImmediateContext->DrawIndexed(indicesToRender, 0, 0);
+	//mImmediateContext->DrawIndexedInstanced(indicesToRender, instances[0].size(), 0, 0, 0);
+
+	oceanQuadTree.Draw(mImmediateContext);
+
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
+
+	mImmediateContext->VSSetShaderResources(0, 1, ppSRVNULL);
+	mImmediateContext->HSSetShader(nullptr, nullptr, 0);
+	mImmediateContext->HSSetShaderResources(0, 1, ppSRVNULL);
+	mImmediateContext->DSSetShader(nullptr, nullptr, 0);
+	mImmediateContext->DSSetShaderResources(0, 1, ppSRVNULL);
+	mImmediateContext->PSSetShaderResources(0, 3, ppSRVNULL);
+	mImmediateContext->PSSetShaderResources(14, 2, ppSRVNULL);
+}
+
 void OceanClass::Release()
 {
 }
@@ -347,6 +427,8 @@ HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
 	mPS2 = ShaderManager::Instance()->GetPS("Ocean::OceanPS2");
 	mHS2 = ShaderManager::Instance()->GetHS("Ocean::OceanHS2");
 	mDS2 = ShaderManager::Instance()->GetDS("Ocean::OceanDS2");
+
+	mPS3 = ShaderManager::Instance()->GetPS("Ocean::OceanPS3");
 	
 	return S_OK;
 }

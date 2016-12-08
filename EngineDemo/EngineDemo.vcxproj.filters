@@ -584,6 +584,9 @@
     <FxCompile Include="Shaders\Ocean\OceanPS2.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPS3.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />

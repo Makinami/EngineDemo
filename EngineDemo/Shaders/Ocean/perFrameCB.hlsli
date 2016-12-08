@@ -15,4 +15,5 @@ cbuffer perFrameCB : register(b1)
 	float scale;
 	float3 camLookAt;
 	float pad;
+	float4 gProj;
 }

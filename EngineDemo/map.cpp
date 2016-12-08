@@ -266,7 +266,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	Ocean->Draw(mImmediateContext, Camera, light);
+	//Ocean->Draw(mImmediateContext, Camera, light);
 
 	Terrain2->Draw(mImmediateContext, Camera, light);
 
@@ -288,6 +288,18 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
 	Canvas->StopRegister(mImmediateContext);
+
+	Canvas->CopyDepth(mImmediateContext);
+	Canvas->CopyFrame(mImmediateContext);
+
+	Canvas->Swap();
+
+	Canvas->StartRegister(mImmediateContext, false);
+	Ocean->DrawPost(mImmediateContext, Canvas, Camera, light);
+	Canvas->StopRegister(mImmediateContext);
+
+	//Canvas->Swap();
+
 	HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
 }

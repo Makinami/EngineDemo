@@ -49,6 +49,11 @@ namespace PostFX
 		EXIT_ON_NULL(mDepthStencil =
 					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
 
+		// depth copy view
+		textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		EXIT_ON_NULL(mDepth =
+					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
 
 		// TODO: move it somewhere
 		vector<TerrainClass::Vertex> patchVertices(4);
@@ -129,6 +134,21 @@ namespace PostFX
 		std::swap(mMain, mSecondary);
 	}
 
+	void Canvas::CopyDepth(ID3D11DeviceContext1 * mImmediateContext)
+	{
+		mImmediateContext->CopyResource(mDepth->GetTexture(), mDepthStencil->GetTexture());
+	}
+
+	void Canvas::CopyFrame(ID3D11DeviceContext1 * mImmediateContext)
+	{
+		mImmediateContext->CopyResource(mSecondary->GetTexture(), mMain->GetTexture());
+	}
+
+	ID3D11ShaderResourceView * const * Canvas::GetDepthCopySRV() const
+	{
+		return mDepth->GetAddressOfSRV();
+	}
+
 	void Canvas::Present(ID3D11DeviceContext1 *& mImmediateContext)
 	{
 		// TODO: simplify after extracting whole fullscreen quad stuff
@@ -184,13 +204,16 @@ namespace PostFX
 		return (secondary ? mSecondary : mMain)->GetAddressOfUAV();
 	}
 
-	void Canvas::StartRegister(ID3D11DeviceContext1 * mImmediateContext) const
+	void Canvas::StartRegister(ID3D11DeviceContext1 * mImmediateContext, bool clear) const
 	{
 		RenderTargetStack::Push(mImmediateContext, mMain->GetAddressOfRTV(), mDepthStencil->GetDSV());
 
-		float colour[4] = {};
-		mImmediateContext->ClearRenderTargetView(mMain->GetRTV(), colour);
-		mImmediateContext->ClearDepthStencilView(mDepthStencil->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		if (clear)
+		{
+			float colour[4] = {};
+			mImmediateContext->ClearRenderTargetView(mMain->GetRTV(), colour);
+			mImmediateContext->ClearDepthStencilView(mDepthStencil->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		}
 	}
 
 	void Canvas::StopRegister(ID3D11DeviceContext1 * mImmediateContext) const

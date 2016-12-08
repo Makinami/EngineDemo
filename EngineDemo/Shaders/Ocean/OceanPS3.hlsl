@@ -17,8 +17,15 @@ Texture1DArray<float> fresnelTerm : register(t1);
 SamplerState samClamp : register(s2);
 
 Texture2D<float> foam : register(t13);
+Texture2D<float> depth : register(t14);
+Texture2D<float4> frame : register(t15);
 
-static const float4 seaColour = float4(50.0, 80.0, 140.0, 25.5) / 255.0;
+static const float4 seaColour = float4(10.0, 40.0, 120.0, 25.5) / 255.0;
+
+static const float3 rgbExtinction = float3(4.5, 75.0, 300.0)/2.0;
+
+static float Zview = 0.0f;
+static float3 surfacePos = 0.0f.xxx;
 
 struct DomainOut
 {
@@ -115,14 +122,27 @@ float3 meanSkyRadiance(float3 V, float3 N, float3 Tx, float3 Ty, float2 sigma2)
 	return skyMap.SampleGrad(samAnisotropic, u0 * (0.5 / 1.1) + 0.5, dux * (0.5 / 1.1), duy * (0.5 / 1.1));
 }
 
-float4 main( DomainOut pin ) : SV_TARGET
+float4 main(DomainOut pin) : SV_TARGET
 {
+	float3 V = camPos - float3(pin.PosF.x, 0.0, pin.PosF.y);
+	float dist = length(V);
+	V /= dist;
+
+	float Zndc = depth[pin.PosH.xy];
+	Zview = Zndc == 0.0f ? 1.0f / 0.0f : -(Zndc*gProj.w - gProj.z) / (Zndc*gProj.y - gProj.x);
+	surfacePos = camPos + Zview * V;
+	//if (pin.PosH.x > 640)
+	//	return float4(max(Zview - pin.PosH.w, 0.0), 1.0.xxx);
+	float3 ext = saturate((Zview - pin.PosH.w) / rgbExtinction);
+
+	//return frame[pin.PosH.xy];
+
 	float pi = 3.141529;
 	float lambda = 10.0;// 2.0*pi;// A*2.0*pi; // minimal wavelength
 	float k = 2.0*pi / lambda;
 
 	float sinp;
-	float cosp; 
+	float cosp;
 	sincos(pin.params.x, sinp, cosp);
 
 	float3 Normal;
@@ -131,21 +151,17 @@ float4 main( DomainOut pin ) : SV_TARGET
 	Normal.z = pin.params.w*pin.PosF.z*k*sinp;
 	Normal = normalize(Normal);
 
-	float3 V = camPos - float3(pin.PosF.x, 0.0, pin.PosF.y);
-	float dist = length(V);
-	V /= dist;
-	
 	float2 slopebig = 0.0.xx;
 	float2 slopesmall = 0.0.xx;
 
 	float3 resolution = float3(1.0 - smoothstep(2.0*GRID_SIZE.x, 4.0*GRID_SIZE.x, dist), 1.0 - smoothstep(1.0*GRID_SIZE.y, 3.0*GRID_SIZE.y, dist), 1.0 - smoothstep(0.5*GRID_SIZE.z, 4.0*GRID_SIZE.z, dist));
 	slopebig += wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 4)).xy;
 	if (resolution.x > 0.0)
-		slopebig += resolution.x*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
+	slopebig += resolution.x*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
 	if (resolution.y > 0.0)
-		slopesmall += resolution.y*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
+	slopesmall += resolution.y*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
 	if (resolution.z > 0.0)
-		slopesmall += resolution.z*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
+	slopesmall += resolution.z*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
 
 
 	float3 NormalFFTBig = normalize(float3(-slopebig.x, 1.0, -slopebig.y));
@@ -197,7 +213,7 @@ float4 main( DomainOut pin ) : SV_TARGET
 	float3 skyLight = fresnelUp * meanSkyRadiance(V, N, Tx, Tz, sigma2);
 	float3 sunLight = reflectedSunRadiance(sunDir, V, N, Tx, Tz, sigma) *Lsun;
 
-	result += seaLight;
+	result += lerp(seaLight, frame[pin.PosH.xy], 1-ext);
 	result += skyLight;
 	result += sunLight;
 	//result += turbulence.zzz * (samNoise + turbulence.yyy);// *samNoise;
@@ -223,8 +239,8 @@ float4 main( DomainOut pin ) : SV_TARGET
 	float specfactor = 0;
 	if (diff > 0.0)
 	{
-		float3 v = reflect(-sunDir, Normal);
-		specfactor = pow(max(dot(v, view), 0.0f), 4.0);
+	float3 v = reflect(-sunDir, Normal);
+	specfactor = pow(max(dot(v, view), 0.0f), 4.0);
 	}*/
 
 	//return float4(specfactor.xxx, 1.0f);

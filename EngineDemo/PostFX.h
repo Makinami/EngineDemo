@@ -39,10 +39,14 @@ namespace PostFX
 		void Shutdown();
 
 	public:
-		void StartRegister(ID3D11DeviceContext1* mImmediateContext) const;
+		void StartRegister(ID3D11DeviceContext1* mImmediateContext, bool clear = true) const;
 		void StopRegister(ID3D11DeviceContext1* mImmediateContext) const;
 
 		void Swap();
+
+		void CopyDepth(ID3D11DeviceContext1* mImmediateContext);
+		void CopyFrame(ID3D11DeviceContext1* mImmediateContext);
+		ID3D11ShaderResourceView* const * GetDepthCopySRV() const;
 
 		void Present(ID3D11DeviceContext1*& mImmediateContext);
 
@@ -53,6 +57,8 @@ namespace PostFX
 	private:
 		std::unique_ptr<Texture> mMain;
 		std::unique_ptr<Texture> mSecondary;
+
+		std::unique_ptr<Texture> mDepth;
 
 		std::unique_ptr<Texture> mDepthStencil;
 		D3D11_VIEWPORT mViewPort;

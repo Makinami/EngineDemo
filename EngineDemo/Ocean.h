@@ -20,6 +20,8 @@
 
 #include "CDLODQuadTree.h"
 
+#include "PostFX.h"
+
 using namespace std;
 using namespace DirectX;
 
@@ -34,6 +36,8 @@ public:
 	void Update(ID3D11DeviceContext1* &mImmediateContext, float dt, DirectionalLight& light, std::shared_ptr<CameraClass> Camera);
 
 	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
+	void DrawPost(ID3D11DeviceContext1* &mImmediateContext, std::unique_ptr<PostFX::Canvas> const& Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
 	void ChangedWinSize(ID3D11Device1* &device, int width, int height);
 
@@ -120,6 +124,7 @@ private:
 	ID3D11HullShader* mHS2;
 	ID3D11DomainShader* mDS2;
 	ID3D11PixelShader* mPS2;
+	ID3D11PixelShader* mPS3;
 
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mGerstnerDS;
 
@@ -158,6 +163,7 @@ private:
 		float scale;
 		XMFLOAT3 camLookAt;
 		float pad;
+		XMFLOAT4 gProj;
 	} perFrameParams;
 
 	struct LODLevel
