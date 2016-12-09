@@ -23,6 +23,8 @@
 
 #include "PostFX.h"
 
+#include "GBuffer.h"
+
 /*struct DirectionalLight
 {
 	DirectionalLight() { ZeroMemory(this, sizeof(this)); }
@@ -65,6 +67,7 @@ private:
 
 	std::unique_ptr<PostFX::Canvas> Canvas;
 	std::unique_ptr<PostFX::HDR> HDR;
+	std::unique_ptr<GBufferClass> GBuffer;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;

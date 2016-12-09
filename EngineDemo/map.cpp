@@ -45,6 +45,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	Canvas = std::make_unique<PostFX::Canvas>();
 	Canvas->Init(device, 1280, 720);
 
+	GBuffer = std::make_unique<GBufferClass>();
+	GBuffer->Init(device, 1280, 720);
+
 	Sky = std::make_shared<SkyClass>();
 	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
@@ -241,6 +244,10 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
+	GBuffer->SetBufferRTV(mImmediateContext);
+	Terrain2->Draw(mImmediateContext, Camera, light);
+	GBuffer->UnsetBufferRTV(mImmediateContext);
+
 	Canvas->StartRegister(mImmediateContext);
 	/*light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
 
@@ -266,9 +273,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
-
-	Terrain2->Draw(mImmediateContext, Camera, light);
+	//Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
 	//DrawDebug(mImmediateContext, Camera);
 	
@@ -288,6 +293,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
 	Canvas->StopRegister(mImmediateContext);
+
 	HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
 }
