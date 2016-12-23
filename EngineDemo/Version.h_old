@@ -6,7 +6,7 @@ namespace Version
 	const unsigned int iMajor = 0;
 	const unsigned int iMinor = 1;
 	const unsigned int iPatch = 0;
-	const unsigned int iBuild = 38;
+	const unsigned int iBuild = 37;
 
 	const std::wstring strMajor = std::to_wstring(iMajor);
 	const std::wstring strMinor = std::to_wstring(iMinor);

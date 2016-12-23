@@ -46,7 +46,10 @@ namespace PostFX
 		textDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 		textDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
-		EXIT_ON_NULL(mDepthStencil =
+		EXIT_ON_NULL(mDepthStencilMain =
+					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+
+		EXIT_ON_NULL(mDepthStencilSecondary =
 					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
 
 
@@ -92,6 +95,8 @@ namespace PostFX
 		iinitData.pSysMem = &indices[0];
 		if (FAILED(device->CreateBuffer(&ibd, &iinitData, &mScreenQuadIB))) return false;
 
+		// TODO: don't use temporary debug shaders; look out for proper vertex position with reversed-Z
+
 		// pixel
 		CreatePSFromFile(L"..\\Debug\\DebugPS.cso", device, mDebugPS);
 
@@ -127,6 +132,7 @@ namespace PostFX
 	void Canvas::Swap()
 	{
 		std::swap(mMain, mSecondary);
+		std::swap(mDepthStencilMain, mDepthStencilSecondary);
 	}
 
 	void Canvas::Present(ID3D11DeviceContext1 *& mImmediateContext)
@@ -184,13 +190,18 @@ namespace PostFX
 		return (secondary ? mSecondary : mMain)->GetAddressOfUAV();
 	}
 
+	ID3D11ShaderResourceView * const * Canvas::GetDepthStencilSRV() const
+	{
+		return mDepthStencilSecondary->GetAddressOfSRV();
+	}
+
 	void Canvas::StartRegister(ID3D11DeviceContext1 * mImmediateContext) const
 	{
-		RenderTargetStack::Push(mImmediateContext, mMain->GetAddressOfRTV(), mDepthStencil->GetDSV());
+		RenderTargetStack::Push(mImmediateContext, mMain->GetAddressOfRTV(), mDepthStencilMain->GetDSV());
 
 		float colour[4] = {};
 		mImmediateContext->ClearRenderTargetView(mMain->GetRTV(), colour);
-		mImmediateContext->ClearDepthStencilView(mDepthStencil->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		mImmediateContext->ClearDepthStencilView(mDepthStencilMain->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
 	}
 
 	void Canvas::StopRegister(ID3D11DeviceContext1 * mImmediateContext) const
@@ -327,13 +338,17 @@ namespace PostFX
 		// TODO: check if custum soltion will be faster
 		mImmediateContext->GenerateMips(mLuminanceText->GetSRV());
 
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, Canvas->GetAddressOfUAV(), nullptr);
-		mImmediateContext->CSSetShaderResources(0, 1, mLuminanceText->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(0, 1, Canvas->GetAddressOfSRV());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, Canvas->GetAddressOfUAV(true), nullptr);
+		mImmediateContext->CSSetShaderResources(1, 1, mLuminanceText->GetAddressOfSRV());
 		mImmediateContext->CSSetShader(mToneMapPassCS, nullptr, 0);
 
 		mImmediateContext->Dispatch(1280 / 16, 720 / 16, 1);
 
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &uavNULL, nullptr);
 		mImmediateContext->CSSetShaderResources(0, 1, &srvNULL);
+		mImmediateContext->CSSetShaderResources(1, 1, &srvNULL);
+
+		Canvas->Swap();
 	}
 }

@@ -66,6 +66,7 @@ class CameraClass
 		XMFLOAT3 mPositionRelSun;
 		
 		XMFLOAT4X4 mProj;
+		XMFLOAT4X4 mProjNoZReverse;
 		XMFLOAT4X4 mView;
 		XMFLOAT4X4 mViewProj;
 		XMFLOAT4X4 mViewProjTrans;

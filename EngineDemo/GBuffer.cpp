@@ -62,7 +62,7 @@ void GBufferClass::SetBufferRTV(ID3D11DeviceContext1 * mImmediateContext) const
 	float colour[4] = {};
 	mImmediateContext->ClearRenderTargetView(mGBuffer[0]->GetRTV(), colour);
 	mImmediateContext->ClearRenderTargetView(mGBuffer[1]->GetRTV(), colour);
-	mImmediateContext->ClearDepthStencilView(mDepthStencil->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	mImmediateContext->ClearDepthStencilView(mDepthStencil->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
 }
 
 void GBufferClass::UnsetBufferRTV(ID3D11DeviceContext1 * mImmediateContext) const

@@ -17,7 +17,8 @@ ID3D11SamplerState*		 RenderStates::Sampler::TriLinearClampSS		 = nullptr;
 ID3D11SamplerState*		 RenderStates::Sampler::TriLinearWrapSS			 = nullptr;
 ID3D11SamplerState*		 RenderStates::Sampler::AnisotropicWrapSS		 = nullptr;
 
-ID3D11DepthStencilState* RenderStates::DepthStencil::NoWriteLessEqualDSS = nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::NoWriteGreaterEqualDSS = nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::DefaultDSS = nullptr;
 
 ID3D11RasterizerState1*  RenderStates::Rasterizer::DefaultRS			 = nullptr;
 ID3D11RasterizerState1*  RenderStates::Rasterizer::WireframeRS			 = nullptr;
@@ -75,13 +76,22 @@ HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 		AnisotropicWrapDesc.BorderColor[3] = 0.0f;
 	EXIT_ON_FAILURE(device->CreateSamplerState(&AnisotropicWrapDesc, &Sampler::AnisotropicWrapSS));
 
+	// Default depth - reverse-Z
+	// Depth - enable; Write - yes; Com - >; Sentil -disable
+	D3D11_DEPTH_STENCIL_DESC DefaultDSDesc;
+	DefaultDSDesc.DepthEnable = true;
+	DefaultDSDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DefaultDSDesc.DepthFunc = D3D11_COMPARISON_GREATER;
+	DefaultDSDesc.StencilEnable = false;
+	EXIT_ON_FAILURE(device->CreateDepthStencilState(&DefaultDSDesc, &DepthStencil::DefaultDSS));
+
 	// Depth - enable; Write - no; Com - <=; Stencil - disable
-	D3D11_DEPTH_STENCIL_DESC NoWriteLessEqualDesc;
-	NoWriteLessEqualDesc.DepthEnable = true;
-	NoWriteLessEqualDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	NoWriteLessEqualDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-	NoWriteLessEqualDesc.StencilEnable = false;
-	EXIT_ON_FAILURE(device->CreateDepthStencilState(&NoWriteLessEqualDesc, &DepthStencil::NoWriteLessEqualDSS));
+	D3D11_DEPTH_STENCIL_DESC NoWriteGreaterEqualDesc;
+	NoWriteGreaterEqualDesc.DepthEnable = true;
+	NoWriteGreaterEqualDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	NoWriteGreaterEqualDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+	NoWriteGreaterEqualDesc.StencilEnable = false;
+	EXIT_ON_FAILURE(device->CreateDepthStencilState(&NoWriteGreaterEqualDesc, &DepthStencil::NoWriteGreaterEqualDSS));
 
 	// Rasterizer - default
 	D3D11_RASTERIZER_DESC1 DefaulRasterizerDesc = {};
@@ -108,7 +118,7 @@ void RenderStates::ReleaseAll()
 	ReleaseCOM(Sampler::TriLinearWrapSS);
 	ReleaseCOM(Sampler::AnisotropicWrapSS);
 
-	ReleaseCOM(DepthStencil::NoWriteLessEqualDSS);
+	ReleaseCOM(DepthStencil::NoWriteGreaterEqualDSS);
 
 	ReleaseCOM(Rasterizer::DefaultRS);
 	ReleaseCOM(Rasterizer::WireframeRS);

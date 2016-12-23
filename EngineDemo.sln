@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.25807.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineDemo", "EngineDemo\EngineDemo.vcxproj", "{04087101-6A41-45A8-95FA-028CC62ED012}"
 EndProject
@@ -10,6 +10,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Automatic Versions", "Automatic Versions\Automatic Versions.vcxproj", "{D4C2FDC9-8F1A-4E06-80EE-681094D44B9C}"
 EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
@@ -44,5 +47,14 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(AutomaticVersions) = postSolution
+		PrimaryVersionType.Release|Win32 = AssemblyVersionAttribute
+		UpdateAssemblyVersion.Release|Win32 = True
+		UpdateAssemblyFileVersion.Release|Win32 = True
+		UpdateAssemblyInfoVersion.Release|Win32 = True
+		AssemblyVersionSettings.Release|Win32 = IncrementOnDemandWithReset.IncrementOnDemandWithReset.IncrementOnDemand.Increment
+		AssemblyFileVersionSettings.Release|Win32 = IncrementOnDemandWithReset.IncrementOnDemandWithReset.IncrementOnDemand.Increment
+		AssemblyInfoVersionSettings.Release|Win32 = IncrementOnDemandWithReset.IncrementOnDemandWithReset.IncrementOnDemand.Increment
 	EndGlobalSection
 EndGlobal

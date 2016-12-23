@@ -1,5 +1,5 @@
 #include "Sky.h"
-#include "Shaders\Sky\resolutions.h"
+//#include "Shaders\Sky\resolutions.h"
 
 #include "Utilities\CreateShader.h"
 #include "Utilities\RenderViewTargetStack.h"
@@ -12,6 +12,8 @@
 
 #include <DirectXColors.h>
 
+#include "Shaders\Sky2\Structures.hlsli"
+
 SkyClass::SkyClass()
 	: skyMapSize(512)
 {
@@ -19,17 +21,6 @@ SkyClass::SkyClass()
 
 SkyClass::~SkyClass()
 {
-	ReleaseCOM(transmittanceCS);
-	ReleaseCOM(irradiance1CS);
-	ReleaseCOM(inscatter1CS);
-	ReleaseCOM(copyInscatter1CS);
-	ReleaseCOM(inscatterSCS);
-	ReleaseCOM(irradianceNCS);
-	ReleaseCOM(inscatterNCS);
-	ReleaseCOM(copyIrradianceCS);
-	ReleaseCOM(copyInscatterNCS);
-
-	ReleaseCOM(cbNOrder);
 	ReleaseCOM(cbPerFramePS);
 	ReleaseCOM(cbPerFrameVS);
 
@@ -40,40 +31,45 @@ SkyClass::~SkyClass()
 
 	// release only first (rest point to the same resource)
 	delete[] mSamplerStateBasic;
-	
+
+	Shutdown();	
 }
 
 int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)
 {
-	// 2D
-	// transmitance
-	EXIT_ON_NULL(newTransmittanceText =
-				 TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
-											   DXGI_FORMAT_R32G32B32A32_FLOAT,
-											   TRANSMITTANCE_W, TRANSMITTANCE_H));
+	/*
+	2D
+	*/
+	// transmittance
+	EXIT_ON_NULL(mTransmittanceTex =
+		TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
+			DXGI_FORMAT_R32G32B32A32_FLOAT,
+			TRANSMITTANCE_W, TRANSMITTANCE_H));
 
 	// deltaE
-	EXIT_ON_NULL(newDeltaEText =
-				 TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
-											   DXGI_FORMAT_R32G32B32A32_FLOAT,
-											   SKY_W, SKY_H));
+	EXIT_ON_NULL(mDeltaETex =
+		TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
+			DXGI_FORMAT_R32G32B32A32_FLOAT,
+			SKY_W, SKY_H));
 
 	// irradiance
-	EXIT_ON_NULL(newIrradainceText =
-				 TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
-											   DXGI_FORMAT_R32G32B32A32_FLOAT,
-											   SKY_W, SKY_H));
+	EXIT_ON_NULL(mIrradianceTex =
+		TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
+			DXGI_FORMAT_R32G32B32A32_FLOAT,
+			SKY_W, SKY_H));
 
-	EXIT_ON_NULL(newCopyIrradianceText =
-				 TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
-											   DXGI_FORMAT_R32G32B32A32_FLOAT,
-											   SKY_W, SKY_H));
+	EXIT_ON_NULL(mIrradianceCopyTex =
+		TextureFactory::CreateTexture(D3D11_BIND_UNORDERED_ACCESS,
+			DXGI_FORMAT_R32G32B32A32_FLOAT,
+			SKY_W, SKY_H));
 
-	// 3D
+	/*
+	3D
+	*/
 	D3D11_TEXTURE3D_DESC text3Desc;
-	text3Desc.Width = RES_MU_S*RES_NU;
-	text3Desc.Height = RES_MU;
-	text3Desc.Depth = RES_R;
+	text3Desc.Width = RES_SZ*RES_VS;
+	text3Desc.Height = RES_VZ;
+	text3Desc.Depth = RES_ALT;
 	text3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	text3Desc.CPUAccessFlags = 0;
 	text3Desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -82,40 +78,49 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	text3Desc.Usage = D3D11_USAGE_DEFAULT;
 
 	// deltaS
-	newDeltaSText.resize(2);
-	EXIT_ON_NULL(newDeltaSText[0] =
-				 TextureFactory::CreateTexture(text3Desc));
-	EXIT_ON_NULL(newDeltaSText[1] =
-				 TextureFactory::CreateTexture(text3Desc));
-	
+	mDeltaSTex.resize(2);
+	EXIT_ON_NULL(mDeltaSTex[0] =
+		TextureFactory::CreateTexture(text3Desc));
+	EXIT_ON_NULL(mDeltaSTex[1] =
+		TextureFactory::CreateTexture(text3Desc));
+
 	deltaSSRV.resize(2);
-	deltaSSRV[0] = newDeltaSText[0]->GetSRV();
-	deltaSSRV[1] = newDeltaSText[1]->GetSRV();
+	deltaSSRV[0] = mDeltaSTex[0]->GetSRV();
+	deltaSSRV[1] = mDeltaSTex[1]->GetSRV();
 
 	deltaSUAV.resize(2);
-	deltaSUAV[0] = newDeltaSText[0]->GetUAV();
-	deltaSUAV[1] = newDeltaSText[1]->GetUAV();
-	
+	deltaSUAV[0] = mDeltaSTex[0]->GetUAV();
+	deltaSUAV[1] = mDeltaSTex[1]->GetUAV();
+
 	// inscatter
-	EXIT_ON_NULL(newInscatterText =
-				 TextureFactory::CreateTexture(text3Desc));
+	EXIT_ON_NULL(mInscatterTex =
+		TextureFactory::CreateTexture(text3Desc));
 
-	EXIT_ON_NULL(newCopyInscatterText =
-	TextureFactory::CreateTexture(text3Desc));
+	EXIT_ON_NULL(mInscatterCopyTex =
+		TextureFactory::CreateTexture(text3Desc));
 
-	// deltaJ	
-	EXIT_ON_NULL(newDeltaJText =
-				 TextureFactory::CreateTexture(text3Desc));
+	// deltaJ
+	EXIT_ON_NULL(mDeltaJTex =
+		TextureFactory::CreateTexture(text3Desc));
 
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\transmittance.cso", device, transmittanceCS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\irradiance1.cso", device, irradiance1CS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\inscatter1.cso", device, inscatter1CS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\copyInscatter1.cso", device, copyInscatter1CS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\inscatterS.cso", device, inscatterSCS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\irradianceN.cso", device, irradianceNCS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\inscatterN.cso", device, inscatterNCS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\copyIrradiance.cso", device, copyIrradianceCS);
-	CreateCSFromFile(L"..\\Debug\\Shaders\\Sky\\copyInscatterN.cso", device, copyInscatterNCS);
+	// compute shaders
+	if (!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\transmittance.cso", device, mTransmittanceCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\irradianceSingle.cso", device, mIrradianceSingleCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\inscatterSingle.cso", device, mInscatterSingleCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\irradianceZero.cso", device, mIrradianceZeroCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\inscatterCopy.cso", device, mInscatterCopyCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\inscatterMultipleA.cso", device, mInscatterMultipleACS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\irradianceMultiple.cso", device, mIrradianceMultipleCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\inscatterMultipleB.cso", device, mInscatterMultipleBCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\irradianceAdd.cso", device, mIrradianceAddCS) ||
+		!CreateCSFromFile(L"..\\Debug\\Shaders\\Sky2\\inscatterAdd.cso", device, mInscatterAddCS))
+	{
+		Shutdown();
+		return E_FAIL | E_ABORT;
+	}
+
+	// precompute constant buffer
+	CreateConstantBuffer(device, sizeof(nOrderType), nOrderCB, "nOrderCB");
 
 	// sampler states
 	mSamplerStateBasic = new ID3D11SamplerState*[4];
@@ -128,13 +133,8 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	cbDesc.MiscFlags = 0;
 	cbDesc.StructureByteStride = 0;
-		
-	// precompute buffer
-	cbDesc.ByteWidth = sizeof(cbNOrderType);
 
-	device->CreateBuffer(&cbDesc, NULL, &cbNOrder);
-
-	Precompute(mImmediateContext);
+	//Precompute(mImmediateContext);
 	
 	// render's buffers
 	cbDesc.ByteWidth = sizeof(cbPerFrameVSType);
@@ -148,10 +148,10 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	// full screen quad
 	vector<XMFLOAT3> patchVertices(4);
 	
-	patchVertices[0] = XMFLOAT3(-1.0f, -1.0f, 1.0f);
-	patchVertices[1] = XMFLOAT3(-1.0f, 1.0f, 1.0f);
-	patchVertices[2] = XMFLOAT3(1.0f, 1.0f, 1.0f);
-	patchVertices[3] = XMFLOAT3(1.0f, -1.0f, 1.0f);
+	patchVertices[0] = XMFLOAT3(-1.0f, -1.0f, 0.0f);
+	patchVertices[1] = XMFLOAT3(-1.0f, 1.0f, 0.0f);
+	patchVertices[2] = XMFLOAT3(1.0f, 1.0f, 0.0f);
+	patchVertices[3] = XMFLOAT3(1.0f, -1.0f, 0.0f);
 
 	mScreenQuad.SetVertices(device, &patchVertices[0], patchVertices.size());
 
@@ -179,6 +179,8 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyToCubePS.cso", device, mPixelShaderToCube);
 
 	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyToScreenPS.cso", device, mPixelShaderToScreen, "SkyToScreenPS - mPixelShaderToScreen");
+
+	mPixelShaderPostFX = ShadersManager::Instance()->GetPS("Sky::SkyPostFX");
 
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
@@ -292,31 +294,31 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	D3D11_TEXTURE3D_DESC text3descFile;
 	text3descFile.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	text3descFile.CPUAccessFlags = 0;
-	text3descFile.Depth = RES_R;
+	text3descFile.Depth = RES_ALT;
 	text3descFile.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	text3descFile.Height = RES_MU;
+	text3descFile.Height = RES_VZ;
 	text3descFile.MipLevels = 1;
 	text3descFile.MiscFlags = 0;
 	text3descFile.Usage = D3D11_USAGE_IMMUTABLE;
-	text3descFile.Width = RES_MU_S * RES_NU;
+	text3descFile.Width = RES_VS * RES_SZ;
 
 	srvdescFile.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
 	srvdescFile.Texture3D.MipLevels = 1;
 	srvdescFile.Texture3D.MostDetailedMip = 0;
 
-	data = new char[RES_R*RES_MU*RES_MU_S*RES_NU * sizeof(XMFLOAT4)];
+	data = new char[RES_ALT*RES_VZ*RES_VS*RES_SZ * sizeof(XMFLOAT4)];
 
 	stream.open("inscatter.raw", std::ifstream::binary);
 	if (stream.good())
 	{
-		stream.read(data, RES_R*RES_MU*RES_MU_S*RES_NU * sizeof(XMFLOAT4));
+		stream.read(data, RES_ALT*RES_VZ*RES_VS*RES_SZ * sizeof(XMFLOAT4));
 		stream.close();
 	}
 
 	subFile.pSysMem = data;
-	subFile.SysMemPitch = RES_MU_S * RES_NU * sizeof(XMFLOAT4);
-	subFile.SysMemSlicePitch = subFile.SysMemPitch * RES_MU;
-	
+	subFile.SysMemPitch = RES_SZ * RES_VS * sizeof(XMFLOAT4);
+	subFile.SysMemSlicePitch = subFile.SysMemPitch * RES_VZ;
+
 	ID3D11Texture3D* text3dFile;
 	device->CreateTexture3D(&text3descFile, &subFile, &text3dFile);
 	device->CreateShaderResourceView(text3dFile, &srvdescFile, &inscatterFile);
@@ -326,9 +328,27 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	return 0;
 }
 
+HRESULT SkyClass::Shutdown()
+{
+	ReleaseCOM(mTransmittanceCS);
+	ReleaseCOM(mIrradianceSingleCS);
+	ReleaseCOM(mInscatterSingleCS);
+	ReleaseCOM(mInscatterCopyCS);
+	ReleaseCOM(mIrradianceZeroCS);
+
+	mTransmittanceTex.release();
+	mDeltaETex.release();
+	mInscatterTex.release();
+
+	return S_OK;
+}
+
 void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
 {
+	//Precompute(mImmediateContext);
 	CallStart(drawSky);
+
+	ID3D11ShaderResourceView* ppSRVNULL[4] = { NULL, NULL, NULL, NULL };
 
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	UINT stride = sizeof(XMFLOAT3);
@@ -359,7 +379,6 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	dataPS = (cbPerFramePSType*)mappedResource.pData;
 
 	XMStoreFloat3(&(dataPS->gCameraPos), Camera->GetPositionRelSun());
-	dataPS->gExposure = 0.5;
 	dataPS->gSunDir = light.Direction();
 	// change light direction to sun direction
 	dataPS->gSunDir.x *= -1; dataPS->gSunDir.y *= -1; dataPS->gSunDir.z *= -1;
@@ -374,11 +393,13 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	mImmediateContext->PSSetSamplers(0, 3, mSamplerStateBasic);
 	mImmediateContext->PSSetShader(mPixelShaderToCube, NULL, 0);
 
-	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteLessEqualDSS, 0);
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteGreaterEqualDSS, 0);
 	
 	mScreenQuad.Draw(mImmediateContext);
 
-	mImmediateContext->OMSetDepthStencilState(0, 0);
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
+
+	mImmediateContext->PSSetShaderResources(9, 3, ppSRVNULL);
 
 	CallEnd(drawSky);
 }
@@ -418,11 +439,11 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 
 	mImmediateContext->PSSetSamplers(0, 1, mSamplerStateBasic);
 
-	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteLessEqualDSS, 0);
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteGreaterEqualDSS, 0);
 
 	mScreenQuad.Draw(mImmediateContext);
 
-	mImmediateContext->OMSetDepthStencilState(nullptr, 0);
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
 
 	RenderTargetStack::Pop(mImmediateContext);
 	ViewportStack::Pop(mImmediateContext);
@@ -434,134 +455,189 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 	
 }
 
+void SkyClass::Process(ID3D11DeviceContext1 * mImmediateContext, std::unique_ptr<PostFX::Canvas> const & Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
+{
+	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
+	ID3D11ShaderResourceView* ppSRViewNULL[4] = { nullptr, nullptr, nullptr, nullptr };
+
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mImmediateContext->IASetInputLayout(mInputLayout);
+
+	// VS
+	cbPerFrameVSParams.gViewInverse = XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewRelSun()));
+	cbPerFrameVSParams.gProjInverse = XMMatrixInverse(nullptr, Camera->GetProjTrans());
+	MapResources(mImmediateContext, cbPerFrameVS, cbPerFrameVSParams);
+
+	mImmediateContext->VSSetConstantBuffers(0, 1, &cbPerFrameVS);
+	mImmediateContext->VSSetShader(mVertexShader, nullptr, 0);
+
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
+
+	// PS
+	XMStoreFloat3(&cbPerFramePSParams.gCameraPos, Camera->GetPositionRelSun());
+	cbPerFramePSParams.gSunDir = light.Direction();
+	// change light direction to sun direction
+	cbPerFramePSParams.gSunDir.x *= -1; cbPerFramePSParams.gSunDir.y *= -1; cbPerFramePSParams.gSunDir.z *= -1;
+	XMFLOAT4X4 projMatrix;
+	XMStoreFloat4x4(&projMatrix, Camera->GetProjMatrix());
+	cbPerFramePSParams.gProj = XMFLOAT4{ projMatrix._33, projMatrix._34,
+										 projMatrix._43, projMatrix._44 };
+	MapResources(mImmediateContext, cbPerFramePS, cbPerFramePSParams);
+
+	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
+	mImmediateContext->PSSetConstantBuffers(1, 1, &cbPerFrameVS);
+	mImmediateContext->PSSetShader(mPixelShaderPostFX, nullptr, 0);
+
+	mImmediateContext->PSSetShaderResources(4, 1, &inscatterFile);
+	mImmediateContext->PSSetShaderResources(5, 1, &transmittanceFile);
+	mImmediateContext->PSSetShaderResources(6, 1, &irradianceFile);
+	mImmediateContext->PSSetSamplers(0, 3, mSamplerStateBasic);
+
+	mImmediateContext->PSSetShaderResources(0, 1, Canvas->GetDepthStencilSRV());
+
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteGreaterEqualDSS, 0);
+
+	mScreenQuad.Draw(mImmediateContext);
+
+	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
+
+	mImmediateContext->PSSetShaderResources(0, 3, ppSRViewNULL);
+}
+
 ID3D11ShaderResourceView * SkyClass::getTransmittanceSRV()
 {
 	// UnresolvedMergeConflict (implement)
 	return nullptr;// transmitanceSRV;
 }
 
-int SkyClass::Precompute(ID3D11DeviceContext1 * mImmediateContext)
+HRESULT SkyClass::Precompute(ID3D11DeviceContext1 * mImmediateContext)
 {
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
 	ID3D11ShaderResourceView* ppSRVNULL[4] = { NULL, NULL, NULL, NULL };
 
-	mImmediateContext->CSSetSamplers(0, 4, mSamplerStateBasic);
-
 	// line 1
-	mImmediateContext->CSSetUnorderedAccessViews(0, 1, newTransmittanceText->GetAddressOfUAV(), NULL);
-	mImmediateContext->CSSetShader(transmittanceCS, NULL, 0);
+	// T(x,v) = T(x,x0(x,v))
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mTransmittanceTex->GetAddressOfUAV(), nullptr);
+	mImmediateContext->CSSetShader(mTransmittanceCS, nullptr, 0);
 
 	mImmediateContext->Dispatch(TRANSMITTANCE_W / 16, TRANSMITTANCE_H / 16, 1);
 
-	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 	// line 2
-	mImmediateContext->CSSetShaderResources(0, 1, newTransmittanceText->GetAddressOfSRV());
-	mImmediateContext->CSSetSamplers(0, 1, mSamplerStateBasic);
-	mImmediateContext->CSSetUnorderedAccessViews(0, 1, newDeltaEText->GetAddressOfUAV(), NULL);
-	mImmediateContext->CSSetShader(irradiance1CS, NULL, 0);
+	// deltaE = eps[L](x,s)
+	mImmediateContext->CSSetShaderResources(0, 1, mTransmittanceTex->GetAddressOfSRV());
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mDeltaETex->GetAddressOfUAV(), nullptr);
+	mImmediateContext->CSSetShader(mIrradianceSingleCS, nullptr, 0);
 
 	mImmediateContext->Dispatch(SKY_W / 16, SKY_H / 16, 1);
 
 	mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
-	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 	// line 3
-	mImmediateContext->CSSetShaderResources(0, 1, newTransmittanceText->GetAddressOfSRV());
-	mImmediateContext->CSSetUnorderedAccessViews(0, 2, deltaSUAV.data(), NULL);
-	mImmediateContext->CSSetShader(inscatter1CS, NULL, 0);
+	// deltaS = S[L](x,v,s)
+	mImmediateContext->CSSetShaderResources(0, 1, mTransmittanceTex->GetAddressOfSRV());
+	mImmediateContext->CSSetUnorderedAccessViews(0, 2, &deltaSUAV[0], nullptr);
+	mImmediateContext->CSSetShader(mInscatterSingleCS, nullptr, 0);
 
-	mImmediateContext->Dispatch(RES_MU_S*RES_NU / 16, RES_MU / 16, RES_R);
+	mImmediateContext->Dispatch(RES_SZ*RES_VS / 16, RES_VZ / 16, RES_ALT);
 
 	mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
-	mImmediateContext->CSSetUnorderedAccessViews(0, 2, ppUAViewNULL, NULL);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 2, ppUAViewNULL, nullptr);
 
 	// line 4
+	// E = 0
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mIrradianceTex->GetAddressOfUAV(), nullptr);
+	mImmediateContext->CSSetShader(mIrradianceZeroCS, nullptr, 0);
+
+	mImmediateContext->Dispatch(SKY_W / 16, SKY_H / 16, 1);
+
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 	// line 5
-	mImmediateContext->CSSetShaderResources(0, 2, deltaSSRV.data());
-	mImmediateContext->CSSetUnorderedAccessViews(0, 1, newInscatterText->GetAddressOfUAV(), NULL);
-	mImmediateContext->CSSetShader(copyInscatter1CS, NULL, 0);
+	// S = deltaS
+	mImmediateContext->CSSetShaderResources(0, 2, &deltaSSRV[0]);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mInscatterTex->GetAddressOfUAV(), nullptr);
+	mImmediateContext->CSSetShader(mInscatterCopyCS, nullptr, 0);
 
-	mImmediateContext->Dispatch(RES_MU_S*RES_NU / 16, RES_MU / 16, RES_R);
+	mImmediateContext->Dispatch(RES_SZ*RES_VS / 16, RES_VZ / 16, RES_ALT);
 
 	mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
-	for (int order = 2; order <= 4; order++)
+	// line 6
+	// for loop
+	for (int order = 2; order <= 2; ++order)
 	{
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		cbNOrderType* dataPtr;
-
-		mImmediateContext->Map(cbNOrder, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		dataPtr = (cbNOrderType*)mappedResource.pData;
-
-		dataPtr->order[0] = order;
-
-		mImmediateContext->Unmap(cbNOrder, 0);
+		nOrderParams.order[0] = order;
+		MapResources(mImmediateContext, nOrderCB, nOrderParams);
+		mImmediateContext->CSSetConstantBuffers(0, 1, &nOrderCB);
 
 		// line 7
-		mImmediateContext->CSSetShaderResources(0, 1, newTransmittanceText->GetAddressOfSRV());
-		mImmediateContext->CSSetShaderResources(1, 1, newDeltaEText->GetAddressOfSRV());
-		mImmediateContext->CSSetShaderResources(2, 2, deltaSSRV.data());
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, newDeltaJText->GetAddressOfUAV(), NULL);
-		mImmediateContext->CSSetShader(inscatterSCS, NULL, 0);
-		mImmediateContext->CSSetConstantBuffers(0, 1, &cbNOrder);
+		// deltaJ = J[T*alpha/PI*deltaE + deltaS](x,v,s)
+		mImmediateContext->CSSetShaderResources(0, 1, mTransmittanceTex->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(1, 1, mIrradianceTex->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(2, 2, &deltaSSRV[0]);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, mDeltaJTex->GetAddressOfUAV(), nullptr);
+		mImmediateContext->CSSetShader(mInscatterMultipleACS, nullptr, 0);
 
-		mImmediateContext->Dispatch(RES_MU_S*RES_NU / 16, RES_MU / 16, RES_R);
+		mImmediateContext->Dispatch(RES_SZ*RES_VS / 16, RES_VZ / 16, RES_ALT);
 
 		mImmediateContext->CSSetShaderResources(0, 4, ppSRVNULL);
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 		// line 8
-		mImmediateContext->CSSetShaderResources(0, 1, newTransmittanceText->GetAddressOfSRV());
-		mImmediateContext->CSSetShaderResources(1, 2, deltaSSRV.data());
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, newDeltaEText->GetAddressOfUAV(), NULL);
-		mImmediateContext->CSSetShader(irradianceNCS, NULL, 0);
-		mImmediateContext->CSSetConstantBuffers(0, 1, &cbNOrder);
+		// deltaE = eps[T*alpha/PI*deltaE + deltaS](x,s) = eps[deltaS](x,s)
+		mImmediateContext->CSSetShaderResources(0, 2, &deltaSSRV[0]);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, mDeltaETex->GetAddressOfUAV(), nullptr);
+		mImmediateContext->CSSetShader(mIrradianceMultipleCS, nullptr, 0);
 
 		mImmediateContext->Dispatch(SKY_W / 16, SKY_H / 16, 1);
 
 		mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 		// line 9
-		mImmediateContext->CSSetShaderResources(0, 1, newTransmittanceText->GetAddressOfSRV());
-		mImmediateContext->CSSetShaderResources(1, 1, newDeltaJText->GetAddressOfSRV());
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &deltaSUAV[0], NULL);
-		mImmediateContext->CSSetShader(inscatterNCS, NULL, 0);
+		// deltaS = integral T*deltaJ
+		mImmediateContext->CSSetShaderResources(0, 1, mTransmittanceTex->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(1, 1, mDeltaJTex->GetAddressOfSRV());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, mInscatterTex->GetAddressOfUAV(), nullptr);
+		mImmediateContext->CSSetShader(mInscatterMultipleBCS, nullptr, 0);
 
-		mImmediateContext->Dispatch(RES_MU_S*RES_NU / 16, RES_MU / 16, RES_R);
+		mImmediateContext->Dispatch(RES_SZ*RES_VS / 16, RES_VZ / 16, RES_ALT);
 
-		mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+		mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 		// line 10
-		mImmediateContext->CSSetShaderResources(0, 1, newDeltaEText->GetAddressOfSRV());
-		mImmediateContext->CSSetShaderResources(1, 1, newIrradainceText->GetAddressOfSRV());
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, newCopyIrradianceText->GetAddressOfUAV(), NULL);
-		mImmediateContext->CSSetShader(copyIrradianceCS, NULL, 0);
+		// E = E + deltaE
+		mImmediateContext->CSSetShaderResources(0, 1, mDeltaETex->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(1, 1, mIrradianceTex->GetAddressOfSRV());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, mIrradianceCopyTex->GetAddressOfUAV(), nullptr);
+		mImmediateContext->CSSetShader(mIrradianceAddCS, nullptr, 0);
 
 		mImmediateContext->Dispatch(SKY_W / 16, SKY_H / 16, 1);
 
-		mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+		mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
-		mImmediateContext->CopyResource(newIrradainceText->GetTexture(), newCopyIrradianceText->GetTexture());
+		mImmediateContext->CopyResource(mIrradianceTex->GetTexture(), mIrradianceCopyTex->GetTexture());
 
 		// line 11
-		mImmediateContext->CSSetShaderResources(0, 1, newInscatterText->GetAddressOfSRV());
-		mImmediateContext->CSSetShaderResources(1, 1, deltaSSRV.data());
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, newCopyInscatterText->GetAddressOfUAV(), NULL);
-		mImmediateContext->CSSetShader(copyInscatterNCS, NULL, 0);
+		// S = S + deltaS
+		mImmediateContext->CSSetShaderResources(0, 1, mInscatterTex->GetAddressOfSRV());
+		mImmediateContext->CSSetShaderResources(1, 1, mDeltaSTex[0]->GetAddressOfSRV());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, mInscatterCopyTex->GetAddressOfUAV(), nullptr);
+		mImmediateContext->CSSetShader(mInscatterAddCS, nullptr, 0);
 
-		mImmediateContext->Dispatch(RES_MU_S*RES_NU / 16, RES_MU / 16, RES_R);
+		mImmediateContext->Dispatch(RES_SZ*RES_VS / 16, RES_VZ / 16, RES_ALT);
 
-		mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, NULL);
+		mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
-		mImmediateContext->CopyResource(newInscatterText->GetTexture(), newCopyInscatterText->GetTexture());
+		mImmediateContext->CopyResource(mInscatterTex->GetTexture(), mInscatterCopyTex->GetTexture());
 	}
 
-	return 0;
+	return S_OK;
 }
