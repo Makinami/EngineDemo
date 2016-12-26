@@ -17,8 +17,9 @@ ID3D11SamplerState*		 RenderStates::Sampler::TriLinearClampSS		 = nullptr;
 ID3D11SamplerState*		 RenderStates::Sampler::TriLinearWrapSS			 = nullptr;
 ID3D11SamplerState*		 RenderStates::Sampler::AnisotropicWrapSS		 = nullptr;
 
-ID3D11DepthStencilState* RenderStates::DepthStencil::NoWriteGreaterEqualDSS = nullptr;
-ID3D11DepthStencilState* RenderStates::DepthStencil::DefaultDSS = nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::NoWriteGreaterEqualDSS	= nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::DefaultDSS				= nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::WriteNoTestDSS			= nullptr;
 
 ID3D11RasterizerState1*  RenderStates::Rasterizer::DefaultRS			 = nullptr;
 ID3D11RasterizerState1*  RenderStates::Rasterizer::WireframeRS			 = nullptr;
@@ -92,6 +93,14 @@ HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 	NoWriteGreaterEqualDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
 	NoWriteGreaterEqualDesc.StencilEnable = false;
 	EXIT_ON_FAILURE(device->CreateDepthStencilState(&NoWriteGreaterEqualDesc, &DepthStencil::NoWriteGreaterEqualDSS));
+
+	// Depth - enable; Write - enable; Test - none; Stencil - disable
+	D3D11_DEPTH_STENCIL_DESC WriteNoTestDesc;
+	WriteNoTestDesc.DepthEnable = false;
+	WriteNoTestDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	WriteNoTestDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	WriteNoTestDesc.StencilEnable = false;
+	EXIT_ON_FAILURE(device->CreateDepthStencilState(&WriteNoTestDesc, &DepthStencil::WriteNoTestDSS));
 
 	// Rasterizer - default
 	D3D11_RASTERIZER_DESC1 DefaulRasterizerDesc = {};

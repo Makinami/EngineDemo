@@ -272,7 +272,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	//Water->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
-	Terrain2->Draw(mImmediateContext, Camera, light);
+	//Terrain2->Draw(mImmediateContext, Camera, light);
 	//Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
 	//Sky2->Draw(mImmediateContext);
@@ -295,20 +295,30 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	//Sky->Draw(mImmediateContext, Camera, light);
 
+	Canvas->StartRegister(mImmediateContext);
+
+	GBuffer->Resolve(mImmediateContext, Camera, light);
+
+	Sky->Draw(mImmediateContext, Camera, light);
+
+	Canvas->StopRegister(mImmediateContext);
+
+	//Canvas->Present(mImmediateContext);
+
 	//Clouds->Draw(mImmediateContext, Camera, light);
 	//Clouds2->GenerateClouds(mImmediateContext);
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
 	//Canvas->StopRegister(mImmediateContext);
 
-	//Canvas->Swap();
+	Canvas->Swap();
 
-	//Canvas->StartRegister(mImmediateContext);
-	//Sky->Process(mImmediateContext, Canvas, Camera, light);
-	//Canvas->StopRegister(mImmediateContext);
+	Canvas->StartRegister(mImmediateContext);
+	Sky->Process(mImmediateContext, Canvas, Camera, light);
+	Canvas->StopRegister(mImmediateContext);
 
-	//HDR->Process(mImmediateContext, Canvas);
-	//Canvas->Present(mImmediateContext);
+	HDR->Process(mImmediateContext, Canvas);
+	Canvas->Present(mImmediateContext);
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)

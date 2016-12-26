@@ -493,7 +493,8 @@ void SkyClass::Process(ID3D11DeviceContext1 * mImmediateContext, std::unique_ptr
 	mImmediateContext->PSSetShaderResources(6, 1, &irradianceFile);
 	mImmediateContext->PSSetSamplers(0, 3, mSamplerStateBasic);
 
-	mImmediateContext->PSSetShaderResources(0, 1, Canvas->GetDepthStencilSRV());
+	mImmediateContext->PSSetShaderResources(0, 1, Canvas->GetAddressOfSRV(true));
+	mImmediateContext->PSSetShaderResources(1, 1, Canvas->GetDepthStencilSRV());
 
 	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteGreaterEqualDSS, 0);
 

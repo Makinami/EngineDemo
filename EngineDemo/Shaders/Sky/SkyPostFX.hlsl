@@ -1,4 +1,5 @@
-Texture2D depth : register(t0);
+Texture2D<float3> colour : register(t0);
+Texture2D depth : register(t1);
 
 Texture3D<float4> inscatter : register(t4);
 Texture2D<float3> transmittance : register(t5);
@@ -167,7 +168,7 @@ float4 main( VertexOut vout ) : SV_TARGET
 
 	float3 inscatterLight = GetInscatter(normalize(vout.Ray), attenuation, irradianceFactor);
 
-	return float4(inscatterLight, 1.0);
+	return float4(colour[vout.PosH.xy]*attenuation+inscatterLight, 1.0);
 	//return float4((Zview > 100.0 ? 1.0 : 0.0).xxx, 1.0);
 }
 

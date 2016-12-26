@@ -19,6 +19,7 @@ public:
 	{
 		static ID3D11DepthStencilState* NoWriteGreaterEqualDSS;
 		static ID3D11DepthStencilState* DefaultDSS;
+		static ID3D11DepthStencilState* WriteNoTestDSS;
 	};
 
 	struct Rasterizer
