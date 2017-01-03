@@ -166,6 +166,7 @@ void TerrainClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
 	mImmediateContext->VSSetConstantBuffers(4, 1, mMatrixCB.GetAddressOf());
 	mImmediateContext->VSSetShaderResources(10, 1, mHeighmap->GetAddressOfSRV());
+	mImmediateContext->VSSetSamplers(0, 1, &RenderStates::Sampler::BilinearClampSS);
 
 	// PS
 	mImmediateContext->PSSetShader(mPixelShader, nullptr, 0);

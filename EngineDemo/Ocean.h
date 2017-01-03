@@ -22,6 +22,8 @@
 
 #include "PostFX.h"
 
+#include "Utilities\Texture.h"
+
 using namespace std;
 using namespace DirectX;
 
@@ -164,6 +166,8 @@ private:
 		XMFLOAT3 camLookAt;
 		float pad;
 		XMFLOAT4 gProj;
+		XMFLOAT2 wind;
+		XMFLOAT2 pad2;
 	} perFrameParams;
 
 	struct LODLevel
@@ -179,10 +183,13 @@ private:
 	float omega(float k);
 	float inline sqr(float x) { return x * x; };
 
+	float PiersonMoskowitzSpectrum(float w);
+	float PhillipsSpectrum(float kx, float ky);
+
 	float Fresnel(float dot, float n1, float n2, bool schlick = true);
 
 private:
-	UINT FFT_SIZE;
+	int FFT_SIZE;
 	float GRID_SIZE[4];
 
 	UINT16 varianceRes;
@@ -219,5 +226,14 @@ private:
 	vector<XMFLOAT4X4> instances[3];
 	XMFLOAT3 cameraPos;
 
+
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> initialSpectrumUAV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> phaseSRV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> newSpectrumUAV;
+
+	bool changed;
+
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> spectrumCS;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> newInit;
 };
 

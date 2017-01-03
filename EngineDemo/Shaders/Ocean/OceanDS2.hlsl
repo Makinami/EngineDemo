@@ -20,7 +20,7 @@ struct DomainOut
 // Output control point
 struct HullOut
 {
-	float2 Pos : POSITION;
+	float3 Pos : POSITION;
 	float4 param : TEXTCOORD;
 };
 
@@ -45,7 +45,7 @@ DomainOut main(
 
 	DomainOut dout;
 
-	dout.PosF.xy = patch[0].Pos*domain.x + patch[1].Pos*domain.y + patch[2].Pos*domain.z;
+	dout.PosF = patch[0].Pos*domain.x + patch[1].Pos*domain.y + patch[2].Pos*domain.z;
 	dout.params = patch[0].param*domain.x + patch[1].param*domain.y + patch[2].param*domain.z;
 	dout.params.zw = normalize(dout.params.zw);
 
@@ -59,12 +59,13 @@ DomainOut main(
 	dP *= float3(lambdaV, 1.0, lambdaV);
 
 	float factor = (1.0 - smoothstep(GRID_SIZE.x, 1.2*GRID_SIZE.x, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.y, 1), 0.0).b;
-	factor = factor+1.0; // fft
+	factor = factor + 1.0; // fft
 	factor *= factor;
 
 	factor *= (dot(dout.params.zw, wind) + 1.0)*0.5; // wind
 
 	factor *= dout.params.y; // depth
+	float depth = dout.PosF.z;
 
 	// add check for [0..1] normalization for A factor
 	factor = saturate(factor*A); // A
@@ -77,6 +78,8 @@ DomainOut main(
 	dP = lerp(dP, gern, clamp(2.0*dout.params.y, 0.0, 0.8));
 
 	dout.PosW = float3(dout.PosF.x, 0.0, dout.PosF.y) + dP;
+	//if (depth < factor * 0.9)
+	//	dout.PosW.y = max(dout.PosW.y, depth);
 
 	dout.PosH = mul(float4(dout.PosW, 1.0f), worldToScreenMatrix);
 

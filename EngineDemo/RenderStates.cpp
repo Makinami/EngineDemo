@@ -13,52 +13,126 @@
 		} \
 	}
 
-ID3D11SamplerState*		 RenderStates::Sampler::TriLinearClampSS		 = nullptr;
-ID3D11SamplerState*		 RenderStates::Sampler::TriLinearWrapSS			 = nullptr;
-ID3D11SamplerState*		 RenderStates::Sampler::AnisotropicWrapSS		 = nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::BilinearClampSS				= nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::BilinearWrapSS				= nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::BilinearClampComLessSS		= nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::TrilinearClampSS			= nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::TrilinearWrapSS				= nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::AnisotropicClampSS			= nullptr;
+ID3D11SamplerState*		 RenderStates::Sampler::AnisotropicWrapSS			= nullptr;
 
-ID3D11DepthStencilState* RenderStates::DepthStencil::NoWriteLessEqualDSS = nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::NoWriteGreaterEqualDSS	= nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::DefaultDSS				= nullptr;
+ID3D11DepthStencilState* RenderStates::DepthStencil::WriteNoTestDSS			= nullptr;
 
-ID3D11RasterizerState1*  RenderStates::Rasterizer::DefaultRS			 = nullptr;
-ID3D11RasterizerState1*  RenderStates::Rasterizer::WireframeRS			 = nullptr;
+ID3D11RasterizerState1*  RenderStates::Rasterizer::DefaultRS				= nullptr;
+ID3D11RasterizerState1*  RenderStates::Rasterizer::WireframeRS				= nullptr;
 
 HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 {
+	// Bilinear Clamp
+	D3D11_SAMPLER_DESC BilinearClampDesc = {};
+	BilinearClampDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	BilinearClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	BilinearClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	BilinearClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	BilinearClampDesc.MinLOD = -FLT_MAX;
+	BilinearClampDesc.MaxLOD = FLT_MAX;
+	BilinearClampDesc.MipLODBias = 0.0f;
+	BilinearClampDesc.MaxAnisotropy = 1;
+	BilinearClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	BilinearClampDesc.BorderColor[0] =
+		BilinearClampDesc.BorderColor[1] =
+		BilinearClampDesc.BorderColor[2] =
+		BilinearClampDesc.BorderColor[3] = 0.0f;
+	EXIT_ON_FAILURE(device->CreateSamplerState(&BilinearClampDesc, &Sampler::BilinearClampSS));
+
+	// Bilinear Wrap
+	D3D11_SAMPLER_DESC BilinearWrapDesc = {};
+	BilinearWrapDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	BilinearWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	BilinearWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	BilinearWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	BilinearWrapDesc.MinLOD = -FLT_MAX;
+	BilinearWrapDesc.MaxLOD = FLT_MAX;
+	BilinearWrapDesc.MipLODBias = 0.0f;
+	BilinearWrapDesc.MaxAnisotropy = 1;
+	BilinearWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	BilinearWrapDesc.BorderColor[0] =
+		BilinearWrapDesc.BorderColor[1] =
+		BilinearWrapDesc.BorderColor[2] =
+		BilinearWrapDesc.BorderColor[3] = 0.0f;
+	EXIT_ON_FAILURE(device->CreateSamplerState(&BilinearWrapDesc, &Sampler::BilinearWrapSS));
+
+	// Bilinear Clamp Com Less
+	D3D11_SAMPLER_DESC BilinearClampComLessDesc = {};
+	BilinearClampComLessDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	BilinearClampComLessDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	BilinearClampComLessDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	BilinearClampComLessDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	BilinearClampComLessDesc.MinLOD = -FLT_MAX;
+	BilinearClampComLessDesc.MaxLOD = FLT_MAX;
+	BilinearClampComLessDesc.MipLODBias = 0.0f;
+	BilinearClampComLessDesc.MaxAnisotropy = 1;
+	BilinearClampComLessDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+	BilinearClampComLessDesc.BorderColor[0] =
+		BilinearClampComLessDesc.BorderColor[1] =
+		BilinearClampComLessDesc.BorderColor[2] =
+		BilinearClampComLessDesc.BorderColor[3] = 0.0f;
+	EXIT_ON_FAILURE(device->CreateSamplerState(&BilinearClampComLessDesc, &Sampler::BilinearClampComLessSS));
+
 	// Trilinear Clamp
-	D3D11_SAMPLER_DESC TriLinearClampDesc = {};
-	TriLinearClampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	TriLinearClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	TriLinearClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	TriLinearClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	TriLinearClampDesc.MinLOD = -FLT_MAX;
-	TriLinearClampDesc.MaxLOD = FLT_MAX;
-	TriLinearClampDesc.MipLODBias = 0.0f;
-	TriLinearClampDesc.MaxAnisotropy = 1;
-	TriLinearClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	TriLinearClampDesc.BorderColor[0] =
-		TriLinearClampDesc.BorderColor[1] =
-		TriLinearClampDesc.BorderColor[2] =
-		TriLinearClampDesc.BorderColor[3] = 0.0f;
-	EXIT_ON_FAILURE(device->CreateSamplerState(&TriLinearClampDesc, &Sampler::TriLinearClampSS));
+	D3D11_SAMPLER_DESC TrilinearClampDesc = {};
+	TrilinearClampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	TrilinearClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	TrilinearClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	TrilinearClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	TrilinearClampDesc.MinLOD = -FLT_MAX;
+	TrilinearClampDesc.MaxLOD = FLT_MAX;
+	TrilinearClampDesc.MipLODBias = 0.0f;
+	TrilinearClampDesc.MaxAnisotropy = 1;
+	TrilinearClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	TrilinearClampDesc.BorderColor[0] =
+		TrilinearClampDesc.BorderColor[1] =
+		TrilinearClampDesc.BorderColor[2] =
+		TrilinearClampDesc.BorderColor[3] = 0.0f;
+	EXIT_ON_FAILURE(device->CreateSamplerState(&TrilinearClampDesc, &Sampler::TrilinearClampSS));
 
 	// Trilinear Wrap
-	D3D11_SAMPLER_DESC TriLinearWrapDesc = {};
-	TriLinearWrapDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	TriLinearWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	TriLinearWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	TriLinearWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	TriLinearWrapDesc.MinLOD = -FLT_MAX;
-	TriLinearWrapDesc.MaxLOD = FLT_MAX;
-	TriLinearWrapDesc.MipLODBias = 0.0f;
-	TriLinearWrapDesc.MaxAnisotropy = 1;
-	TriLinearWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	TriLinearWrapDesc.BorderColor[0] =
-		TriLinearWrapDesc.BorderColor[1] =
-		TriLinearWrapDesc.BorderColor[2] =
-		TriLinearWrapDesc.BorderColor[3] = 0.0f;
-	EXIT_ON_FAILURE(device->CreateSamplerState(&TriLinearWrapDesc, &Sampler::TriLinearWrapSS));
+	D3D11_SAMPLER_DESC TrilinearWrapDesc = {};
+	TrilinearWrapDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	TrilinearWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	TrilinearWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	TrilinearWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	TrilinearWrapDesc.MinLOD = -FLT_MAX;
+	TrilinearWrapDesc.MaxLOD = FLT_MAX;
+	TrilinearWrapDesc.MipLODBias = 0.0f;
+	TrilinearWrapDesc.MaxAnisotropy = 1;
+	TrilinearWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	TrilinearWrapDesc.BorderColor[0] =
+		TrilinearWrapDesc.BorderColor[1] =
+		TrilinearWrapDesc.BorderColor[2] =
+		TrilinearWrapDesc.BorderColor[3] = 0.0f;
+	EXIT_ON_FAILURE(device->CreateSamplerState(&TrilinearWrapDesc, &Sampler::TrilinearWrapSS));
 
-	// Trilinear Wrap
+	// Anisotropic Clamp
+	D3D11_SAMPLER_DESC AnisotropicClampDesc = {};
+	AnisotropicClampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	AnisotropicClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	AnisotropicClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	AnisotropicClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	AnisotropicClampDesc.MinLOD = -FLT_MAX;
+	AnisotropicClampDesc.MaxLOD = FLT_MAX;
+	AnisotropicClampDesc.MipLODBias = 0.0f;
+	AnisotropicClampDesc.MaxAnisotropy = 16;
+	AnisotropicClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	AnisotropicClampDesc.BorderColor[0] =
+		AnisotropicClampDesc.BorderColor[1] =
+		AnisotropicClampDesc.BorderColor[2] =
+		AnisotropicClampDesc.BorderColor[3] = 0.0f;
+	EXIT_ON_FAILURE(device->CreateSamplerState(&AnisotropicClampDesc, &Sampler::AnisotropicClampSS));
+
+	// Anisotropic Wrap
 	D3D11_SAMPLER_DESC AnisotropicWrapDesc = {};
 	AnisotropicWrapDesc.Filter = D3D11_FILTER_ANISOTROPIC;
 	AnisotropicWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -75,13 +149,30 @@ HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 		AnisotropicWrapDesc.BorderColor[3] = 0.0f;
 	EXIT_ON_FAILURE(device->CreateSamplerState(&AnisotropicWrapDesc, &Sampler::AnisotropicWrapSS));
 
+	// Default depth - reverse-Z
+	// Depth - enable; Write - yes; Com - >; Sentil -disable
+	D3D11_DEPTH_STENCIL_DESC DefaultDSDesc;
+	DefaultDSDesc.DepthEnable = true;
+	DefaultDSDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DefaultDSDesc.DepthFunc = D3D11_COMPARISON_GREATER;
+	DefaultDSDesc.StencilEnable = false;
+	EXIT_ON_FAILURE(device->CreateDepthStencilState(&DefaultDSDesc, &DepthStencil::DefaultDSS));
+
 	// Depth - enable; Write - no; Com - <=; Stencil - disable
-	D3D11_DEPTH_STENCIL_DESC NoWriteLessEqualDesc;
-	NoWriteLessEqualDesc.DepthEnable = true;
-	NoWriteLessEqualDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	NoWriteLessEqualDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-	NoWriteLessEqualDesc.StencilEnable = false;
-	EXIT_ON_FAILURE(device->CreateDepthStencilState(&NoWriteLessEqualDesc, &DepthStencil::NoWriteLessEqualDSS));
+	D3D11_DEPTH_STENCIL_DESC NoWriteGreaterEqualDesc;
+	NoWriteGreaterEqualDesc.DepthEnable = true;
+	NoWriteGreaterEqualDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	NoWriteGreaterEqualDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+	NoWriteGreaterEqualDesc.StencilEnable = false;
+	EXIT_ON_FAILURE(device->CreateDepthStencilState(&NoWriteGreaterEqualDesc, &DepthStencil::NoWriteGreaterEqualDSS));
+
+	// Depth - enable; Write - enable; Test - none; Stencil - disable
+	D3D11_DEPTH_STENCIL_DESC WriteNoTestDesc;
+	WriteNoTestDesc.DepthEnable = true;
+	WriteNoTestDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	WriteNoTestDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	WriteNoTestDesc.StencilEnable = false;
+	EXIT_ON_FAILURE(device->CreateDepthStencilState(&WriteNoTestDesc, &DepthStencil::WriteNoTestDSS));
 
 	// Rasterizer - default
 	D3D11_RASTERIZER_DESC1 DefaulRasterizerDesc = {};
@@ -104,11 +195,16 @@ HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 
 void RenderStates::ReleaseAll()
 {
-	ReleaseCOM(Sampler::TriLinearClampSS);
-	ReleaseCOM(Sampler::TriLinearWrapSS);
+	ReleaseCOM(Sampler::BilinearClampSS);
+	ReleaseCOM(Sampler::BilinearWrapSS);
+	ReleaseCOM(Sampler::BilinearClampComLessSS);
+	ReleaseCOM(Sampler::TrilinearClampSS);
+	ReleaseCOM(Sampler::TrilinearWrapSS);
 	ReleaseCOM(Sampler::AnisotropicWrapSS);
 
-	ReleaseCOM(DepthStencil::NoWriteLessEqualDSS);
+	ReleaseCOM(DepthStencil::NoWriteGreaterEqualDSS);
+	ReleaseCOM(DepthStencil::DefaultDSS);
+	ReleaseCOM(DepthStencil::WriteNoTestDSS);
 
 	ReleaseCOM(Rasterizer::DefaultRS);
 	ReleaseCOM(Rasterizer::WireframeRS);

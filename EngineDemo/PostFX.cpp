@@ -46,14 +46,17 @@ namespace PostFX
 		textDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 		textDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
-		EXIT_ON_NULL(mDepthStencil =
+		EXIT_ON_NULL(mDepthStencilMain =
+					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+
+		EXIT_ON_NULL(mDepthStencilSecondary =
 					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
 
 		// depth copy view
 		textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-		EXIT_ON_NULL(mDepth =
-					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+//		EXIT_ON_NULL(mDepth =
+//					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
 
 		// TODO: move it somewhere
 		vector<TerrainClass::Vertex> patchVertices(4);
@@ -97,6 +100,8 @@ namespace PostFX
 		iinitData.pSysMem = &indices[0];
 		if (FAILED(device->CreateBuffer(&ibd, &iinitData, &mScreenQuadIB))) return false;
 
+		// TODO: don't use temporary debug shaders; look out for proper vertex position with reversed-Z
+
 		// pixel
 		CreatePSFromFile(L"..\\Debug\\DebugPS.cso", device, mDebugPS);
 
@@ -132,11 +137,12 @@ namespace PostFX
 	void Canvas::Swap()
 	{
 		std::swap(mMain, mSecondary);
+		std::swap(mDepthStencilMain, mDepthStencilSecondary);
 	}
 
 	void Canvas::CopyDepth(ID3D11DeviceContext1 * mImmediateContext)
 	{
-		mImmediateContext->CopyResource(mDepth->GetTexture(), mDepthStencil->GetTexture());
+		mImmediateContext->CopyResource(mDepthStencilSecondary->GetTexture(), mDepthStencilMain->GetTexture());
 	}
 
 	void Canvas::CopyFrame(ID3D11DeviceContext1 * mImmediateContext)
@@ -146,7 +152,7 @@ namespace PostFX
 
 	ID3D11ShaderResourceView * const * Canvas::GetDepthCopySRV() const
 	{
-		return mDepth->GetAddressOfSRV();
+		return mDepthStencilSecondary->GetAddressOfSRV();
 	}
 
 	void Canvas::Present(ID3D11DeviceContext1 *& mImmediateContext)
@@ -161,7 +167,6 @@ namespace PostFX
 		mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
 		mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
 
-		// Scale and shift quad to lower-right corner.
 		XMMATRIX world(
 			1.0f, 0.0f, 0.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
@@ -204,15 +209,20 @@ namespace PostFX
 		return (secondary ? mSecondary : mMain)->GetAddressOfUAV();
 	}
 
+	ID3D11ShaderResourceView * const * Canvas::GetDepthStencilSRV() const
+	{
+		return mDepthStencilSecondary->GetAddressOfSRV();
+	}
+
 	void Canvas::StartRegister(ID3D11DeviceContext1 * mImmediateContext, bool clear) const
 	{
-		RenderTargetStack::Push(mImmediateContext, mMain->GetAddressOfRTV(), mDepthStencil->GetDSV());
+		RenderTargetStack::Push(mImmediateContext, mMain->GetAddressOfRTV(), mDepthStencilMain->GetDSV());
 
 		if (clear)
 		{
 			float colour[4] = {};
 			mImmediateContext->ClearRenderTargetView(mMain->GetRTV(), colour);
-			mImmediateContext->ClearDepthStencilView(mDepthStencil->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+			mImmediateContext->ClearDepthStencilView(mDepthStencilMain->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
 		}
 	}
 

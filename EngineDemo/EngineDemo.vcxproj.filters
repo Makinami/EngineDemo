@@ -61,6 +61,12 @@
     <Filter Include="Shaders\Terrain2">
       <UniqueIdentifier>{58303a86-f9ed-4043-9478-9590c99c8696}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Sky2">
+      <UniqueIdentifier>{161e73ac-b895-4fbb-bbfc-a16fb2f10d83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Deferred Shaders">
+      <UniqueIdentifier>{f531fb3f-a0e4-4710-af29-328c0d22999c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -146,6 +152,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Terrain2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sky2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ShaderManager.cpp">
@@ -390,6 +402,15 @@
     <ClInclude Include="Terrain2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sky2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sky.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ShaderManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -515,12 +536,6 @@
     <FxCompile Include="Shaders\WaterBruneton\Bffty.hlsl">
       <Filter>Shaders\WaterBruneton</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl">
-      <Filter>Shaders\PostFX</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
-      <Filter>Shaders\PostFX</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Ocean\initFFT.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
@@ -545,11 +560,50 @@
     <FxCompile Include="Shaders\Ocean\OceanPSGerstner.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
-      <Filter>Shaders\Ocean</Filter>
+    <FxCompile Include="Shaders\Sky2\transmittance.hlsl">
+      <Filter>Shaders\Sky2</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
-      <Filter>Shaders\Ocean</Filter>
+    <FxCompile Include="Shaders\Sky2\inscatterSingle.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\irradianceSingle.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\zeroIrradiance.hlsl">
+      <Filter>Shaders\Sky</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\inscatterCopy.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\irradianceZero.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\inscatterMultipleA.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\irradianceMultiple.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\inscatterMultipleB.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\irradianceAdd.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky2\inscatterAdd.hlsl">
+      <Filter>Shaders\Sky2</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl">
+      <Filter>Shaders\PostFX</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl">
+      <Filter>Shaders\PostFX</Filter>
+    </FxCompile>
+    <FxCompile Include="cubeVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Sky\SkyPostFX.hlsl">
+      <Filter>Shaders\Sky</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Terrain2\OceanDF.hlsl">
       <Filter>Shaders\Terrain2</Filter>
@@ -572,6 +626,9 @@
     <FxCompile Include="Shaders\Terrain2\TerrainPS.hlsl">
       <Filter>Shaders\Terrain2</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Deferred Shaders\phongLingtingPS.hlsl">
+      <Filter>Shaders\Deferred Shaders</Filter>
+    </FxCompile>
     <FxCompile Include="Shaders\Ocean\OceanVS2.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
@@ -587,6 +644,18 @@
     <FxCompile Include="Shaders\Ocean\OceanPS3.hlsl">
       <Filter>Shaders\Ocean</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Ocean\SpectrumCS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\newInitFFTCS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />
@@ -598,6 +667,12 @@
     </None>
     <None Include="Shaders\WaterBruneton\atmosphere.hlsli">
       <Filter>Shaders\WaterBruneton</Filter>
+    </None>
+    <None Include="Shaders\Sky2\Structures.hlsli">
+      <Filter>Shaders\Sky2</Filter>
+    </None>
+    <None Include="Shaders\Sky2\Common.hlsli">
+      <Filter>Shaders\Sky2</Filter>
     </None>
     <None Include="Shaders\Ocean\perFrameCB.hlsli">
       <Filter>Shaders\Ocean</Filter>

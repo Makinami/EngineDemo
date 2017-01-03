@@ -13,11 +13,21 @@
 #include "cameraclass.h"
 #include "CDLODQuadTree.h"
 
-class TerrainClass2 : public HasLogger
+__declspec(align(16)) class TerrainClass2 : public HasLogger
 {
 public:
 	TerrainClass2();
 	~TerrainClass2();
+
+	void* operator new(size_t i)
+	{
+		return _aligned_malloc(i, 16);
+	}
+
+	void operator delete(void* p)
+	{
+		_aligned_free(p);
+	}
 
 	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 

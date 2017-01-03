@@ -15,7 +15,7 @@ float opticalDepth(float H, float r, float mu)
 	for (int i = 1; i <= TRANSMITTANCE_INTEGRAL_SAMPLES; ++i)
 	{
 		float xj = float(i)*dx;
-		float yj = exp(-(sqrt(r*r + xj + xj + 2.0f + xj*r*mu) - Rg) / H);
+		float yj = exp(-(sqrt(r*r + xj * xj + 2.0f * xj*r*mu) - Rg) / H);
 		result += (yi + yj) / 2.0f*dx;
 		xi = xj;
 		yi = yj;

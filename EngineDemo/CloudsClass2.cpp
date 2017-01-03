@@ -10,6 +10,8 @@
 #include "Utilities\CreateShader.h"
 #include "noise\noise.h"
 
+#include "RenderStates.h"
+
 using namespace std;
 using namespace DirectX;
 using namespace noise;
@@ -29,7 +31,6 @@ CloudsClass2::CloudsClass2()
 	mPixelShader(0),
 	cbPerFrameVS(0),
 	cbPerFramePS(0),
-	mSamplerStateTrilinear(0),
 	mDepthStencilState(0),
 	mRandomSeed(0),
 	mRandomSeedSRV(0)
@@ -59,7 +60,6 @@ CloudsClass2::~CloudsClass2()
 	ReleaseCOM(cbPerFrameVS);
 	ReleaseCOM(cbPerFramePS);
 
-	ReleaseCOM(mSamplerStateTrilinear);
 	ReleaseCOM(mDepthStencilState);
 
 	ReleaseCOM(mRandomSeed);
@@ -205,25 +205,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	cbDesc.ByteWidth = sizeof(cbPerFramePSType);
 
 	device->CreateBuffer(&cbDesc, NULL, &cbPerFramePS);
-
-	// sampler state
-	D3D11_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = FLT_MAX;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.BorderColor[0] =
-		samplerDesc.BorderColor[1] =
-		samplerDesc.BorderColor[2] =
-		samplerDesc.BorderColor[3] = 0.0f;
-
-	device->CreateSamplerState(&samplerDesc, &mSamplerStateTrilinear);
-
+	
 	// blend state
 	D3D11_BLEND_DESC1 blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = false;
@@ -289,7 +271,7 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->Unmap(cbPerFramePS, 0);
 
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
-	mImmediateContext->PSSetSamplers(3, 1, &mSamplerStateTrilinear);
+	mImmediateContext->PSSetSamplers(3, 1, &RenderStates::Sampler::TrilinearWrapSS);
 	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceSRV);
 	mImmediateContext->PSSetShaderResources(4, 1, &mCloudGeneralSRV);
 	mImmediateContext->PSSetShaderResources(5, 1, &mCloudDetailSRV);
@@ -344,7 +326,7 @@ int CloudsClass2::GenerateClouds(ID3D11DeviceContext1 * mImmediateContext)
 		std::default_random_engine generator;
 		std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
 
-		for (int i = 0; i < seed.size(); ++i)
+		for (auto i = 0; i < seed.size(); ++i)
 			seed[i] = distribution(generator);
 
 		mImmediateContext->UpdateSubresource(mRandomSeed, 0, NULL, &(seed[0]), sizeof(float) * 128, sizeof(float) * 128 * 128);
@@ -394,7 +376,7 @@ int CloudsClass2::GenerateClouds(ID3D11DeviceContext1 * mImmediateContext)
 					{
 						int index = i*GEN_RES *GEN_RES + j*GEN_RES + k;
 						voronoiNoise.SetFrequency(module::DEFAULT_VORONOI_FREQUENCY);
-						texture[index].x = max(0.0, min(1.0f, perlinNoise.GetValue(i * 5 / 128.0f, j * 5 / 128.0f, k * 5 / 128.0f)));
+						texture[index].x = max(0.0f, min(1.0f, perlinNoise.GetValue(i * 5 / 128.0f, j * 5 / 128.0f, k * 5 / 128.0f)));
 						texture[index].y = 0;// max(0, voronoiNoise.GetValue(i * 33 / 128.0f + 13 / 3.0f, j * 33 / 128.0f + 17 / 5.0f, k * 33 / 128.0f + 19 / 7.0f));
 						voronoiNoise.SetFrequency(voronoiNoise.GetFrequency() * 2);
 						texture[index].z = 0;// (1.0f + voronoiNoise.GetValue(i * 33 / 128.0f + 19 / 3.0f, j * 33 / 128.0f + 23 / 5.0f, k * 33 / 128.0f + 27 / 7.0f)) / 2.0f;

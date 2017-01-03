@@ -1,9 +1,9 @@
 Texture2D<float3> transmittance : register(t0);
 
-Texture3D<float3> deltaSR : register(t2);
-Texture3D<float3> deltaSM : register(t3);
+Texture3D<float4> deltaSR : register(t2);
+Texture3D<float4> deltaSM : register(t3);
 
-RWTexture2D<float3> deltaE : register(u0);
+RWTexture2D<float4> deltaE : register(u0);
 
 SamplerState samTransmittance : register(s0);
 SamplerState samDeltaSR : register(s1);
@@ -41,7 +41,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		for (int itheta = 0; itheta < IRRADIANCE_INTEGRAL_SAMPLES / 2; ++itheta)
 		{
 			float theta = (float(itheta) + 0.5) * dtheta;
-			float dw = dtheta*dphi * sin(theta);
+			float dw = dtheta * dphi * sin(theta);
 			float3 w = float3(cos(phi)*sin(theta), sin(phi)*sin(theta), cos(theta));
 			float nu = dot(s, w);
 			if (order.x == 2)
@@ -61,5 +61,5 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		}
 	}
 
-	deltaE[DTid.xy] = result;
+	deltaE[DTid.xy] = float4(result, 0.0);
 }

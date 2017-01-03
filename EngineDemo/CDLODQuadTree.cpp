@@ -28,11 +28,11 @@ HRESULT CDLODFlatQuadTree::Init(ID3D11Device1 * device, int _x, int _z, int _siz
 
 	for (auto i = 0; i < maxLOD; ++i)
 	{
-		morphStart = viewDistance*0.85;
-		morphEnd = viewDistance * 1.00;
+		morphStart = viewDistance*0.85f;
+		morphEnd = viewDistance * 1.00f;
 
 		CDLODQuadTreeConsts.LODConsts[i].morphConsts.x = morphEnd / (morphEnd - morphStart);
-		CDLODQuadTreeConsts.LODConsts[i].morphConsts.y = 1.0 / (morphEnd - morphStart);
+		CDLODQuadTreeConsts.LODConsts[i].morphConsts.y = 1.0f / (morphEnd - morphStart);
 		CDLODQuadTreeConsts.LODConsts[i].distance = viewDistance;
 		
 		viewDistance /= 2.0;
@@ -52,7 +52,7 @@ HRESULT CDLODFlatQuadTree::Init(ID3D11Device1 * device, int _x, int _z, int _siz
 	if (FAILED(device->CreateBuffer(&constantBufferDesc, &cbData, &mLODConstsCB))) return false;
 
 	// vertices
-	float step = 1.0 / granularity;
+	float step = 1.0f / granularity;
 
 	std::vector<XMFLOAT2> vertices((granularity+1) * (granularity+1));
 
@@ -133,13 +133,13 @@ void CDLODFlatQuadTree::ParseQuad(std::shared_ptr<CameraClass> & Camera, std::ve
 		return;
 	}
 
-	BoundingBox quadBox(XMFLOAT3(x + sizeX / 2.0, 0.0, z + sizeZ / 2.0), XMFLOAT3(sizeX / 2.0 + tile_buffer.x, tile_buffer.y, sizeZ / 2.0 + tile_buffer.z));
+	BoundingBox quadBox(XMFLOAT3(x + sizeX / 2.0f, 0.0f, z + sizeZ / 2.0f), XMFLOAT3(sizeX / 2.0f + tile_buffer.x, tile_buffer.y, sizeZ / 2.0f + tile_buffer.z));
 
 	ContainmentType contains = Camera->Contains(quadBox);
 
 	if (contains == DISJOINT) return;
 
-	quadBox = BoundingBox(XMFLOAT3(x + sizeX / 2.0, 0.0, z + sizeZ / 2.0), XMFLOAT3(sizeX / 2.0, 0, sizeZ / 2.0));
+	quadBox = BoundingBox(XMFLOAT3(x + sizeX / 2.0f, 0.0f, z + sizeZ / 2.0f), XMFLOAT3(sizeX / 2.0f, 0, sizeZ / 2.0f));
 
 	XMFLOAT3 camPos;
 	XMStoreFloat3(&camPos, Camera->GetPosition());
@@ -147,10 +147,10 @@ void CDLODFlatQuadTree::ParseQuad(std::shared_ptr<CameraClass> & Camera, std::ve
 
 	if (containsInside != DISJOINT)
 	{
-		ParseQuad(Camera, instances, x, z, sizeX / 2.0, sizeZ / 2.0, lod + 1);
-		ParseQuad(Camera, instances, x, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod + 1);
-		ParseQuad(Camera, instances, x + sizeX / 2.0, z, sizeX / 2.0, sizeZ / 2.0, lod + 1);
-		ParseQuad(Camera, instances, x + sizeX / 2.0, z + sizeZ / 2.0, sizeX / 2.0, sizeZ / 2.0, lod + 1);
+		ParseQuad(Camera, instances, x, z, sizeX / 2.0f, sizeZ / 2.0f, lod + 1);
+		ParseQuad(Camera, instances, x, z + sizeZ / 2.0f, sizeX / 2.0f, sizeZ / 2.0f, lod + 1);
+		ParseQuad(Camera, instances, x + sizeX / 2.0f, z, sizeX / 2.0f, sizeZ / 2.0f, lod + 1);
+		ParseQuad(Camera, instances, x + sizeX / 2.0f, z + sizeZ / 2.0f, sizeX / 2.0f, sizeZ / 2.0, lod + 1);
 	}
 	else
 	{

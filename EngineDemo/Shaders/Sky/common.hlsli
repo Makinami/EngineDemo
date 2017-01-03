@@ -131,7 +131,7 @@ void getMuMuSNu(float2 pos, float r, float4 dhdH, out float mu, out float muS, o
 	}
 	muS = fmod(x, float(RES_MU_S)) / (float(RES_MU_S) - 1.0);
 	muS = tan((2.0*muS - 1.0 + 0.26)*1.1) / tan(1.26*1.1);
-	nu = -1.0 + floor(x / float(RES_MU_S)) / (float(RES_NU) - 1.0)*2.0;
+	nu = -1.0 + floor(x / float(RES_MU_S)) / (float(RES_NU) - 1.0) * 2.0;
 #else
 	mu = -1.0 + 2.0*y / (float(RES_MU) - 1.0);
 	muS = fmod(x, float(RES_MU_S)) / (float(RES_MU_S) - 1.0);
@@ -217,32 +217,32 @@ float3 analyticTransmittance(float r, float mu, float d)
 }
 
 #ifdef USE_IRRADIANCE
-float3 getIrradiance(float r, float muS)
+float4 getIrradiance(float r, float muS)
 {
 	return deltaE.SampleLevel(samIrradiance, getIrradianceUV(r, muS), 0);
 }
 #endif
 
 #ifdef USE_DELTAS
-float3 getDeltaSR(float r, float mu, float muS, float nu)
+float4 getDeltaSR(float r, float mu, float muS, float nu)
 {
 	float uNu, uMuS, uMu, uR, lerp;
 	getTexture4DUVW(r, mu, muS, nu, uR, uMu, uMuS, uNu, lerp);
 	return deltaSR.SampleLevel(samDeltaSR, float3((uNu + uMuS) / float(RES_NU), uMu, uR), 0) * (1.0 - lerp) +
-		deltaSR.SampleLevel(samDeltaSM, float3((uNu + uMuS + 1.0) / float(RES_NU), uMu, uR), 0) * lerp;
+		deltaSR.SampleLevel(samDeltaSR, float3((uNu + uMuS + 1.0) / float(RES_NU), uMu, uR), 0) * lerp;
 }
 
-float3 getDeltaSM(float r, float mu, float muS, float nu)
+float4 getDeltaSM(float r, float mu, float muS, float nu)
 {
 	float uNu, uMuS, uMu, uR, lerp;
 	getTexture4DUVW(r, mu, muS, nu, uR, uMu, uMuS, uNu, lerp);
-	return deltaSM.SampleLevel(samDeltaSR, float3((uNu + uMuS) / float(RES_NU), uMu, uR), 0) * (1.0 - lerp) +
+	return deltaSM.SampleLevel(samDeltaSM, float3((uNu + uMuS) / float(RES_NU), uMu, uR), 0) * (1.0 - lerp) +
 		deltaSM.SampleLevel(samDeltaSM, float3((uNu + uMuS + 1.0) / float(RES_NU), uMu, uR), 0) * lerp;
 }
 #endif
 
 #ifdef USE_DELTAJ
-float3 getDeltaJ(float r, float mu, float muS, float nu)
+float4 getDeltaJ(float r, float mu, float muS, float nu)
 {
 	float uNu, uMuS, uMu, uR, lerp;
 	getTexture4DUVW(r, mu, muS, nu, uR, uMu, uMuS, uNu, lerp);

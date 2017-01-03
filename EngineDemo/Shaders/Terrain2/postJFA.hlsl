@@ -27,8 +27,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		float dx = heighmap.SampleLevel(trilinear, (float2(DTid.x + 1, DTid.y) + 0.5f) / 4096.0f, mip) - heighmap.SampleLevel(trilinear, (float2(DTid.x - 1, DTid.y) + 0.5f) / 4096.0f, mip);
 		float dy = heighmap.SampleLevel(trilinear, (float2(DTid.x, DTid.y + 1) + 0.5f) / 4096.0f, mip) - heighmap.SampleLevel(trilinear, (float2(DTid.x, DTid.y - 1) + 0.5f) / 4096.0f, mip);
 		df.zw = (dx || dy) ? normalize(float2(dx, dy)) : 0.0.xx;
-		dfWrite[DTid.xy] = df;
+		dfWrite[DTid.xy] = float4(df.r, max(-df.g, height), df.ba);
 	}
 	else
-		dfWrite[DTid.xy] = df;
+		dfWrite[DTid.xy] = float4(0.0, height, 0.0.xx);
 }

@@ -16,12 +16,15 @@
 #include "CloudsClass.h"
 #include "CloudsClass2.h"
 #include "Ocean.h"
+#include "Sky2.h"
 
 #include "Terrain2.h"
 
 #include "shadowmapclass.h"
 
 #include "PostFX.h"
+
+#include "GBuffer.h"
 
 /*struct DirectionalLight
 {
@@ -65,6 +68,8 @@ private:
 
 	std::unique_ptr<PostFX::Canvas> Canvas;
 	std::unique_ptr<PostFX::HDR> HDR;
+	std::unique_ptr<GBufferClass> GBuffer;
+	std::unique_ptr<SkyClass2> Sky2;
 
 	// temp
 	std::unique_ptr<ShadowMapClass> ShadowMap;

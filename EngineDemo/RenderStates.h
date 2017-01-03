@@ -10,14 +10,20 @@ public:
 
 	struct Sampler
 	{
-		static ID3D11SamplerState* TriLinearClampSS;
-		static ID3D11SamplerState* TriLinearWrapSS;
+		static ID3D11SamplerState* BilinearClampSS;
+		static ID3D11SamplerState* BilinearWrapSS;
+		static ID3D11SamplerState* BilinearClampComLessSS;
+		static ID3D11SamplerState* TrilinearClampSS;
+		static ID3D11SamplerState* TrilinearWrapSS;
+		static ID3D11SamplerState* AnisotropicClampSS;
 		static ID3D11SamplerState* AnisotropicWrapSS;
 	};
 
 	struct DepthStencil
 	{
-		static ID3D11DepthStencilState* NoWriteLessEqualDSS;
+		static ID3D11DepthStencilState* NoWriteGreaterEqualDSS;
+		static ID3D11DepthStencilState* DefaultDSS;
+		static ID3D11DepthStencilState* WriteNoTestDSS;
 	};
 
 	struct Rasterizer

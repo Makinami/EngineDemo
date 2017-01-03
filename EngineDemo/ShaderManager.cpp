@@ -115,7 +115,11 @@ path ShaderManager::ResolveIdentifierToPath(std::string & identifier)
 {
 	if (!(mShaderDir != path()))
 	{
+#if defined(DEBUG) | defined(_DEBUG)
 		fspath pathDif = "../Debug";
+#else
+		fspath pathDif = "../Release";
+#endif
 		mBaseDir = current_path() / pathDif;
 		mShaderDir = mBaseDir / "Shaders";
 	}

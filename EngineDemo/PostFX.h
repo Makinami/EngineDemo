@@ -53,14 +53,14 @@ namespace PostFX
 	public:
 		ID3D11ShaderResourceView*const* GetAddressOfSRV(bool secondary = false) const;
 		ID3D11UnorderedAccessView*const* GetAddressOfUAV(bool secondary = false) const;
+		ID3D11ShaderResourceView*const* GetDepthStencilSRV() const;
 
 	private:
 		std::unique_ptr<Texture> mMain;
 		std::unique_ptr<Texture> mSecondary;
 
-		std::unique_ptr<Texture> mDepth;
-
-		std::unique_ptr<Texture> mDepthStencil;
+		std::unique_ptr<Texture> mDepthStencilMain;
+		std::unique_ptr<Texture> mDepthStencilSecondary;
 		D3D11_VIEWPORT mViewPort;
 
 		// TEMP

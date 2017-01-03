@@ -56,7 +56,7 @@ namespace Debug
 		for (unsigned int i = 0; i < Watch.size(); ++i)
 		{
 			_snwprintf_s(buffer, 256, L"%20s: %.3fms %.3fms %.3fms %.3fms", Watch[i].name.c_str(), Watch[i].curr/clock, Watch[i].min/clock, Watch[i].max/clock, Watch[i].avg/clock);
-		//	mFontWrapper->DrawString(mImmediateContext, buffer, 16.0f, 100.0f, 50.0f+i*20.0f, 0xff0099ff, FW1_NOGEOMETRYSHADER | FW1_RESTORESTATE);
+			//mFontWrapper->DrawString(mImmediateContext, buffer, 16.0f, 100.0f, 50.0f+i*20.0f, 0xff0099ff, FW1_NOGEOMETRYSHADER | FW1_RESTORESTATE);
 		}
 	}
 

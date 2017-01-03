@@ -9,7 +9,9 @@ cbuffer constBuffer : register(b0)
 };
 
 Texture2DArray wavesDisplacement : register(t0);
+SamplerState samBilinear : register(s4);
 SamplerState samAnisotropic : register(s1);
+Texture2DArray turbulenceMap : register(t2);
 
 Texture2D slopeVariance : register(t4);
 
@@ -22,7 +24,7 @@ Texture2D<float4> frame : register(t15);
 
 static const float4 seaColour = float4(10.0, 40.0, 120.0, 25.5) / 255.0;
 
-static const float3 rgbExtinction = float3(4.5, 75.0, 300.0)/2.0;
+static const float3 rgbExtinction = float3(4.5, 75.0, 300.0) / 2.0;
 
 static float Zview = 0.0f;
 static float3 surfacePos = 0.0f.xxx;
@@ -34,6 +36,12 @@ struct DomainOut
 	float3 PosW : TEXTCOORD1;
 	float4 params : TEXTCOORD2;
 };
+
+// Utility function that maps a value from one range to another.
+float Remap(float original_value, float original_min, float original_max, float new_min, float new_max)
+{
+	return new_min + ((original_value - original_min) / (original_max - original_min)) * (new_max - new_min);
+}
 
 // assert x>0
 float erfc(float x)
@@ -155,14 +163,13 @@ float4 main(DomainOut pin) : SV_TARGET
 	float2 slopesmall = 0.0.xx;
 
 	float3 resolution = float3(1.0 - smoothstep(2.0*GRID_SIZE.x, 4.0*GRID_SIZE.x, dist), 1.0 - smoothstep(1.0*GRID_SIZE.y, 3.0*GRID_SIZE.y, dist), 1.0 - smoothstep(0.5*GRID_SIZE.z, 4.0*GRID_SIZE.z, dist));
-	slopebig += wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 4)).xy;
+	slopebig += wavesDisplacement.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.x, 4)).xy;
 	if (resolution.x > 0.0)
-	slopebig += resolution.x*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
+		slopebig += resolution.x*wavesDisplacement.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.y, 4)).zw;
 	if (resolution.y > 0.0)
-	slopesmall += resolution.y*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
+		slopesmall += resolution.y*wavesDisplacement.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.z, 5)).xy;
 	if (resolution.z > 0.0)
-	slopesmall += resolution.z*wavesDisplacement.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
-
+		slopesmall += resolution.z*wavesDisplacement.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.w, 5)).zw;
 
 	float3 NormalFFTBig = normalize(float3(-slopebig.x, 1.0, -slopebig.y));
 	float3 NormalFFTSmall = normalize(float3(-slopesmall.x, 1.0, -slopesmall.y));
@@ -172,6 +179,12 @@ float4 main(DomainOut pin) : SV_TARGET
 
 	float3 N = Normal;
 
+	float3 turbulence = float3(0.0, 0.0, 0.0);
+	turbulence += turbulenceMap.Sample(samAnisotropic, float3(pin.PosF.xy / GRID_SIZE.x, 0)).xyz;
+	if (resolution.x > 0.0)
+		turbulence += resolution.x*turbulenceMap.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.y, 1)).xyz;
+	if (resolution.y > 0.0)
+		slopesmall += resolution.y*turbulenceMap.Sample(samBilinear, float3(pin.PosF.xy / GRID_SIZE.z, 2)).xyz;
 
 	float3 R = reflect(V, N);
 	float3 H = normalize(V + sunDir);
@@ -213,25 +226,49 @@ float4 main(DomainOut pin) : SV_TARGET
 	float3 skyLight = fresnelUp * meanSkyRadiance(V, N, Tx, Tz, sigma2);
 	float3 sunLight = reflectedSunRadiance(sunDir, V, N, Tx, Tz, sigma) *Lsun;
 
-	result += lerp(seaLight, frame[pin.PosH.xy], 1-ext);
-	result += skyLight;
-	result += sunLight;
+	result += lerp(seaLight, frame[pin.PosH.xy], 1 - ext);
+	//result += skyLight;
+	//result += sunLight;
 	//result += turbulence.zzz * (samNoise + turbulence.yyy);// *samNoise;
 
 	float x = frac(pin.params.x / (2 * pi));
 	float y1 = 3.0*x - 2;
 	float y2 = -8 * x + 1;
-	float foam_param = saturate(max(y1, y2))*pin.PosF.z*pin.PosF.z;
+	float foam_param = Remap(max(y1, y2), -pin.PosF.z*1.0, 1.0, 0, 1)*pin.PosF.z*pin.PosF.z;
+	//saturate(max(y1, y2))*pin.PosF.z*pin.PosF.z;
 
-	if (foam_param > 0.0)
+
+	float foam_texture = 0.0;
+	if (turbulence.z > 0.0 || foam_param > 0.0)
 	{
-		float foam_text = foam.Sample(samAnisotropic, pin.PosF.xy / 5.0)*5.0;
-		result = lerp(result, foam_text, foam_param);
+		foam_texture = foam.Sample(samAnisotropic, pin.PosF.xy / 20.0);
+		Remap(foam_texture, 0.0, 1.0, min(turbulence.z + foam_param, 1.0), max(turbulence.z + foam_param, 1.0));
+		foam_texture *= 0.5 + smoothstep(0.0, 2.0, 2.0 - turbulence.g);
+		//foam_texture *= (foam_texture < (turbulence.z + foam_param) && (turbulence.z + foam_param) < 1.0) ? 0.0 : max(turbulence.z + foam_param, 1.0);// : 0.0;
+		//foam_texture = foam_texture*(turbulance.z + foam_param)
+		result += lerp(skyLight + sunLight, foam_texture*(Lsun + Esky*5.0)*0.025, smoothstep(0.0, 2.0, turbulence.z + foam_param));
 	}
+	else
+	{
+		result += skyLight + sunLight;
+	}
+
+	//result += skyLight + sunLight + sunLight*foam_texture;
+
+	//if (foam_param > 0.0)
+	//{
+	//	foam_texture = foam.Sample(samAnisotropic, pin.PosF.xy / 15.0);
+	//	//result = lerp(result, foam_text, foam_param);
+	//}
+
+	//if (turbulance.z > 0.0 || foam_param > 0.0)
+	//{
+	//	result += (skyLight + sunLight) * 0.1 + 
+	//}
 
 	//return float4(ua, ub, uc, 1.0);
 
-	return float4((result), 1.0);
+	return float4(result, 1.0);
 
 
 	/*float3 view = normalize(camPos - pin.PosW);

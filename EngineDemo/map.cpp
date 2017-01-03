@@ -45,6 +45,9 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	Canvas = std::make_unique<PostFX::Canvas>();
 	Canvas->Init(device, 1280, 720);
 
+	GBuffer = std::make_unique<GBufferClass>();
+	GBuffer->Init(device, 1280, 720);
+
 	Sky = std::make_shared<SkyClass>();
 	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
@@ -57,7 +60,11 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	}
 	LogSuccess(L"Ocean initiated");
 
-	Terrain = std::make_shared<TerrainClass>();
+	//Terrain = std::make_shared<TerrainClass>();
+	Sky2 = std::make_unique<SkyClass2>();
+	Sky2->Init(device, dc);
+
+	/*Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
 	TerrainClass::InitInfo tii;
@@ -79,7 +86,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 		return false;
 	}
 	LogSuccess(L"Terrain initiated");
-	
+	*/
 	Clouds = std::make_shared<CloudsClass>();
 	//Clouds->Init(device, dc);
 
@@ -200,7 +207,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	iinitData.pSysMem = &cubeIndices[0];
 	device->CreateBuffer(&ibd, &iinitData, &mCubeIB);
 
-	CreatePSFromFile(L"..\\Debug\\cubePS.cso", device, mCubePS);
+	CreatePSFromFile(L"..\\Debug\\BasicPS.cso", device, mCubePS);
 
 	D3D11_INPUT_ELEMENT_DESC cubeVertexDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -241,7 +248,11 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	Canvas->StartRegister(mImmediateContext);
+	GBuffer->SetBufferRTV(mImmediateContext);
+	Terrain2->Draw(mImmediateContext, Camera, light);
+	GBuffer->UnsetBufferRTV(mImmediateContext);
+
+	//Canvas->StartRegister(mImmediateContext);
 	/*light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
 
 	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
@@ -260,15 +271,16 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	//Water->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
-	
+
+	//Terrain2->Draw(mImmediateContext, Camera, light);
 	Sky->DrawToMap(mImmediateContext, light);
 	//Sky->DrawToScreen(mImmediateContext, Camera, light);
+	//Sky2->Draw(mImmediateContext);
+	//Sky->Draw(mImmediateContext, Camera, light);
 
 	//WaterB->Draw(mImmediateContext, Camera, light);
 	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	//Ocean->Draw(mImmediateContext, Camera, light);
-
-	Terrain2->Draw(mImmediateContext, Camera, light);
+	//Ocean->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
 
 	//DrawDebug(mImmediateContext, Camera);
 	
@@ -281,24 +293,32 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	
 	Sky->DrawToScreen(mImmediateContext, Camera, light);*/
 
+	//Sky->Draw(mImmediateContext, Camera, light);
+
+	Canvas->StartRegister(mImmediateContext);
+
+	GBuffer->Resolve(mImmediateContext, Camera, light);
+
 	Sky->Draw(mImmediateContext, Camera, light);
+
+	Canvas->StopRegister(mImmediateContext);
+
+	//Canvas->Present(mImmediateContext);
 
 	//Clouds->Draw(mImmediateContext, Camera, light);
 	//Clouds2->GenerateClouds(mImmediateContext);
 	//Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
 
-	Canvas->StopRegister(mImmediateContext);
+	//Canvas->StopRegister(mImmediateContext);
 
 	Canvas->CopyDepth(mImmediateContext);
 	Canvas->CopyFrame(mImmediateContext);
 
-	Canvas->Swap();
+	//Canvas->Swap();
 
 	Canvas->StartRegister(mImmediateContext, false);
 	Ocean->DrawPost(mImmediateContext, Canvas, Camera, light);
 	Canvas->StopRegister(mImmediateContext);
-
-	//Canvas->Swap();
 
 	HDR->Process(mImmediateContext, Canvas);
 	Canvas->Present(mImmediateContext);
@@ -320,14 +340,14 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->IASetIndexBuffer(mCubeIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mCubeIL);
 
-	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0, 0.0));
+	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(10000.0f, 0.0, 0.0) * XMMatrixScaling(1.0, 10000.0, 10000.0));
 	MapResources(mImmediateContext, MatrixBuffer, MatrixBufferParams);
 
 	mImmediateContext->VSSetShader(mCubeVS, nullptr, 0);
 	mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
 
 	mImmediateContext->PSSetShader(mCubePS, nullptr, 0);
-
+	
 	mImmediateContext->DrawIndexed(36, 0, 0);
 
 	// SHADOW MAP

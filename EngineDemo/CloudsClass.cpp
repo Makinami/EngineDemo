@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Utilities\CreateShader.h"
+#include "RenderStates.h"
 
 using namespace std;
 using namespace DirectX;
@@ -17,8 +18,7 @@ CloudsClass::CloudsClass() :
 	mVertexShader(0),
 	mPixelShader(0),
 	cbPerFrameVS(0),
-	cbPerFramePS(0),
-	mSamplerStateTrilinear(0)
+	cbPerFramePS(0)
 {
 }
 
@@ -39,8 +39,6 @@ CloudsClass::~CloudsClass()
 
 	ReleaseCOM(cbPerFrameVS);
 	ReleaseCOM(cbPerFramePS);
-
-	ReleaseCOM(mSamplerStateTrilinear);
 }
 
 int CloudsClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)
@@ -140,24 +138,6 @@ int CloudsClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateC
 
 	device->CreateBuffer(&cbDesc, NULL, &cbPerFramePS);
 
-	// sampler state
-	D3D11_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = FLT_MAX;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.BorderColor[0] =
-		samplerDesc.BorderColor[1] =
-		samplerDesc.BorderColor[2] =
-		samplerDesc.BorderColor[3] = 0.0f;
-
-	device->CreateSamplerState(&samplerDesc, &mSamplerStateTrilinear);
-
 	D3D11_BLEND_DESC1 blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = false;
 	blendDesc.IndependentBlendEnable = false;
@@ -217,7 +197,7 @@ void CloudsClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr
 
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 	mImmediateContext->PSSetShaderResources(0, 1, &mCloudSRV);
-	mImmediateContext->PSSetSamplers(3, 1, &mSamplerStateTrilinear);
+	mImmediateContext->PSSetSamplers(3, 1, &RenderStates::Sampler::TrilinearClampSS);
 
 	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
 

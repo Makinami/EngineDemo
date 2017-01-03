@@ -20,7 +20,7 @@ VertexOut main(VertexIn vin)
 {
 	VertexOut vout;
 
-	vout.PosH = mul(float4(vin.PosL, 1.0f), gViewProj);
+	vout.PosH = mul(float4(vin.PosL.xy, 1.0, 1.0f), gViewProj);
 	vout.Tex = vin.Tex;
 
 	return vout;

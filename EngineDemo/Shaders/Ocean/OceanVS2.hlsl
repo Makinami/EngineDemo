@@ -38,7 +38,7 @@ struct VertexIn
 
 struct VertexOut
 {
-	float2 Pos : POSITION;
+	float3 Pos : POSITION;
 	float4 param : TEXTCOORD;
 };
 
@@ -66,18 +66,18 @@ VertexOut main(VertexIn vin)
 	vout.Pos.xy = morphedVertex * vin.size + float2(vin.offsetx, vin.offsety);
 	PosW = float3(vout.Pos.x, 0.0, vout.Pos.y);
 	//vout.Pos.z = length(camPos - PosW);
-	
+
 
 	float2 pos = vout.Pos.xy;
 	float4 DF = distanceField.SampleLevel(samAnisotropic, (pos + 2048.0f) / 4096.0, 4);
 
-	float depth = DF.y;
-
+	float depth = -DF.y;
+	vout.Pos.z = -depth;
 	float pi = 3.141529;
 	float g = 9.81;
 	float2 wind = float2(-1.0, 0.0);
 
-	float2 gradient = any(DF.zw) ? normalize(normalize(DF.zw) + 0.2*wind) : 0.0.xx;// normalize(float2(10.0, 10.0));
+	float2 gradient = any(DF.zw) ? normalize(normalize(DF.zw) + 0.5*wind) : 0.0.xx;// normalize(float2(10.0, 10.0));
 
 	float wind_dependent = (dot(gradient, wind) + 1.0)*0.5;
 

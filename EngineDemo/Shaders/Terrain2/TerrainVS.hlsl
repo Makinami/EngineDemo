@@ -34,6 +34,7 @@ struct VertexOut
 	float4 PosH : SV_POSITION;
 	float3 PosF : TEXTCOORD0;
 	float3 PosW : TEXTCOORD1;
+	float3 Normal : NORMAL;
 };
 
 //static float3 g_gridDim = 0.0f.xxx;
@@ -55,12 +56,7 @@ cbuffer MatrixBuffer : register(b4)
 
 Texture2D<float> gHeightMap : register(t10);
 
-SamplerState bilinear
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-	AddressU = Clamp;
-	AddressV = Clamp;
-};
+SamplerState samBilinearClamp : register(s0);
 
 VertexOut main( VertexIn vin ) 
 {
@@ -78,7 +74,22 @@ VertexOut main( VertexIn vin )
 	vout.PosW = float3(vout.PosF.x, 0.0, vout.PosF.y);
 	vout.PosF.z = length(camPos - vout.PosW);
 
-	vout.PosW.y = gHeightMap.SampleLevel(bilinear, vout.PosW.xz/4096.0f+0.5f, 0.0);
+	vout.PosW.y = gHeightMap.SampleLevel(samBilinearClamp, vout.PosW.xz/4096.0f+0.5f, 0.0);
+
+	float4 h;
+	h[0] = gHeightMap.SampleLevel(samBilinearClamp, (vout.PosW.xz + float2(0,-1)) / 4096.0f + 0.5f, 0.0);
+	h[1] = gHeightMap.SampleLevel(samBilinearClamp, (vout.PosW.xz + float2(-1,0)) / 4096.0f + 0.5f, 0.0);
+	h[2] = gHeightMap.SampleLevel(samBilinearClamp, (vout.PosW.xz + float2(1,0)) / 4096.0f + 0.5f, 0.0);
+	h[3] = gHeightMap.SampleLevel(samBilinearClamp, (vout.PosW.xz + float2(0, 1)) / 4096.0f + 0.5f, 0.0);
+
+	float3 n;
+	n.z = h[0] - h[3];
+	n.x = h[1] - h[2];
+	n.y = 2;
+
+
+	//vout.Normal = normalize(vout.Normal);
+	vout.Normal = normalize(n);
 
 	vout.PosH = mul(float4(vout.PosW, 1.0f), gViewProj);
 

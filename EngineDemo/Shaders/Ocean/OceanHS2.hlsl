@@ -3,14 +3,14 @@
 // Input control point
 struct VertexOut
 {
-	float2 Pos : POSITION;
+	float3 Pos : POSITION;
 	float4 param : TEXTCOORD;
 };
 
 // Output control point
 struct HullOut
 {
-	float2 Pos : POSITION;
+	float3 Pos : POSITION;
 	float4 param : TEXTCOORD;
 };
 
@@ -46,7 +46,7 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 			Output.EdgeTessFactor[2] =
 			Output.InsideTessFactor = 0;
 	}
-	
+
 	return Output;
 }
 
