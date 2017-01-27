@@ -26,6 +26,8 @@
 
 #include "GBuffer.h"
 
+#include "AntTweakBar.h"
+
 /*struct DirectionalLight
 {
 	DirectionalLight() { ZeroMemory(this, sizeof(this)); }
@@ -97,4 +99,10 @@ private:
 	ID3D11InputLayout* mCubeIL;
 	ID3D11VertexShader* mCubeVS;
 	ID3D11PixelShader* mCubePS;
+
+	// TweakBar
+	TwBar *myBar;
+
+	bool animatedSun;
+	int animationSpeed;
 };

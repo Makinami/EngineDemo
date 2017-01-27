@@ -3,6 +3,7 @@
 #define CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
+#include <list>
 
 /* temp */
 //---------------------------------------------------------------------------------------
@@ -31,6 +32,7 @@
 #include "inih\cpp\INIReader.h"
 #include "loggerclass.h"
 
+#include "ResizeEvent.h"
 #include "Utilities\RenderViewTargetStack.h"
 
 using namespace DirectX;

@@ -20,10 +20,35 @@ std::shared_ptr<ShaderManager> ShaderManager::Instance()
 
 void ShaderManager::ReleaseAll()
 {
+	// Pixel Shader
 	std::for_each(begin(PS), end(PS), [](auto&& it) { 
 		ReleaseCOM(it.second); 
 	});
 	PS.clear();
+
+	// Hull Shader
+	std::for_each(begin(HS), end(HS), [](auto&& it) {
+		ReleaseCOM(it.second);
+	});
+	HS.clear();
+
+	// Domain Shader
+	std::for_each(begin(DS), end(DS), [](auto&& it) {
+		ReleaseCOM(it.second);
+	});
+	DS.clear();
+
+	// Geometry Shader
+	std::for_each(begin(GS), end(GS), [](auto&& it) {
+		ReleaseCOM(it.second);
+	});
+	GS.clear();
+
+	// Compute Shader
+	std::for_each(begin(CS), end(CS), [](auto&& it) {
+		ReleaseCOM(it.second);
+	});
+	CS.clear();
 }
 
 ID3D11PixelShader * ShaderManager::GetPS(string identifier)

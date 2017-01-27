@@ -70,5 +70,10 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> mQuadIL;
 	ID3D11VertexShader* mQuadVS;
+
+	// TODO temp
+	std::unique_ptr<Texture> mGenHeightmap;
+
+	ID3D11ComputeShader* mCreateHM;
 };
 

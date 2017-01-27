@@ -15,7 +15,9 @@
 #include "Shaders\Sky2\Structures.hlsli"
 
 SkyClass::SkyClass()
-	: skyMapSize(512)
+	: skyMapSize(512),
+	mMapVertexShader(0),
+	mMapPixelShader(0)
 {
 }
 
@@ -330,11 +332,22 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 HRESULT SkyClass::Shutdown()
 {
+	//ReleaseCOM(cbNOrder);
+	ReleaseCOM(skyMapCB);
+
+	ReleaseCOM(nOrderCB);
+
+	ReleaseCOM(mMapVertexShader);
+
 	ReleaseCOM(mTransmittanceCS);
 	ReleaseCOM(mIrradianceSingleCS);
 	ReleaseCOM(mInscatterSingleCS);
 	ReleaseCOM(mInscatterCopyCS);
 	ReleaseCOM(mIrradianceZeroCS);
+
+	ReleaseCOM(transmittanceFile);
+	ReleaseCOM(inscatterFile);
+	ReleaseCOM(irradianceFile);
 
 	mTransmittanceTex.release();
 	mDeltaETex.release();
@@ -445,7 +458,10 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 
 	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
 
-	RenderTargetStack::Pop(mImmediateContext);
+	if (!RenderTargetStack::Pop(mImmediateContext))
+	{
+		MessageBox(nullptr, L"Cannot pop RTV - only one (Sky)", nullptr, 0);
+	}
 	ViewportStack::Pop(mImmediateContext);
 
 	mImmediateContext->GenerateMips(newMapText->GetSRV());

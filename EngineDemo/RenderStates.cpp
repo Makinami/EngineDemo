@@ -26,6 +26,7 @@ ID3D11DepthStencilState* RenderStates::DepthStencil::DefaultDSS				= nullptr;
 ID3D11DepthStencilState* RenderStates::DepthStencil::WriteNoTestDSS			= nullptr;
 
 ID3D11RasterizerState1*  RenderStates::Rasterizer::DefaultRS				= nullptr;
+ID3D11RasterizerState1*	 RenderStates::Rasterizer::NoCullingRS				= nullptr;
 ID3D11RasterizerState1*  RenderStates::Rasterizer::WireframeRS				= nullptr;
 
 HRESULT RenderStates::InitAll(ID3D11Device1 * device)
@@ -182,6 +183,14 @@ HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 	DefaulRasterizerDesc.DepthClipEnable = true;
 	EXIT_ON_FAILURE(device->CreateRasterizerState1(&DefaulRasterizerDesc, &Rasterizer::DefaultRS));
 
+	// Rasterizer - no culling
+	D3D11_RASTERIZER_DESC1 NoCullingRasterizerDesc = {};
+	NoCullingRasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	NoCullingRasterizerDesc.CullMode = D3D11_CULL_NONE;
+	NoCullingRasterizerDesc.FrontCounterClockwise = false;
+	NoCullingRasterizerDesc.DepthClipEnable = true;
+	EXIT_ON_FAILURE(device->CreateRasterizerState1(&NoCullingRasterizerDesc, &Rasterizer::NoCullingRS));
+
 	// Rasterizer - wireframe
 	D3D11_RASTERIZER_DESC1 WireframeDesc = {};
 	WireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
@@ -200,6 +209,7 @@ void RenderStates::ReleaseAll()
 	ReleaseCOM(Sampler::BilinearClampComLessSS);
 	ReleaseCOM(Sampler::TrilinearClampSS);
 	ReleaseCOM(Sampler::TrilinearWrapSS);
+	ReleaseCOM(Sampler::AnisotropicClampSS);
 	ReleaseCOM(Sampler::AnisotropicWrapSS);
 
 	ReleaseCOM(DepthStencil::NoWriteGreaterEqualDSS);

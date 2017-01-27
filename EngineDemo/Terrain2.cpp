@@ -27,7 +27,9 @@ bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 
 	mProcessHM = ShaderManager::Instance()->GetCS("Terrain2::procesHeighmap");
 
-	CreateDDSTextureFromFile(device, L"lake.dds", nullptr, &mHeighmapRawSRV);
+	mCreateHM = ShaderManager::Instance()->GetCS("Terrain2::createHM");
+
+	CreateDDSTextureFromFile(device, L"ring.dds", nullptr, &mHeighmapRawSRV);
 	CreateDDSTextureFromFile(device, L"processedHeighmap.dds", nullptr, &mProDF);
 	//mImmediateContext->VSSetShaderResources(40, 1, mProDF.GetAddressOf());
 
@@ -57,10 +59,24 @@ bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 											   DXGI_FORMAT_R16_FLOAT,
 											   4096, 4096));
 
-	CreateConstantBuffer(device, sizeof(JFAParams), mJFACB);
+	//textDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	EXIT_ON_NULL(mGenHeightmap =
+		TextureFactory::CreateTexture(textDesc));
+
+
 
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
 	ID3D11ShaderResourceView* ppSRVNULL[4] = { NULL, NULL, NULL, NULL };
+
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mGenHeightmap->GetAddressOfUAV(), nullptr);
+	mImmediateContext->CSSetShader(mCreateHM, nullptr, 0);
+
+	mImmediateContext->Dispatch(4096 / 16, 4096 / 16, 1);
+
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
+	mImmediateContext->VSSetShaderResources(95, 1, mGenHeightmap->GetAddressOfSRV());
+
+	CreateConstantBuffer(device, sizeof(JFAParams), mJFACB);
 
 	JFAParams.size[0] = 4096;
 	JFAParams.size[1] = 4096;
@@ -122,6 +138,8 @@ bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 	mImmediateContext->GenerateMips(mOceanDFA->GetSRV());
 
 	mImmediateContext->VSSetShaderResources(40, 1, mOceanDFA->GetAddressOfSRV());
+	mImmediateContext->VSSetShaderResources(41, 1, mHeighmap->GetAddressOfSRV());
+	mImmediateContext->VSSetShaderResources(42, 1, mGenHeightmap->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(40, 1, mOceanDFA->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(86, 1, mHeighmap->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(84, 1, mHeighmapRawSRV.GetAddressOf());
@@ -170,6 +188,8 @@ void TerrainClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 
 	// PS
 	mImmediateContext->PSSetShader(mPixelShader, nullptr, 0);
+	mImmediateContext->PSSetShaderResources(0, 1, mHeighmapRawSRV.GetAddressOf());
+	mImmediateContext->PSSetSamplers(0, 1, &RenderStates::Sampler::BilinearWrapSS);
 
 	// RS
 	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);

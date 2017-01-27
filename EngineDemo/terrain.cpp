@@ -52,7 +52,7 @@ TerrainClass::~TerrainClass()
 	//ReleaseCOM(mSamplerStates[0]);
 	//ReleaseCOM(mSamplerStates[1]);
 	//ReleaseCOM(mSamplerStates[2]);
-	//delete[] mSamplerStates;
+	delete[] mSamplerStates;
 }
 
 float TerrainClass::GetWidth() const
@@ -194,6 +194,9 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 
 void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
+	mImmediateContext->PSSetShaderResources(2, 1, &mLayerMapArraySRV);
+	return;
+
 	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();//XMMatrixTranspose(V*P);
 	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();//XMMatrixTranspose(V*P*T);
 
@@ -298,7 +301,7 @@ void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	if (ShadowMap) mImmediateContext->RSSetState(mRastStateBasic);
 	else mImmediateContext->RSSetState(mRastStateShadow);
 
-	mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
+	//mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
 
 	mImmediateContext->HSSetShader(0, 0, 0);
 	mImmediateContext->DSSetShader(0, 0, 0);

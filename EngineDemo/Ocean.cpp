@@ -50,7 +50,11 @@ OceanClass::OceanClass() :
 	screenHeight(720),
 	screenGridSize(2),
 	screen(0),
-	changed(true)
+	changed(true),
+	initFFTCB(nullptr),
+	wind_heading(0),
+	wind_speed(10),
+	max_depth(100)
 {
 	random_device rd;
 	mt.seed(rd());
@@ -72,7 +76,7 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 
 	EXIT_ON_FAILURE(CreateSamplerRasterDepthStencilStates(device));
 
-	//CreateGridMesh(device);
+	//CreateGridMesh(device);d
 
 	//CreateScreenMesh(device);
 
@@ -86,13 +90,48 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, varianceUAV.GetAddressOf(), nullptr);
 	mImmediateContext->CSSetShader(slopeVarianceCS.Get(), nullptr, 0);
 	mImmediateContext->CSSetConstantBuffers(0, 2, buffers);
+	//mImmediateContext->CSSetShaderResources(8, 1, phaseSRV.GetAddressOf());
+	mImmediateContext->CSSetUnorderedAccessViews(8, 1, newSpectrumUAV.GetAddressOf(), nullptr);
 
-	mImmediateContext->Dispatch(varianceRes / 16, varianceRes / 16, 1);
+	//mImmediateContext->Dispatch(varianceRes / 16, varianceRes / 16, 16);
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 
 	oceanQuadTree.Init(device, -40960.0f, -40960.0f, 81920.0f, 81920.0f, 15, 12, XMFLOAT3(30.0, 15.0, 30.0));
 
+	CreateDDSTextureFromFile(device, L"Textures\\FoamCombined.dds", nullptr, &FoamCombinedSRV);
+	CreateDDSTextureFromFile(device, L"Textures\\FoamRamp.dds", nullptr, &FoamRampSRV);
+	CreateDDSTextureFromFile(device, L"Textures\\ColourDepthRamp.dds", nullptr, &ColourDepthRampSRV);
+
+	myBar = TwNewBar("Ocean");
+
+	TwAddVarRW(myBar, "Wind speed", TW_TYPE_FLOAT, &wind_speed, " group=Wind  min=2.7 max=33.0 step=0.1 precision=1 ");
+	TwAddVarRW(myBar, "Wind heading", TW_TYPE_FLOAT, &wind_heading, " group=Wind ");
+	
+	perFrameParams.maxDepth = 100.0;
+	TwAddVarRW(myBar, "MaxDep", TW_TYPE_FLOAT, &perFrameParams.maxDepth, " label='Max depth' min=1");
+	perFrameParams.seaColourAlpha = 0.25;
+	TwAddVarRW(myBar, "SeaColourA", TW_TYPE_FLOAT, &perFrameParams.seaColourAlpha, " label='Sea Colour Alpha' min=0 max=1 step=0.01 ");
+
+	perFrameParams.SeaFlag = true;
+	TwAddVarRW(myBar, "SeaFlag", TW_TYPE_BOOL32, &perFrameParams.SeaFlag, " label='Sea Light' ");
+	perFrameParams.SunFlag = true;
+	TwAddVarRW(myBar, "SunFlag", TW_TYPE_BOOL32, &perFrameParams.SunFlag, " label='Sun Light' ");
+	perFrameParams.SkyFlag = true;
+	TwAddVarRW(myBar, "SkyFlag", TW_TYPE_BOOL32, &perFrameParams.SkyFlag, " label='Sky Light' ");
+
+	perFrameParams.seaColour = XMFLOAT4{ 10.0f / 255.0f, 40.0F / 255.0f, 120.0f / 255.0f, 25.5f / 255.0f };
+	TwAddVarRW(myBar, "Red", TW_TYPE_FLOAT, &perFrameParams.seaColourSSS.x, "");
+	TwAddVarRW(myBar, "Green", TW_TYPE_FLOAT, &perFrameParams.seaColourSSS.y, "");
+	TwAddVarRW(myBar, "Blue", TW_TYPE_FLOAT, &perFrameParams.seaColourSSS.z, "");
+
+	perFrameParams.arcHDep = 1.5;
+	TwAddVarRW(myBar, "ArcHeightDep", TW_TYPE_FLOAT, &perFrameParams.arcHDep, " label='Wave strech factor' step=0.01 ");
+
+	perFrameParams.rgbExtinction = XMFLOAT3{ 7.0, 30.0, 70.0 };
+	TwAddVarRW(myBar, "extR", TW_TYPE_FLOAT, &perFrameParams.rgbExtinction.x, " label='Ext Red' step=0.1 ");
+	TwAddVarRW(myBar, "extG", TW_TYPE_FLOAT, &perFrameParams.rgbExtinction.y, " label='Ext Green' step=0.1 ");
+	TwAddVarRW(myBar, "extB", TW_TYPE_FLOAT, &perFrameParams.rgbExtinction.z, " label='Ext Blue' step=0.1 ");
 	return S_OK;
 }
 
@@ -121,7 +160,15 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 	perFrameParams.lambdaV = 1.0f;
 	perFrameParams.scale = 1000 * sqrt(13 * abs(cameraPos.y));
 	perFrameParams.camLookAt = Camera->GetLookAt();
-	perFrameParams.wind = XMFLOAT2{ float(30.0f*cos(perFrameParams.time/5.0)), float(30.0f*sin(perFrameParams.time/5.0)) };
+	//perFrameParams.wind = XMFLOAT2{ float(15.0f*cos(perFrameParams.time/5.0)), float(15.0f*sin(perFrameParams.time/5.0)) };
+	//perFrameParams.wind = XMFLOAT2{ float(7.5f*(sin(perFrameParams.time / 10.0) + 1.0)), 0.0f };
+
+	XMFLOAT2 windnew = XMFLOAT2{ wind_speed * sin(XMConvertToRadians(wind_heading)), wind_speed * cos(XMConvertToRadians(wind_heading)) };
+	if (perFrameParams.wind.x != windnew.x || perFrameParams.wind.y != windnew.y)
+	{
+		perFrameParams.wind = windnew;
+		changed = true;
+	}
 
 	XMFLOAT4X4 projMatrix;
 	XMStoreFloat4x4(&projMatrix, Camera->GetProjMatrix());
@@ -150,6 +197,9 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 
 	if (changed)
 	{
+		ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
+		ID3D11Buffer* buffers[] = { constCB[2].Get(), perFrameCB.Get() };
+
 		mImmediateContext->CSSetConstantBuffers(0, 1, constCB[2].GetAddressOf());
 		mImmediateContext->CSSetConstantBuffers(1, 1, perFrameCB.GetAddressOf());
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, newSpectrumUAV.GetAddressOf(), nullptr);
@@ -158,10 +208,24 @@ void OceanClass::Update(ID3D11DeviceContext1 *& mImmediateContext, float dt, Dir
 
 		mImmediateContext->Dispatch(16, 16, 4);
 
-		changed = true;
+		// variances
+		mImmediateContext->CSSetShaderResources(0, 1, spectrumSRV.GetAddressOf());
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, varianceUAV.GetAddressOf(), nullptr);
+		mImmediateContext->CSSetShader(slopeVarianceCS.Get(), nullptr, 0);
+		mImmediateContext->CSSetConstantBuffers(0, 2, buffers);
+		mImmediateContext->CSSetShaderResources(8, 1, phaseSRV.GetAddressOf());
+		mImmediateContext->CSSetUnorderedAccessViews(8, 1, newSpectrumUAV.GetAddressOf(), nullptr);
+
+		mImmediateContext->Dispatch(varianceRes / 16, varianceRes / 16, 16);
+
+		mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
+
+		changed = false;
 	}
 
 	//mImmediateContext->CSSetUnorderedAccessViews(15, 1, newSpectrumUAV.GetAddressOf(), nullptr);
+
+
 
 	Simulate(mImmediateContext);
 }
@@ -372,7 +436,11 @@ void OceanClass::DrawPost(ID3D11DeviceContext1 *& mImmediateContext, std::unique
 	mImmediateContext->PSSetShaderResources(3, 1, noiseSRV.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(4, 1, varianceSRV.GetAddressOf());
 	mImmediateContext->PSSetSamplers(3, 1, &RenderStates::Sampler::BilinearWrapSS);
+	mImmediateContext->PSSetSamplers(10, 1, &RenderStates::Sampler::BilinearClampSS);
 	mImmediateContext->PSSetShaderResources(13, 1, foamSRV.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(20, 1, FoamCombinedSRV.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(21, 1, FoamRampSRV.GetAddressOf());
+	mImmediateContext->PSSetShaderResources(22, 1, ColourDepthRampSRV.GetAddressOf());
 
 	mImmediateContext->PSSetShaderResources(14, 1, Canvas->GetDepthCopySRV());
 	mImmediateContext->PSSetShaderResources(15, 1, Canvas->GetAddressOfSRV(true));
@@ -403,11 +471,18 @@ void OceanClass::DrawPost(ID3D11DeviceContext1 *& mImmediateContext, std::unique
 
 void OceanClass::Release()
 {
+	ReleaseCOM(initFFTCB);
+
+	if (myBar)
+	{
+		TwDeleteBar(myBar);
+		myBar = nullptr;
+	}
 }
 
 HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
 {
-	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\slopeVariance.cso", device, slopeVarianceCS));
+	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\WaterBruneton\\variances.cso", device, slopeVarianceCS));
 
 	EXIT_ON_FAILURE(CreateCSFromFile(L"..\\Debug\\Shaders\\Ocean\\initFFT.cso", device, initFFTCS));
 
@@ -496,7 +571,7 @@ HRESULT OceanClass::CreateConstantBuffers(ID3D11Device1 *& device)
 	EXIT_ON_FAILURE(device->CreateBuffer(&constantBufferDesc, &initData, &(constCB.back())));
 
 	// per frame params
-	EXIT_ON_FAILURE(CreateConstantBuffer(device, sizeof(perFrameParams), perFrameCB));
+	EXIT_ON_FAILURE(CreateConstantBuffer(device, sizeof(perFrameParams), perFrameCB, "ocean per frame params __FIE__ __LINE__"));
 
 	return S_OK;
 }
@@ -588,7 +663,7 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 		k = nextK;
 	}
 
-	perFrameParams.pad = 0.5f*(theoreticalSlopeVariance - totalSlopeVariance);
+	perFrameParams.mipmapLevel = 0.5f*(theoreticalSlopeVariance - totalSlopeVariance);
 
 	delete[] spectrum;
 
@@ -692,6 +767,8 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 
 	EXIT_ON_FAILURE(device->CreateShaderResourceView(fresnelText.Get(), &srvDesc, &fresnelSRV));
 
+	delete[] fresnel;
+
 	/*
 	* SLOPE VARIANCE TEXTURE
 	*/
@@ -699,30 +776,33 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	sigma2 = max(sigma2, 2e-5f);
 	perFrameParams.sigma2 = XMFLOAT2(10.0f / 9.0f * sigma2, 8.0f / 9.0f * sigma2);
 
-	textDesc.ArraySize = 1;
-	textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-	textDesc.CPUAccessFlags = 0;
-	textDesc.Format = DXGI_FORMAT_R16G16_FLOAT;
-	textDesc.Height = 16;
-	textDesc.MipLevels = 1;
-	textDesc.MiscFlags = 0;
-	textDesc.SampleDesc = { 1, 0 };
-	textDesc.Usage = D3D11_USAGE_DEFAULT;
-	textDesc.Width = 16;
+	D3D11_TEXTURE3D_DESC textDesc3D;
 
-	ComPtr<ID3D11Texture2D> varianceText;
-	EXIT_ON_FAILURE(device->CreateTexture2D(&textDesc, nullptr, &varianceText));
+	textDesc3D.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	textDesc3D.CPUAccessFlags = 0;
+	textDesc3D.Format = DXGI_FORMAT_R16G16_FLOAT;
+	textDesc3D.Height = 16;
+	textDesc3D.MipLevels = 1;
+	textDesc3D.MiscFlags = 0;
+	textDesc3D.Usage = D3D11_USAGE_DEFAULT;
+	textDesc3D.Width = 16;
+	textDesc3D.Depth = 16;
 
-	srvDesc.Format = textDesc.Format;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Texture2D.MostDetailedMip = 0;
+	ComPtr<ID3D11Texture3D> varianceText;
+	EXIT_ON_FAILURE(device->CreateTexture3D(&textDesc3D, nullptr, &varianceText));
+
+	srvDesc.Format = textDesc3D.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+	srvDesc.Texture3D.MipLevels = 1;
+	srvDesc.Texture3D.MostDetailedMip = 0;
 
 	EXIT_ON_FAILURE(device->CreateShaderResourceView(varianceText.Get(), &srvDesc, &varianceSRV));
 
-	uavDesc.Format = textDesc.Format;
-	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
-	uavDesc.Texture2D.MipSlice = 0;
+	uavDesc.Format = textDesc3D.Format;
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
+	uavDesc.Texture3D.FirstWSlice = 0;
+	uavDesc.Texture3D.MipSlice = 0;
+	uavDesc.Texture3D.WSize = textDesc3D.Depth;
 
 	EXIT_ON_FAILURE(device->CreateUnorderedAccessView(varianceText.Get(), &uavDesc, &varianceUAV));
 
@@ -1040,6 +1120,7 @@ HRESULT OceanClass::CreateSamplerRasterDepthStencilStates(ID3D11Device1 *& devic
 
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 
 	EXIT_ON_FAILURE(device->CreateSamplerState(&samplerDesc, &mSamplerClamp));

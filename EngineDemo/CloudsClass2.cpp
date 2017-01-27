@@ -33,7 +33,13 @@ CloudsClass2::CloudsClass2()
 	cbPerFramePS(0),
 	mDepthStencilState(0),
 	mRandomSeed(0),
-	mRandomSeedSRV(0)
+	mRandomSeedSRV(0),
+	mCloudCurlSRV(0),
+	mCloudTypesSRV(0),
+	mWeatherSRV(0),
+	mSamplerStateTrilinear(0),
+	mBlendStateClouds(0)
+
 {
 }
 
@@ -48,6 +54,10 @@ CloudsClass2::~CloudsClass2()
 	ReleaseCOM(mCloudDetailUAV);
 	ReleaseCOM(mCloudDetail);
 
+	ReleaseCOM(mCloudCurlSRV);
+	ReleaseCOM(mCloudTypesSRV);
+	ReleaseCOM(mWeatherSRV);
+
 	ReleaseCOM(mGenerateCS);
 
 	ReleaseCOM(mScreenQuadIB);
@@ -60,6 +70,8 @@ CloudsClass2::~CloudsClass2()
 	ReleaseCOM(cbPerFrameVS);
 	ReleaseCOM(cbPerFramePS);
 
+	ReleaseCOM(mSamplerStateTrilinear);
+	ReleaseCOM(mBlendStateClouds);
 	ReleaseCOM(mDepthStencilState);
 
 	ReleaseCOM(mRandomSeed);

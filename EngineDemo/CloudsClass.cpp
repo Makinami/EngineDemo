@@ -18,7 +18,9 @@ CloudsClass::CloudsClass() :
 	mVertexShader(0),
 	mPixelShader(0),
 	cbPerFrameVS(0),
-	cbPerFramePS(0)
+	cbPerFramePS(0),
+	mSamplerStateTrilinear(0),
+	mBlendStateClouds(0)
 {
 }
 
@@ -39,6 +41,9 @@ CloudsClass::~CloudsClass()
 
 	ReleaseCOM(cbPerFrameVS);
 	ReleaseCOM(cbPerFramePS);
+
+	ReleaseCOM(mSamplerStateTrilinear);
+	ReleaseCOM(mBlendStateClouds);
 }
 
 int CloudsClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)

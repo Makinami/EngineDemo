@@ -24,6 +24,10 @@
 
 #include "Utilities\Texture.h"
 
+
+#include "AntTweakBar.h"
+
+
 using namespace std;
 using namespace DirectX;
 
@@ -84,6 +88,10 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fresnelSRV;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> foamSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> FoamCombinedSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> FoamRampSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ColourDepthRampSRV;
 
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> slopeVarianceCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> initFFTCS;
@@ -164,10 +172,19 @@ private:
 		float lambdaV;
 		float scale;
 		XMFLOAT3 camLookAt;
-		float pad;
+		float mipmapLevel;
 		XMFLOAT4 gProj;
 		XMFLOAT2 wind;
-		XMFLOAT2 pad2;
+		float maxDepth;
+		float seaColourAlpha;
+		XMFLOAT4 seaColour;
+		XMFLOAT4 seaColourSSS;
+		int SkyFlag;
+		int SeaFlag;
+		int SunFlag;
+		int varianceSlice;
+		float arcHDep;
+		XMFLOAT3 rgbExtinction;
 	} perFrameParams;
 
 	struct LODLevel
@@ -235,5 +252,13 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> spectrumCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> newInit;
+
+	// TweakBar
+	TwBar *myBar;
+
+	float wind_heading;
+	float wind_speed;
+	double dir[3];
+	float max_depth;
 };
 

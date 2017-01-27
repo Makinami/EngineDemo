@@ -26,7 +26,9 @@
 
 #include "MeshBuffer.h"
 
-__declspec(align(16)) class GBufferClass
+#include "ResizeEvent.h"
+
+__declspec(align(16)) class GBufferClass : OnResizeListener
 {
 	public:
 		GBufferClass();
@@ -56,6 +58,8 @@ __declspec(align(16)) class GBufferClass
 		void Resolve(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light);
 
 	private:
+		HRESULT OnResize(ID3D11Device1* device, int renderWidth, int renderHeight);
+
 		static const int buffer_count = 2;
 		int srv_slot = -1;
 

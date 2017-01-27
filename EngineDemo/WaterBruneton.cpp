@@ -56,11 +56,27 @@ WaterBruneton::~WaterBruneton()
 	ReleaseCOM(variancesCS);
 	ReleaseCOM(initFFTCS);
 	ReleaseCOM(fftCS);
+	ReleaseCOM(BinitFFTCS);
+	ReleaseCOM(Bfftx);
+	ReleaseCOM(Bffty);
+	ReleaseCOM(spectrum12SRV);
+	ReleaseCOM(spectrum34SRV);
+	ReleaseCOM(BbutterflySRV);
+	ReleaseCOM(mInputLayout);
+	ReleaseCOM(mVertexShader);
+	ReleaseCOM(mPixelShader);
 	ReleaseCOM(variancesCB);
 	ReleaseCOM(initFFTCB);
 	ReleaseCOM(fftCB);
+	ReleaseCOM(drawCB);
 	ReleaseCOM(mScreenMeshIB);
 	ReleaseCOM(mScreenMeshVB);
+
+	ReleaseCOM(mRastStateFrame);
+	ReleaseCOM(mSamplerState);
+	ReleaseCOM(mSamplerAnisotropic);
+	ReleaseCOM(mSSSlopeVariance);
+	ReleaseCOM(mDepthStencilStateSea);
 }
 
 bool WaterBruneton::Init(ID3D11Device1 * &device, ID3D11DeviceContext1 * &mImmediateContext)

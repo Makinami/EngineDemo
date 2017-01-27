@@ -21,6 +21,10 @@
 
 #include "Performance.h"
 
+#pragma comment(lib, "AntTweakBar.lib")
+
+#include "AntTweakBar.h"
+
 /*
 Main System Class:
 Creates new game and status window (at least for now) and manages other subsystems

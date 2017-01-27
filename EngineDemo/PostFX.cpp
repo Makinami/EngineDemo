@@ -14,50 +14,6 @@ namespace PostFX
 	 */
 	bool Canvas::Init(ID3D11Device1 * device, int width, int height)
 	{
-		// render target
-		D3D11_TEXTURE2D_DESC textDesc;
-
-		ZeroMemory(&textDesc, sizeof(textDesc));
-
-		textDesc.Width = width;
-		textDesc.Height = height;
-		textDesc.MipLevels = 1;
-		textDesc.ArraySize = 1;
-		textDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-		textDesc.SampleDesc = { 1, 0 };
-		textDesc.Usage = D3D11_USAGE_DEFAULT;
-		textDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-		textDesc.CPUAccessFlags = 0;
-		textDesc.MiscFlags = 0;
-
-		EXIT_ON_NULL(mMain =
-					 TextureFactory::CreateTexture(textDesc));
-
-		EXIT_ON_NULL(mSecondary =
-					 TextureFactory::CreateTexture(textDesc));
-
-		// view port
-		mViewPort = {};
-		mViewPort.Width = static_cast<float>(width);
-		mViewPort.Height = static_cast<float>(height);
-		mViewPort.MaxDepth = 1.0;
-
-		// depth stencil
-		textDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		textDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-
-		EXIT_ON_NULL(mDepthStencilMain =
-					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
-
-		EXIT_ON_NULL(mDepthStencilSecondary =
-					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
-
-		// depth copy view
-		textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-//		EXIT_ON_NULL(mDepth =
-//					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
-
 		// TODO: move it somewhere
 		vector<TerrainClass::Vertex> patchVertices(4);
 
@@ -127,11 +83,21 @@ namespace PostFX
 
 		if (FAILED(device->CreateBuffer(&matrixBufferDesc, NULL, &MatrixBuffer))) return false;
 
+		OnResize(device, width, height);
+
 		return true;
 	}
 
 	void Canvas::Shutdown()
 	{
+		ReleaseCOM(mScreenQuadVB);
+		ReleaseCOM(mScreenQuadIB);
+
+		ReleaseCOM(mDebugIL);
+		ReleaseCOM(mDebugVS);
+		ReleaseCOM(mDebugPS);
+
+		ReleaseCOM(MatrixBuffer);
 	}
 
 	void Canvas::Swap()
@@ -214,6 +180,57 @@ namespace PostFX
 		return mDepthStencilSecondary->GetAddressOfSRV();
 	}
 
+	HRESULT Canvas::OnResize(ID3D11Device1 * device, int renderWidth, int renderHeight)
+	{
+		// render target
+		D3D11_TEXTURE2D_DESC textDesc;
+
+		ZeroMemory(&textDesc, sizeof(textDesc));
+
+		textDesc.Width = renderWidth;
+		textDesc.Height = renderHeight;
+		textDesc.MipLevels = 1;
+		textDesc.ArraySize = 1;
+		textDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		textDesc.SampleDesc = { 1, 0 };
+		textDesc.Usage = D3D11_USAGE_DEFAULT;
+		textDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		textDesc.CPUAccessFlags = 0;
+		textDesc.MiscFlags = 0;
+
+		EXIT_ON_NULL(mMain =
+			TextureFactory::CreateTexture(textDesc));
+
+		EXIT_ON_NULL(mSecondary =
+			TextureFactory::CreateTexture(textDesc));
+
+		// view port
+		mViewPort = {};
+		mViewPort.Width = static_cast<float>(renderWidth);
+		mViewPort.Height = static_cast<float>(renderHeight);
+		mViewPort.MaxDepth = 1.0;
+
+		// depth stencil
+		textDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		textDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+
+		EXIT_ON_NULL(mDepthStencilMain =
+			TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+
+		EXIT_ON_NULL(mDepthStencilSecondary =
+			TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+
+		// depth copy view
+		textDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		//		EXIT_ON_NULL(mDepth =
+		//					 TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+
+		//MessageBox(nullptr, L"on resize in canvas", nullptr, 0);
+
+		return E_NOTIMPL;
+	}
+
 	void Canvas::StartRegister(ID3D11DeviceContext1 * mImmediateContext, bool clear) const
 	{
 		RenderTargetStack::Push(mImmediateContext, mMain->GetAddressOfRTV(), mDepthStencilMain->GetDSV());
@@ -228,13 +245,18 @@ namespace PostFX
 
 	void Canvas::StopRegister(ID3D11DeviceContext1 * mImmediateContext) const
 	{
-		RenderTargetStack::Pop(mImmediateContext);
+		if (!RenderTargetStack::Pop(mImmediateContext))
+		{
+			MessageBox(nullptr, L"Cannot pop RTV - only one (Canvas)", nullptr, 0);
+		}
 	}
 
 	/*
 	 *  HDR
 	 */
 	HDR::HDR()
+		: clientWidth(0)
+		, clientHeight(0)
 	{
 	}
 
@@ -249,24 +271,6 @@ namespace PostFX
 
 	bool HDR::Init(ID3D11Device1 * device, int width, int height)
 	{
-		D3D11_TEXTURE2D_DESC textDesc;
-
-		ZeroMemory(&textDesc, sizeof(textDesc));
-
-		textDesc.Width = width;
-		textDesc.Height = height;
-		textDesc.MipLevels = 0;
-		textDesc.ArraySize = 1;
-		textDesc.Format = DXGI_FORMAT_R32_FLOAT;
-		textDesc.SampleDesc = { 1, 0 };
-		textDesc.Usage = D3D11_USAGE_DEFAULT;
-		textDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-		textDesc.CPUAccessFlags = 0;
-		textDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-
-		EXIT_ON_NULL(mLuminanceText =
-					 TextureFactory::CreateTexture(textDesc));
-
 		CreateCSFromFile(L"..\\Debug\\Shaders\\PostFX\\LuminancePass.cso", device, mLuminancePassCS);
 		CreateCSFromFile(L"..\\Debug\\Shaders\\PostFX\\ToneMapping.cso", device, mToneMapPassCS);
 
@@ -336,11 +340,24 @@ namespace PostFX
 
 		if (FAILED(device->CreateBuffer(&matrixBufferDesc, NULL, &MatrixBuffer))) return false;
 
+		OnResize(device, width, height);
+
 		return true;
 	}
 
 	void HDR::Shutdown()
 	{
+		ReleaseCOM(mLuminancePassCS);
+		ReleaseCOM(mToneMapPassCS);
+
+		ReleaseCOM(mScreenQuadVB);
+		ReleaseCOM(mScreenQuadIB);
+
+		ReleaseCOM(mDebugIL);
+		ReleaseCOM(mDebugVS);
+		ReleaseCOM(mDebugPS);
+
+		ReleaseCOM(MatrixBuffer);
 	}
 
 	void HDR::Process(ID3D11DeviceContext1 * mImmediateContext, std::unique_ptr<Canvas>const& Canvas)
@@ -352,7 +369,7 @@ namespace PostFX
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, mLuminanceText->GetAddressOfUAV(), nullptr);
 		mImmediateContext->CSSetShader(mLuminancePassCS, nullptr, 0);
 
-		mImmediateContext->Dispatch(1280 / 16, 720 / 16, 1);
+		mImmediateContext->Dispatch(ceil(clientWidth / 16.0), ceil(clientHeight/ 16.0), 1);
 
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &uavNULL, nullptr);
 		mImmediateContext->CSSetShaderResources(0, 1, &srvNULL);
@@ -365,12 +382,39 @@ namespace PostFX
 		mImmediateContext->CSSetShaderResources(1, 1, mLuminanceText->GetAddressOfSRV());
 		mImmediateContext->CSSetShader(mToneMapPassCS, nullptr, 0);
 
-		mImmediateContext->Dispatch(1280 / 16, 720 / 16, 1);
+		mImmediateContext->Dispatch(ceil(clientWidth / 16.0), ceil(clientHeight / 16.0), 1);
 
 		mImmediateContext->CSSetUnorderedAccessViews(0, 1, &uavNULL, nullptr);
 		mImmediateContext->CSSetShaderResources(0, 1, &srvNULL);
 		mImmediateContext->CSSetShaderResources(1, 1, &srvNULL);
 
 		Canvas->Swap();
+	}
+
+	HRESULT HDR::OnResize(ID3D11Device1 * device, int renderWidth, int renderHeight)
+	{
+		clientHeight = renderHeight;
+		clientWidth = renderWidth;
+
+		D3D11_TEXTURE2D_DESC textDesc;
+
+		ZeroMemory(&textDesc, sizeof(textDesc));
+
+		textDesc.Width = clientWidth;
+		textDesc.Height = clientHeight;
+		textDesc.MipLevels = 0;
+		textDesc.ArraySize = 1;
+		textDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		textDesc.SampleDesc = { 1, 0 };
+		textDesc.Usage = D3D11_USAGE_DEFAULT;
+		textDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		textDesc.CPUAccessFlags = 0;
+		textDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+		EXIT_ON_NULL(mLuminanceText =
+			TextureFactory::CreateTexture(textDesc));
+
+		//MessageBox(nullptr, L"on resize in hdr", nullptr, 0);
+		return S_OK;
 	}
 }

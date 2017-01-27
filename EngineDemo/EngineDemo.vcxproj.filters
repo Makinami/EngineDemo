@@ -163,6 +163,9 @@
     <ClCompile Include="ShaderManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ResizeEvent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -414,6 +417,9 @@
     <ClInclude Include="ShaderManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ResizeEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -655,6 +661,9 @@
     </FxCompile>
     <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
       <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\createHM.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

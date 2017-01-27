@@ -4,6 +4,8 @@
 #include "Utilities\CreateShader.h"
 #include "Utilities\MapResources.h"
 
+#include "RenderStates.h"
+
 MapClass::MapClass() :
 	Terrain(nullptr),
 	Water(nullptr),
@@ -64,7 +66,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	Sky2 = std::make_unique<SkyClass2>();
 	Sky2->Init(device, dc);
 
-	/*Terrain = std::make_shared<TerrainClass>();
+	Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
 
 	TerrainClass::InitInfo tii;
@@ -72,7 +74,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	tii.LayerMapFilename0 = L"Textures/grass.dds";
 	tii.LayerMapFilename1 = L"Textures/darkdirt.dds";
 	tii.LayerMapFilename2 = L"Textures/stone.dds";
-	tii.LayerMapFilename3 = L"Textures/lightdirt.dds";
+	tii.LayerMapFilename3 = L"Textures/sand.dds";
 	tii.LayerMapFilename4 = L"Textures/snow.dds";
 	tii.BlendMapFilename = L"Textures/blend.dds";
 	tii.HeightScale = 100.0f;
@@ -86,7 +88,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 		return false;
 	}
 	LogSuccess(L"Terrain initiated");
-	*/
+	
 	Clouds = std::make_shared<CloudsClass>();
 	//Clouds->Init(device, dc);
 
@@ -94,6 +96,14 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	//Clouds2->Init(device, dc);
 
 	ShadowMap = std::make_unique<ShadowMapClass>(device, 2048, 2048);
+
+	myBar = TwNewBar("Sun");
+
+	animatedSun = false;
+	animationSpeed = 3600;
+	TwAddVarRW(myBar, "AnimSun", TW_TYPE_BOOL8, &animatedSun, " label='Animate sun' ");
+	TwAddVarRW(myBar, "AnimSpeed", TW_TYPE_INT32, &animationSpeed, " label='Animation speed' ");
+	TwAddVarRW(myBar, "SunDir", TW_TYPE_DIR3F, &(reinterpret_cast<DirectionalLightStruct*>(&light)->Direction), " label='Sun direction' ");
 
 	light.Ambient(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	light.Diffuse(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
@@ -220,6 +230,12 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 
 void MapClass::Shutdown()
 {
+	if (myBar)
+	{
+		TwDeleteBar(myBar);
+		myBar = nullptr;
+	}
+
 	ReleaseCOM(mScreenQuadIB);
 	ReleaseCOM(mScreenQuadVB);
 
@@ -228,6 +244,13 @@ void MapClass::Shutdown()
 	ReleaseCOM(mDebugVS);
 
 	ReleaseCOM(MatrixBuffer);
+
+	ReleaseCOM(mCubeVB);
+	ReleaseCOM(mCubeIB);
+
+	ReleaseCOM(mCubeIL);
+	ReleaseCOM(mCubeVS);
+	ReleaseCOM(mCubePS);
 }
 
 void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
@@ -237,18 +260,25 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 	//WaterB->BEvelWater(dt, mImmediateContext);
 	Ocean->Update(mImmediateContext, dt, light, Camera);
 
-	XMFLOAT3 dir_f = light.Direction();
-	XMVECTOR dir = XMLoadFloat3(&dir_f);
+	if (animatedSun)
+	{
+		TwDefine(" Sun/SunDir readonly=true ");
+		XMFLOAT3 dir_f = light.Direction();
+		XMVECTOR dir = XMLoadFloat3(&dir_f);
 
-	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_2PI/(60.f*5.0f)));
+		dir = XMVector3Transform(dir, XMMatrixRotationZ(dt * (float)animationSpeed * XM_2PI / (3600.0f * 24.0f)));
 
-	XMStoreFloat3(&dir_f, dir);
-	light.Direction(dir_f);
+		XMStoreFloat3(&dir_f, dir);
+		light.Direction(dir_f);
+	}
+	else
+		TwDefine(" Sun/SunDir readonly=false ");
 }
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
 	GBuffer->SetBufferRTV(mImmediateContext);
+	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
 	Terrain2->Draw(mImmediateContext, Camera, light);
 	GBuffer->UnsetBufferRTV(mImmediateContext);
 
@@ -318,6 +348,7 @@ void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 
 	Canvas->StartRegister(mImmediateContext, false);
 	Ocean->DrawPost(mImmediateContext, Canvas, Camera, light);
+	DrawDebug(mImmediateContext, Camera);
 	Canvas->StopRegister(mImmediateContext);
 
 	HDR->Process(mImmediateContext, Canvas);
@@ -340,7 +371,7 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->IASetIndexBuffer(mCubeIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mCubeIL);
 
-	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(10000.0f, 0.0, 0.0) * XMMatrixScaling(1.0, 10000.0, 10000.0));
+	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(-2048.0f, 0.0, -2048.0) * XMMatrixScaling(1.0, 1.0, 1.0));
 	MapResources(mImmediateContext, MatrixBuffer, MatrixBufferParams);
 
 	mImmediateContext->VSSetShader(mCubeVS, nullptr, 0);
@@ -348,7 +379,11 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 
 	mImmediateContext->PSSetShader(mCubePS, nullptr, 0);
 	
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::NoCullingRS);
+
 	mImmediateContext->DrawIndexed(36, 0, 0);
+
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
 
 	// SHADOW MAP
 	/*UINT stride = sizeof(TerrainClass::Vertex);

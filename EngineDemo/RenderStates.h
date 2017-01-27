@@ -29,6 +29,7 @@ public:
 	struct Rasterizer
 	{
 		static ID3D11RasterizerState1* DefaultRS;
+		static ID3D11RasterizerState1* NoCullingRS;
 		static ID3D11RasterizerState1* WireframeRS;
 	};
 

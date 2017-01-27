@@ -12,16 +12,16 @@ SamplerState samAnisotropic : register(s1);
 struct DomainOut
 {
 	float4 PosH  : SV_POSITION;
-	float3 PosF : TEXTCOORD0;
+	float4 PosF : TEXTCOORD0;
 	float3 PosW : TEXTCOORD1;
-	float4 params : TEXTCOORD2;
+	float4 params : TEXTCOORD2; // x - argument sincos; y - depth dependent; zw - gradient
 };
 
 // Output control point
 struct HullOut
 {
 	float3 Pos : POSITION;
-	float4 param : TEXTCOORD;
+	float4 param : TEXTCOORD; // x - parametr sincos; y - zaleznosc od glebokosci
 };
 
 
@@ -40,12 +40,14 @@ DomainOut main(
 	float3 domain : SV_DomainLocation,
 	const OutputPatch<HullOut, NUM_CONTROL_POINTS> patch)
 {
-	float2 wind = float2(-1.0, 0.0);
+	float2 wind = normalize(gbWind);// float2(-1.0, 0.0);
 	float A = 0.75;
+	A = 0.27 * dot(gbWind, gbWind) / 9.81;
+	A *= 0.5;
 
 	DomainOut dout;
 
-	dout.PosF = patch[0].Pos*domain.x + patch[1].Pos*domain.y + patch[2].Pos*domain.z;
+	dout.PosF.xyz = patch[0].Pos*domain.x + patch[1].Pos*domain.y + patch[2].Pos*domain.z;
 	dout.params = patch[0].param*domain.x + patch[1].param*domain.y + patch[2].param*domain.z;
 	dout.params.zw = normalize(dout.params.zw);
 
@@ -56,9 +58,11 @@ DomainOut main(
 	dP += wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.x, 0), 0.0).rbg;
 	float3 fft2 = (1.0 - smoothstep(GRID_SIZE.x, 1.2*GRID_SIZE.x, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.y, 1), 0.0).rbg;
 	dP += fft2;
+	dP += (1.0 - smoothstep(GRID_SIZE.y, 1.2*GRID_SIZE.y, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.z, 2), 0.0).rbg;
+	//dP += (1.0 - smoothstep(GRID_SIZE.z, 1.2*GRID_SIZE.z, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.w, 3), 0.0).rbg;
 	dP *= float3(lambdaV, 1.0, lambdaV);
 
-	float factor = (1.0 - smoothstep(GRID_SIZE.x, 1.2*GRID_SIZE.x, dist))*wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy / GRID_SIZE.y, 1), 0.0).b;
+	float factor = wavesDisplacement.SampleLevel(samAnisotropic, float3(dout.PosF.xy*0.5 / GRID_SIZE.y, 1), 0.0).b;
 	factor = factor + 1.0; // fft
 	factor *= factor;
 
@@ -68,15 +72,18 @@ DomainOut main(
 	float depth = dout.PosF.z;
 
 	// add check for [0..1] normalization for A factor
-	factor = saturate(factor*A); // A
+	factor = saturate(factor)*A; // A
+	//factor = A*dout.params.y;
 
 	float3 gern = 0.0.xxx;
 	gern.y = factor*cos(dout.params.x);
-	gern.xz -= dout.params.zw*factor*sin(dout.params.x) - 1.5*gern.y*dout.params.zw;
-	dout.PosF.z = factor;
+	gern.xz -= dout.params.zw*factor*sin(dout.params.x) - gern.y*dout.params.zw;
+	dout.PosF.z = gern.y;
+	gern.y += factor;
+	dout.PosF.w = factor;
 
-	dP = lerp(dP, gern, clamp(2.0*dout.params.y, 0.0, 0.8));
-
+	dP = lerp(dP, gern, clamp(dout.params.y, 0.0, 0.8));
+	//dP = gern;
 	dout.PosW = float3(dout.PosF.x, 0.0, dout.PosF.y) + dP;
 	//if (depth < factor * 0.9)
 	//	dout.PosW.y = max(dout.PosW.y, depth);

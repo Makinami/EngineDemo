@@ -89,6 +89,9 @@ bool SystemClass::Init(std::string filename)
 	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	Logger->Success(L"DirectX initiated.");
 
+	TwInit(TW_DIRECT3D11, D3D->GetDevice());
+	TwWindowSize(mClientWidth, mClientHeight);
+
 	// Pass device to shader manager
 	ShaderManager::Instance()->SetDevice(D3D->GetDevice());
 
@@ -148,6 +151,8 @@ void SystemClass::Shutdown()
 	RenderStates::ReleaseAll();
 	ShaderManager::Instance()->ReleaseAll();
 
+	TwTerminate();
+
 	D3D->Shutdown();
 
 	ShutdownMainWindow();
@@ -188,6 +193,9 @@ int SystemClass::Run()
 // Main/game window's proc
 LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (TwEventWin(hwnd, msg, wParam, lParam)) // send event message to AntTweakBar
+		return 0; // event has been handled by AntTweakBar
+
 	switch (msg)
 	{
 		case WM_KEYDOWN:
@@ -331,7 +339,7 @@ bool SystemClass::Frame()
 	Performance->Compute();
 
 	Performance->Draw(D3D->GetDeviceContext());
-
+	TwDraw();
 	D3D->EndScene();
 	return true;
 }

@@ -26,6 +26,8 @@ Texture2DArray wavesDisplacement : register(t0);
 SamplerState samAnisotropic : register(s1);
 
 Texture2D<float4> distanceField : register(t40);
+Texture2D<float> heightMap : register(t41);
+Texture2D<float4> genHM : register(t42);
 
 struct VertexIn
 {
@@ -39,7 +41,7 @@ struct VertexIn
 struct VertexOut
 {
 	float3 Pos : POSITION;
-	float4 param : TEXTCOORD;
+	float4 param : TEXTCOORD; //  x- argument sincon; y - zaleznosc od glebokosci
 };
 
 //static float3 g_gridDim = 0.0f.xxx;
@@ -68,26 +70,42 @@ VertexOut main(VertexIn vin)
 	//vout.Pos.z = length(camPos - PosW);
 
 
+	float mip = mipmap;
 	float2 pos = vout.Pos.xy;
-	float4 DF = distanceField.SampleLevel(samAnisotropic, (pos + 2048.0f) / 4096.0, 4);
+	float4 DF = distanceField.SampleLevel(samAnisotropic, (pos + 2048.0f) / 4096.0, mip);
+	//DF = genHM.SampleLevel(samAnisotropic, (pos + 2048.0f) / 4096.0f, mip).yxzw;
+
+	float4 height;
+	height.x = heightMap.SampleLevel(samAnisotropic, (pos + 2048.0f + float2(-0.5, 0.0)) / 4096.0, mip);
+	height.y = heightMap.SampleLevel(samAnisotropic, (pos + 2048.0f + float2(0.5, 0.0)) / 4096.0, mip);
+	height.z = heightMap.SampleLevel(samAnisotropic, (pos + 2048.0f + float2(0.0, -0.5)) / 4096.0, mip);
+	height.w = heightMap.SampleLevel(samAnisotropic, (pos + 2048.0f + float2(0.0, 0.5)) / 4096.0, mip);
+
+
 
 	float depth = -DF.y;
+	//depth = -heightMap.SampleLevel(samAnisotropic, (pos + 2048.0f) / 4096.0, 0);
 	vout.Pos.z = -depth;
 	float pi = 3.141529;
 	float g = 9.81;
-	float2 wind = float2(-1.0, 0.0);
+	float2 wind = normalize(gbWind);// float2(1.0, 0.0);
 
-	float2 gradient = any(DF.zw) ? normalize(normalize(DF.zw) + 0.5*wind) : 0.0.xx;// normalize(float2(10.0, 10.0));
+	float2 gradient = any(DF.zw) ? normalize(normalize(DF.zw) + 0.0*wind) : 0.0.xx;// normalize(float2(10.0, 10.0));
+
+	//gradient = -normalize(float2(height.x - height.y, height.z - height.w));
 
 	float wind_dependent = (dot(gradient, wind) + 1.0)*0.5;
 
 	float A = 0.75;
-	float lambda = 10.0;// 2.0*pi;// A*2.0*pi; // minimal wavelength
-	float w = sqrt(g * 2 * pi / lambda);
+	A = 0.27 * dot(gbWind, gbWind) / 9.81;
+	A *= 0.5;
+	float lambda = A*2.0*pi; // minimal wavelength
+	//lambda = max(A*2.0*pi, pi);
+	float w = sqrt(g * 2 * pi / 10.0);
 
-	float depth_dependent = 1.0 - saturate(2.0*depth / lambda);
+	float depth_dependent = 1.0-saturate(2.0*depth / lambda);
 
-	vout.param.x = 2 * pi*dot(gradient, pos) / lambda - w*time;
+	vout.param.x = -DF.x/(A*argHDependency) - w*time;
 	vout.param.y = depth_dependent;
 	vout.param.zw = gradient;
 
