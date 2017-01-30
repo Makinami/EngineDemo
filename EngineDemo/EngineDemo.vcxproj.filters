@@ -650,5 +650,6 @@
     <None Include="Shaders\Ocean\perFrameCB.hlsli">
       <Filter>Shaders\Ocean</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
