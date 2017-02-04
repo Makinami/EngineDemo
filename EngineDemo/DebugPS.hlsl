@@ -15,8 +15,11 @@ struct VertexOut
 
 float4 main(VertexOut pin) : SV_Target
 {
-	float4 c = gTexture.Sample(samLinear, pin.Tex).r;
-	
-	// draw as grayscale
-	return float4(c.rrr, 1);
+	return float4(gTexture.Sample(samLinear, pin.Tex).rgb, 1.0); // temp
+
+	/* TRUE SHADOW MAP DEBUGER SHADER */
+	//float3 c = gTexture.Sample(samLinear, pin.Tex).r;
+	//
+	//// draw as grayscale
+	//return float4(c.rrr, 1);
 }

@@ -1,7 +1,7 @@
 #include "d3dclass.h"
 
-std::stack< std::pair<UINT, ID3D11RenderTargetView**> > RenderTargetStack::Targetviews;
-std::stack< ID3D11DepthStencilView** > RenderTargetStack::DepthStencilDSV;
+std::stack< std::pair<UINT, ID3D11RenderTargetView* const*> > RenderTargetStack::Targetviews;
+std::stack< ID3D11DepthStencilView* > RenderTargetStack::DepthStencilDSV;
 
 std::stack< std::pair<UINT, D3D11_VIEWPORT*> > ViewportStack::Viewports;
 
@@ -22,7 +22,9 @@ D3DClass::D3DClass()
 	mEnable4xMSAA(true),
 
 	mRenderHeight(0),
-	mRenderWidth(0)
+	mRenderWidth(0),
+
+	mVSync(0)
 {
 	ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
 
@@ -131,6 +133,8 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	// Rest of initialization can be done throught OnResize()
 	OnResize(mClientWidth, mClientHeight);
 
+	mVSync = Settings->GetBoolean("Rendering", "VSync", false);
+
 	return true;
 }
 
@@ -185,8 +189,8 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 	mDevice->CreateTexture2D(&depthStencilDesc, 0, &mDepthStencilBuffer);
 	mDevice->CreateDepthStencilView(mDepthStencilBuffer, 0, &mDepthStencilView);
 
-	if (RenderTargetStack::Empty()) RenderTargetStack::Push(mImmediateContext, &mRenderTargetView, &mDepthStencilView);
-	else RenderTargetStack::Update(mImmediateContext, &mRenderTargetView, &mDepthStencilView);
+	if (RenderTargetStack::Empty()) RenderTargetStack::Push(mImmediateContext, &mRenderTargetView, mDepthStencilView);
+	else RenderTargetStack::Update(mImmediateContext, &mRenderTargetView, mDepthStencilView);
 
 	// Set viewport
 	mScreenViewport.TopLeftX = 0;
@@ -225,13 +229,13 @@ void D3DClass::Shutdown()
 void D3DClass::BeginScene()
 {
 	mImmediateContext->ClearRenderTargetView(mRenderTargetView, reinterpret_cast<const float*>(&DirectX::Colors::Black));
-	mImmediateContext->ClearDepthStencilView(mDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	mImmediateContext->ClearDepthStencilView(mDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
 }
 
 // Present frame
 void D3DClass::EndScene()
 {
-	mSwapChain->Present(0, 0);
+	mSwapChain->Present(mVSync, 0);
 }
 
 ID3D11Device1* D3DClass::GetDevice() const

@@ -8,7 +8,12 @@ WaterClass::WaterClass() :
 	mInputLayout(nullptr),
 	mVertexShader(nullptr),
 	mPixelShader(nullptr),
-	g(9.80665f)
+	g(9.80665f),
+	cbPerFrameHS(nullptr),
+	cbPerFrameDS(nullptr),
+	cbPerFramePS(nullptr),
+	cbPerFrameVS(nullptr),
+	FFTPrepBuffer(nullptr)
 {
 	XMStoreFloat4x4(&mWorld, XMMatrixIdentity());
 }

@@ -47,10 +47,10 @@ TerrainClass::~TerrainClass()
 
 	ReleaseCOM(mRastStateBasic);
 	ReleaseCOM(mRastStateShadow);
-	ReleaseCOM(mSamplerStates[0]);
-	ReleaseCOM(mSamplerStates[1]);
-	ReleaseCOM(mSamplerStates[2]);
-	delete[] mSamplerStates;
+	//ReleaseCOM(mSamplerStates[0]);
+	//ReleaseCOM(mSamplerStates[1]);
+	//ReleaseCOM(mSamplerStates[2]);
+	//delete[] mSamplerStates;
 }
 
 float TerrainClass::GetWidth() const

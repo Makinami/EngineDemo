@@ -16,8 +16,8 @@ void PlayerClass::SetMap(std::shared_ptr<MapClass> iMap)
 
 void PlayerClass::Init()
 {
-	mPosition.y = Map->GetHeight(mPosition.x, mPosition.z);
-	Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);
+	//mPosition.y = Map->GetHeight(mPosition.x, mPosition.z);
+	// NOTE: Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);
 }
 
 void PlayerClass::SetCamera(std::shared_ptr<CameraClass> iCamera)
@@ -53,12 +53,12 @@ void PlayerClass::React(float dt)
 	{
 		float speed = (Input->IsKeyPressed(VK_LSHIFT) ? RunV : WalkV);
 
-		//XMVECTOR Ahead = Camera->GetAhead();
 		deltaX.x *= speed*dt;
 		deltaX.z *= speed*dt;
 		Camera->Walk(deltaX);
 
-		/*XMVECTOR Right = Camera->GetRight();
+		/*XMVECTOR Ahead = Camera->GetAhead();
+		XMVECTOR Right = Camera->GetRight();
 		XMVECTOR Position = XMLoadFloat3(&mPosition);
 		XMStoreFloat3(&deltaX, speed*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
 		XMVECTOR w = XMVectorReplicate(deltaX.z);

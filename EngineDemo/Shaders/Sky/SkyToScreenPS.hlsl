@@ -79,5 +79,5 @@ float4 main(VertexOut pin) : SV_TARGET
 
 	float3 sunColour = sun(x, t, v, bSunDir1, r, mu); // L0
 
-	return float4(HDR(gCubeMap.Sample(samTrilinearSam, pin.Ray).xyz + sunColour), 1.0f);
+	return float4((gCubeMap.Sample(samTrilinearSam, pin.Ray).xyz + sunColour), 1.0f);
 }

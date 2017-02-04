@@ -1,6 +1,6 @@
 Texture3D<float4> inscatterTex : register(t0);
 Texture2D<float3> transmittance : register(t1);
-Texture2D<float3> deltaE : register(t2);
+Texture2D<float4> deltaE : register(t2);
 
 SamplerState samInscatter : register(s0);
 SamplerState samTransmittance : register(s1);
@@ -134,7 +134,7 @@ float3 ground(float3 x, float t, float3 v, float3 s, float r, float mu, float3 a
 		float3 sunLight = getTransmittanceWithShadow(r0, muS);
 
 		// precomputed sky light (irradiance) (=E[L*]) at x0
-		float3 groundSkyLight = getIrradiance(r0, muS);
+		float3 groundSkyLight = getIrradiance(r0, muS).rgb;
 
 		// light reflected at x0 (=(R[L0]+R[L*])/T(x,x0))
 		float3 groundColour = reflectance.rgb * (max(muS, 0.0)*sunLight + groundSkyLight)*ISun / PI;

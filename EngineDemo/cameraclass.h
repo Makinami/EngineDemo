@@ -8,6 +8,7 @@
 
 #pragma warning(disable:4838)
 #include <DirectXMath.h>
+#include <DirectXCollision.h>
 #pragma warning(default:4838)
 
 using namespace DirectX;
@@ -40,6 +41,8 @@ class CameraClass
 		XMMATRIX GetViewProjMatrix();
 		XMMATRIX GetViewProjTransMatrix();
 
+		XMFLOAT3 GetLookAt() const;
+
 		XMMATRIX GetViewRelSun();
 		XMMATRIX GetViewRelSunTrans();
 		XMMATRIX GetProjTrans();
@@ -52,6 +55,8 @@ class CameraClass
 
 		float GetHorizon();
 
+		ContainmentType Contains(const BoundingBox &box);
+
 	private:
 
 		inline void UpdateViewMatrix();
@@ -61,6 +66,7 @@ class CameraClass
 		XMFLOAT3 mPositionRelSun;
 		
 		XMFLOAT4X4 mProj;
+		XMFLOAT4X4 mProjNoZReverse;
 		XMFLOAT4X4 mView;
 		XMFLOAT4X4 mViewProj;
 		XMFLOAT4X4 mViewProjTrans;
@@ -70,6 +76,8 @@ class CameraClass
 		XMFLOAT4X4 mProjTrans;
 
 		bool mValid;
+
+		BoundingFrustum mCameraFrustum;
 
 		// temp
 		float pitch;

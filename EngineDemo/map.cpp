@@ -18,27 +18,51 @@ MapClass::~MapClass()
 
 bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc, std::shared_ptr<TweakBar> Bar)
 {
-	WaterB = std::make_unique<WaterBruneton>();
+	/*WaterB = std::make_unique<WaterBruneton>();
 	WaterB->SetPerformance(Performance);
 	if (!WaterB->Init(device, dc))
 	{
 		LogError(L"Failed to initiate water bruneton");
 		return false;
 	}
-	LogSuccess(L"WaterBruneton initiated");
+	LogSuccess(L"WaterBruneton initiated");*/
 
-	Water = std::make_shared<WaterClass>();
+	Terrain2 = std::make_unique<TerrainClass2>();
+	Terrain2->Init(device, dc);
+
+	/*Water = std::make_shared<WaterClass>();
 	Water->SetPerformance(Performance);
 	if (!Water->Init(device, dc))
 	{
 		LogError(L"Failed to initiate water");
 		return false;
 	}
-	LogSuccess(L"Water initiated");
+	LogSuccess(L"Water initiated");*/
+
+	HDR = std::make_unique<PostFX::HDR>();
+	HDR->Init(device, 1280, 720);
+
+	Canvas = std::make_unique<PostFX::Canvas>();
+	Canvas->Init(device, 1280, 720);
+
+	GBuffer = std::make_unique<GBufferClass>();
+	GBuffer->Init(device, 1280, 720);
 
 	Sky = std::make_shared<SkyClass>();
 	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
+
+	Ocean = std::make_unique<OceanClass>();
+	if (FAILED(Ocean->Init(device, dc)))
+	{
+		LogError(L"Failed to initiate ocean");
+		return false;
+	}
+	LogSuccess(L"Ocean initiated");
+
+	//Terrain = std::make_shared<TerrainClass>();
+	Sky2 = std::make_unique<SkyClass2>();
+	Sky2->Init(device, dc);
 
 	/*Terrain = std::make_shared<TerrainClass>();
 	Terrain->SetLogger(Logger);
@@ -144,7 +168,6 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc, std::share
 
 	if (FAILED(device->CreateBuffer(&matrixBufferDesc, NULL, &MatrixBuffer))) return false;
 
-
 	// CUBE
 	vector<XMFLOAT4> cubeVertices;
 	cubeVertices.push_back(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -185,7 +208,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc, std::share
 	iinitData.pSysMem = &cubeIndices[0];
 	device->CreateBuffer(&ibd, &iinitData, &mCubeIB);
 
-	CreatePSFromFile(L"..\\Debug\\cubePS.cso", device, mCubePS);
+	CreatePSFromFile(L"..\\Debug\\BasicPS.cso", device, mCubePS);
 
 	D3D11_INPUT_ELEMENT_DESC cubeVertexDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -208,11 +231,12 @@ void MapClass::Shutdown()
 	ReleaseCOM(MatrixBuffer);
 }
 
-void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext)
+void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
 	//Water->evaluateWavesGPU(dt, mImmediateContext);
 	//WaterB->EvaluateWaves(dt, mImmediateContext);
 	//WaterB->BEvelWater(dt, mImmediateContext);
+	Ocean->Update(mImmediateContext, dt, light, Camera);
 
 	XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);
@@ -292,47 +316,6 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->PSSetShader(mCubePS, nullptr, 0);
 
 	mImmediateContext->DrawIndexed(36, 0, 0);
-
-	//UINT stride = sizeof(TerrainClass::Vertex);
-	//UINT offset = 0;
-
-	//mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
-	//mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
-
-	//// Scale and shift quad to lower-right corner.
-	//XMMATRIX world(
-	//	0.25f, 0.0f, 0.0f, 0.0f,
-	//	0.0f, 0.25f, 0.0f, 0.0f,
-	//	0.0f, 0.0f, 1.0f, 0.0f,
-	//	0.75f, -0.75f, 0.0f, 1.0f);
-
-	////PS
-	//ID3D11ShaderResourceView* mDepthMapSRV = ShadowMap->DepthMapSRV();
-	//mImmediateContext->PSSetShaderResources(0, 1, &mDepthMapSRV);
-	//mImmediateContext->PSSetShader(mDebugPS, NULL, 0);
-
-	//D3D11_MAPPED_SUBRESOURCE mappedResources;
-	//MatrixBufferType *dataPtr;
-
-	//mImmediateContext->Map(MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResources);
-
-	//dataPtr = (MatrixBufferType*)mappedResources.pData;
-
-	//dataPtr->gWorldProj = XMMatrixTranspose(world);
-
-	//mImmediateContext->Unmap(MatrixBuffer, 0);
-
-	//mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
-
-	//mImmediateContext->VSSetShader(mDebugVS, NULL, 0);
-
-	//mImmediateContext->IASetInputLayout(mDebugIL);
-	//
-	//mImmediateContext->DrawIndexed(6, 0, 0);
-
-	//mDepthMapSRV = NULL;
-	//mImmediateContext->PSSetShaderResources(0, 1, &mDepthMapSRV);
 
 }
 

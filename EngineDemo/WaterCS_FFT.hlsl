@@ -15,11 +15,9 @@
 //--------------------------------------------------------------------------------------
 
 // Input Preprocess Defines:
-// TRANSFORM_INVERSE: Defined for inverse fft only
 // BUTTERFLY_COUNT: number of passes to perform
 // ROWPASS: defined for tranformation along the x axis
 // LENGTH: pixel length of row or column
-// BUTTERFLY_LUT: Defined if butterfly lookup texture should be used
 
 #define LENGTH 256
 #define BUTTERFLY_COUNT 8
