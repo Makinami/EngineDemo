@@ -18,9 +18,10 @@
 #include "timerclass.h"
 #include "playerclass.h"
 #include "map.h"
-#include "TweakBar.h"
 
 #include "Performance.h"
+
+#include <imgui.h>
 
 /*
 Main System Class:
@@ -44,6 +45,8 @@ class SystemClass
 		LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		// Message proc for status window
 		LRESULT CALLBACK StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// Message proc for imgui
+		IMGUI_API bool ImGui_WndProcHandler(HWND hwdn, UINT msg, WPARAM wParam, LPARAM lParam);
 		
 	private:
 		// Run each frame
@@ -91,8 +94,6 @@ class SystemClass
 		std::shared_ptr<PlayerClass> Player;
 
 		std::shared_ptr<Debug::PerformanceClass> Performance;
-
-		std::shared_ptr<TweakBar> Bar;
 
 		/*
 		World

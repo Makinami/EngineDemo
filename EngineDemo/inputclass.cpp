@@ -1,5 +1,7 @@
 #include "inputclass.h"
 
+#include "imgui.h"
+
 InputClass::InputClass()
 : mDirectInput(0),
   mKeyboard(0),
@@ -129,7 +131,7 @@ void InputClass::ProcessInput()
 
 bool InputClass::IsKeyPressed(SHORT key)
 {
-	if (GetAsyncKeyState(key) & 0x8000) return true;
+	if ((GetAsyncKeyState(key) & 0x8000) && !ImGui::GetIO().WantCaptureKeyboard) return true;
 	else return false;
 }
 

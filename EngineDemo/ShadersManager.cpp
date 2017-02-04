@@ -122,3 +122,102 @@ path ShadersManager::ResolveIdentifierToPath(std::string & identifier)
 
 	return (mShaderDir / std::regex_replace(identifier, std::regex("::"), "/")).replace_extension(".cso");
 }
+
+inline std::ostream& operator<< (std::ostream& stream, ShaderTypes type)
+{
+	switch (type)
+	{
+	case ShaderTypes::Compute:
+		return stream << "Compute Shader";
+	case ShaderTypes::Pixel:
+		return stream << "Pixel Shader";
+	case ShaderTypes::Vertex:
+		return stream << "Vertex Shader";
+	case ShaderTypes::Domain:
+		return stream << "Domain Shader";
+	case ShaderTypes::Hull:
+		return stream << "Hull Shader";
+	default:
+		return stream;
+	}
+}
+
+ShaderMap FindShaderFiles(const fs::path& directory)
+{
+	ShaderMap shaders;
+
+	const regex shader_pattern("(.*)([VHDPC]S)([0-9._]*)$");
+	smatch results;
+
+	for (auto& file : fs::directory_iterator(directory))
+	{
+		if (fs::is_regular_file(file) && (file.path().extension() == ".cso" || file.path().extension() == ".hlsl"))
+		{
+			auto str = file.path().stem().string();
+			if (regex_search(str, results, shader_pattern))
+			{
+				shaders[ShaderFile::StrToEnum(results[2].str())].emplace_back(ShaderFile::StrToEnum(results[2].str()), results[1].str(), results[3].str(), file.path());
+			}
+		}
+	}
+
+	return shaders;
+}
+
+namespace ImGui
+{
+	static auto shader_file_vector_getter = [](void* vec, int idx, const char** out_text)
+	{
+		auto& vector = *static_cast<std::vector<ShaderFile>*>(vec);
+		if (idx < 0 || idx >= vector.size()) { return false; }
+		*out_text = vector.at(idx).readable_id.c_str();
+		return true;
+	};
+
+	bool Combo(const char* label, int* currIndex, std::vector<ShaderFile>& values)
+	{
+		if (values.empty()) return false;
+		return Combo(label, currIndex, shader_file_vector_getter,
+			static_cast<void*>(&values), values.size());
+	}
+}
+
+// String must be a valid representetion of shader type (PS,etc.). Otherwise throws std::logic_error exception.
+ShaderTypes ShaderFile::StrToEnum(const std::string& _type)
+{
+	if (_type == "PS")
+		return ShaderTypes::Pixel;
+	else if (_type == "VS")
+		return ShaderTypes::Vertex;
+	else if (_type == "DS")
+		return ShaderTypes::Domain;
+	else if (_type == "HS")
+		return ShaderTypes::Hull;
+	else if (_type == "CS")
+		return ShaderTypes::Compute;
+	else
+		throw std::logic_error("No shader of type " + _type);
+}
+
+bool ShaderFile::CheckType(const std::string& _type)
+{
+	if (_type == "PS" || _type == "VS" || _type == "DS" || _type == "CS" || _type == "HS")
+		return true;
+	else
+		return false;
+}
+
+ShaderFile::ShaderFile(const ShaderTypes& _type, const std::string& _name, const std::string& _version, const fspath& _file) noexcept
+	: type(_type), name(_name), version(_version), file(_file), readable_id(name + " " + version)
+{ }
+
+// Type string must be a valid representetion of shader type (PS,etc.). Otherwise throws std::logic_error exception.
+ShaderFile::ShaderFile(const std::string& _type, const std::string& _name, const std::string& _version, const fspath _file)
+	: type(StrToEnum(_type)), name(_name), version(_version), file(_file), readable_id(name + " " + version)
+{ }
+
+std::ostream& operator<< (std::ostream& stream, const ShaderFile& shader)
+{
+	stream << "Name: " << shader.name << "\tType: " << shader.type << "\tVer.: " << shader.version << endl;
+	return stream;
+}

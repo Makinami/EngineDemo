@@ -379,6 +379,7 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	dataPS = (cbPerFramePSType*)mappedResource.pData;
 
 	XMStoreFloat3(&(dataPS->gCameraPos), Camera->GetPositionRelSun());
+	dataPS->bExposure = 0.4;
 	dataPS->gSunDir = light.Direction();
 	// change light direction to sun direction
 	dataPS->gSunDir.x *= -1; dataPS->gSunDir.y *= -1; dataPS->gSunDir.z *= -1;

@@ -12,12 +12,14 @@
 #define SafeDelete(x) { delete x; x = nullptr; }
 
 #include <memory>
+#include <vector>
+#include <string>
 #include <wrl\client.h>
+
+#include <unordered_map>
 
 #include "cameraclass.h"
 #include "Lights.h"
-
-#include "TweakBar.h"
 
 class CloudsClass2
 {
@@ -28,9 +30,7 @@ public:
 	int Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* transmittanceSRV);
-
-	void SetBar(std::shared_ptr<TweakBar> Bar);
-
+	
 public:
 	int GenerateClouds(ID3D11DeviceContext1* mImmediateContext);
 
@@ -85,4 +85,6 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11Texture3D> mRandomGrad;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mRandomGradSRV;
+
+	ID3D11Device1* dev;
 };

@@ -88,7 +88,7 @@ private:
 	struct cbPerFramePSType
 	{
 		XMFLOAT3 gCameraPos;
-		float pad1;
+		float bExposure;
 		XMFLOAT3 gSunDir;
 		float pad2;
 		XMFLOAT4 gProj;

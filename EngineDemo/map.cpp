@@ -16,7 +16,7 @@ MapClass::~MapClass()
 	Shutdown();
 }
 
-bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc, std::shared_ptr<TweakBar> Bar)
+bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 {
 	/*WaterB = std::make_unique<WaterBruneton>();
 	WaterB->SetPerformance(Performance);
@@ -92,7 +92,6 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc, std::share
 
 	Clouds2 = std::make_shared<CloudsClass2>();
 	Clouds2->Init(device, dc);
-	Clouds2->SetBar(Bar);
 
 	ShadowMap = std::make_unique<ShadowMapClass>(device, 2048, 2048);
 
@@ -236,7 +235,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 	//Water->evaluateWavesGPU(dt, mImmediateContext);
 	//WaterB->EvaluateWaves(dt, mImmediateContext);
 	//WaterB->BEvelWater(dt, mImmediateContext);
-	Ocean->Update(mImmediateContext, dt, light, Camera);
+	//Ocean->Update(mImmediateContext, dt, light, Camera);
 
 	XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);

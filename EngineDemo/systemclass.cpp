@@ -2,6 +2,8 @@
 
 #include "Utilities\Texture.h"
 
+#include "ImGui\imgui_impl_dx11.h"
+
 // NOTE: here?
 #include "ShadersManager.h"
 #include "RenderStates.h"
@@ -89,6 +91,8 @@ bool SystemClass::Init(std::string filename)
 	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
 	Logger->Success(L"DirectX initiated.");
 
+	ImGui_ImplDX11_Init(mhMainWnd, D3D->GetDevice(), D3D->GetDeviceContext());
+
 	// Pass device to shader manager
 	ShadersManager::Instance()->SetDevice(D3D->GetDevice());
 
@@ -116,9 +120,6 @@ bool SystemClass::Init(std::string filename)
 
 	Performance = std::make_shared<Debug::PerformanceClass>();
 	Performance->Init(D3D->GetDevice(), D3D->GetDeviceContext());
-
-	Bar = std::make_shared<TweakBar>();
-	Bar->Init(D3D->GetDevice(), D3D->GetDeviceContext());
 	
 	/*
 	World
@@ -126,7 +127,7 @@ bool SystemClass::Init(std::string filename)
 	Map = std::make_shared<MapClass>();
 	Map->SetLogger(Logger);
 	Map->SetPerformance(Performance);
-	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext(), Bar);	
+	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
 
 	/*
 	Player
@@ -150,6 +151,8 @@ void SystemClass::Shutdown()
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
 	RenderStates::ReleaseAll();
 	ShadersManager::Instance()->ReleaseAll();
+
+	ImGui_ImplDX11_Shutdown();
 
 	D3D->Shutdown();
 
@@ -188,11 +191,12 @@ int SystemClass::Run()
 	return (int)msg.wParam;
 }
 
+extern LRESULT ImGui_ImplDX11_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // Main/game window's proc
 LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	if (TwEventWin(hwnd, msg, wParam, lParam)) // send event message to AntTweakBar
-		return 0; // event has been handled by AntTweakBar
+	if (ImGui_WndProcHandler(hwnd, msg, wParam, lParam))
+		return 0;
 
 	switch (msg)
 	{
@@ -258,7 +262,9 @@ LRESULT SystemClass::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			mAppPaused = false;
 			mWndState = WndStateNormal;
 			// timer
+			ImGui_ImplDX11_InvalidateDeviceObjects();
 			D3D->OnResize(mClientWidth, mClientHeight);
+			ImGui_ImplDX11_CreateDeviceObjects();
 			return 0;
 		
 		// Limit window size
@@ -317,6 +323,75 @@ LRESULT SystemClass::StatusWndMsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	return 0;
 }
 
+IMGUI_API bool SystemClass::ImGui_WndProcHandler(HWND hwdn, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	ImGuiIO& io = ImGui::GetIO();
+
+	switch (msg)
+	{
+	case WM_MOUSEMOVE:
+		io.MousePos.x = (signed short)(lParam);
+		io.MousePos.y = (signed short)(lParam >> 16);
+		return io.WantCaptureMouse;
+	case WM_MOUSEWHEEL:
+		io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0 : -1.0;
+		return io.WantCaptureMouse;
+	default:
+		break;
+	}
+
+	if (io.WantCaptureMouse)
+	{
+		switch (msg)
+		{
+		case WM_LBUTTONDOWN:
+			io.MouseDown[0] = true;
+			return true;
+		case WM_LBUTTONUP:
+			io.MouseDown[0] = false;
+			return true;
+		case WM_RBUTTONDOWN:
+			io.MouseDown[1] = true;
+			return true;
+		case WM_RBUTTONUP:
+			io.MouseDown[1] = false;
+			return true;
+		case WM_MBUTTONDOWN:
+			io.MouseDown[2] = true;
+			return true;
+		case WM_MBUTTONUP:
+			io.MouseDown[2] = false;
+			return true;
+		default:
+			break;
+		}
+	}
+
+	if (io.WantCaptureKeyboard)
+	{
+		switch (msg)
+		{
+		case WM_KEYDOWN:
+			if (wParam < 256)
+				io.KeysDown[wParam] = 1;
+			return true;
+		case WM_KEYUP:
+			if (wParam < 256)
+				io.KeysDown[wParam] = 0;
+			return true;
+		case WM_CHAR:
+			// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
+			if (wParam > 0 && wParam < 0x10000)
+				io.AddInputCharacter((unsigned short)wParam);
+			return true;
+		default:
+			break;
+		}
+	}
+
+	return false;
+}
+
 // Run every frame
 bool SystemClass::Frame()
 {
@@ -327,6 +402,15 @@ bool SystemClass::Frame()
 	Player->React(dt);	
 	Map->Update(dt, D3D->GetDeviceContext(), Camera);
 	
+	ImGui_ImplDX11_NewFrame();
+
+	// 1. Show a simple window
+	// Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+	{
+		ImGui::Text("Hello, world!");
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+	}
+
 	D3D->BeginScene();
 
 	Map->Draw(D3D->GetDeviceContext(), Camera);
@@ -338,7 +422,7 @@ bool SystemClass::Frame()
 
 	Performance->Draw(D3D->GetDeviceContext());
 
-	Bar->Draw();
+	ImGui::Render();
 
 	D3D->EndScene();
 	return true;

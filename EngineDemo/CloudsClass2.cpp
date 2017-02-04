@@ -1,16 +1,20 @@
 #include "CloudsClass2.h"
 
-#include <vector>
-#include <fstream>
-#include <algorithm>
 #include <random>
+
+#include <imgui.h>
 
 #include "DDSTextureLoader.h"
 #include "ScreenGrab.h"
 #include "Utilities\CreateShader.h"
 #include "noise\noise.h"
+#include "RenderStates.h"
+
+#include "ShadersManager.h"
 
 using namespace std;
+namespace fs = std::experimental::filesystem;
+
 using namespace DirectX;
 using namespace noise;
 using namespace Microsoft::WRL;
@@ -19,7 +23,7 @@ CloudsClass2::CloudsClass2()
 	: mScreenQuadIB(0),
 	mScreenQuadVB(0),
 	mInputLayout(0),
-	mVertexShader(0),
+	mVertexShader(nullptr),
 	mPixelShader(0),
 	cbPerFrameVS(0),
 	cbPerFramePS(0),
@@ -102,7 +106,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	ID3D11Texture2D* srcTex;
 
-	CreateDDSTextureFromFile(device, L"Textures\\cloudsCurlNoise.dds", (ID3D11Resource**)&srcTex, &mCloudCurlSRV, 0, nullptr);
+	CreateDDSTextureFromFile(device, L"Textures\\inscatter.dds", (ID3D11Resource**)&srcTex, &mCloudCurlSRV, 0, nullptr);
 	ReleaseCOM(srcTex);
 
 	CreateDDSTextureFromFile(device, L"Textures\\cloudsTypes.dds", (ID3D11Resource**)&srcTex, &mCloudTypesSRV, 0, nullptr);
@@ -156,7 +160,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	int numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
 
 	CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Clouds\\CloudsVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout);
-
+	
 	D3D11_BUFFER_DESC cbDesc = {};
 	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
 	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -216,16 +220,55 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	D3D11_DEPTH_STENCIL_DESC dsDesc;
 	dsDesc.DepthEnable = true;
 	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	dsDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
 	dsDesc.StencilEnable = false;
 
 	device->CreateDepthStencilState(&dsDesc, &mDepthStencilState);
+
+	dev = device;
 
 	return 0;
 }
 
 void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light, ID3D11ShaderResourceView* transmittanceSRV)
 {
+	static ShaderMap shaderfiles;
+	static int currShader{ 0 };
+	static std::string shader{ "/* Shader editor */" };
+	shader.reserve(32 * 1024); // for now 32k. I am still looking into arbitrary length textbox (https://github.com/ocornut/imgui/issues/1008)
+
+	if (ImGui::Button("Reload shader list", true))
+		shaderfiles = FindShaderFiles("../Debug/Shaders/Clouds/");
+
+	ImGui::SameLine();
+
+	auto reload = (shaderfiles.find(ShaderTypes::Pixel) != std::end(shaderfiles)
+		&& shaderfiles[ShaderTypes::Pixel].size() > currShader);
+	
+	if (ImGui::Button("Reload shader", reload))
+	{
+		CreatePSFromFile(shaderfiles[ShaderTypes::Pixel][currShader].file, dev, mPixelShader);
+	}
+
+	ImGui::SameLine();
+
+	auto editable = (reload
+		&& shaderfiles[ShaderTypes::Pixel][currShader].file.extension() == ".hlsl");
+	
+	if (ImGui::Button("Edit", editable))
+	{
+		ShellExecute(nullptr, nullptr,
+			shaderfiles[ShaderTypes::Pixel][currShader].file.wstring().c_str(), nullptr, nullptr, SW_SHOW);
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Edit current shader in external program");
+
+	if (ImGui::Combo("Pixel Shader", &currShader, shaderfiles[ShaderTypes::Pixel]))
+	{
+		ReleaseCOM(mPixelShader);
+		CreatePSFromFile(shaderfiles[ShaderTypes::Pixel][currShader].file, dev, mPixelShader);
+	}
+	
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	UINT stride = sizeof(XMFLOAT3);
 	UINT offset = 0;
@@ -280,11 +323,6 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 
 	mImmediateContext->OMSetBlendState(NULL, NULL, 0xffffff);
 	mImmediateContext->OMSetDepthStencilState(0, 0);
-}
-
-void CloudsClass2::SetBar(std::shared_ptr<TweakBar> Bar)
-{
-	TwAddVarRW(Bar->bar, "x", TW_TYPE_FLOAT, &cbPerFramePSParams.pad, "group=Clouds");
 }
 
 int CloudsClass2::GenerateClouds(ID3D11DeviceContext1 * mImmediateContext)

@@ -67,6 +67,9 @@
     <Filter Include="Shaders\Deferred Shaders">
       <UniqueIdentifier>{f531fb3f-a0e4-4710-af29-328c0d22999c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd-party\ImGui">
+      <UniqueIdentifier>{d49c3c40-cdfe-4a37-aaba-6936c1408dfa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="systemclass.cpp">
@@ -165,6 +168,21 @@
     </ClCompile>
     <ClCompile Include="TweakBar.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui.cpp">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_dx11.cpp">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_demo.cpp">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_draw.cpp">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="DeveloperOverlay.cpp">
+      <Filter>Debug</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -420,6 +438,30 @@
     <ClInclude Include="TweakBar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ImGui\imgui_impl_dx11.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imconfig.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_internal.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\stb_rect_pack.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\stb_textedit.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\stb_truetype.h">
+      <Filter>3rd-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="DeveloperOverlay.h">
+      <Filter>Debug</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicPS.hlsl">
@@ -653,10 +695,6 @@
     <None Include="Shaders\WaterBruneton\atmosphere.hlsli">
       <Filter>Shaders\WaterBruneton</Filter>
     </None>
-    <None Include="ClassDiagram.cd" />
-    <None Include="ClassDiagram1.cd" />
-    <None Include="ClassDiagram2.cd" />
-    <None Include="ClassDiagram3.cd" />
     <None Include="Shaders\PerlinNoise.hlsli">
       <Filter>Shaders</Filter>
     </None>

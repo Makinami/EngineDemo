@@ -4,12 +4,55 @@
 #include <string>
 #include <unordered_map>
 #include <filesystem>
+#include <vector>
 
 #include <d3d11_1.h>
 
+#include "DeveloperOverlay.h"
+
+enum class ShaderTypes {
+	Vertex,
+	Hull,
+	Domain,
+	Pixel,
+	Compute
+};
+
+struct ShaderFile
+{
+	using fspath = std::experimental::filesystem::path;
+
+	ShaderTypes type;
+	std::string version;
+	std::string name;
+	std::string readable_id;
+	fspath file;
+
+	// String must be a valid representetion of shader type (PS,etc.). Otherwise throws std::logic_error exception.
+	static ShaderTypes StrToEnum(const std::string& _type);
+
+	static bool CheckType(const std::string& _type);
+
+	ShaderFile(const ShaderTypes& _type, const std::string& _name, const std::string& _version, const fspath& _file) noexcept;
+
+	// Type string must be a valid representetion of shader type (PS,etc.). Otherwise throws std::logic_error exception.
+	ShaderFile(const std::string& _type, const std::string& _name, const std::string& _version, const fspath _file);
+
+	friend std::ostream& operator<< (std::ostream& stream, const ShaderFile& shader);
+};
+
+using ShaderMap = std::unordered_map< ShaderTypes, std::vector<ShaderFile>>;
+
+ShaderMap FindShaderFiles(const std::experimental::filesystem::path& directory);
+
+namespace ImGui
+{
+	bool Combo(const char* label, int* currIndex, std::vector<ShaderFile>& values);
+}
+
 class ShadersManager
 {
-	using fspath = std::tr2::sys::path;
+	using fspath = std::experimental::filesystem::path;
 
 public:
 	static std::shared_ptr<ShadersManager> Instance();

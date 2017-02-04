@@ -43,7 +43,7 @@ public:
 	MapClass();
 	~MapClass();
 
-	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, std::shared_ptr<TweakBar> Bar);
+	bool Init(ID3D11Device1* device, ID3D11DeviceContext1* dc);
 	
 	void Shutdown();
 

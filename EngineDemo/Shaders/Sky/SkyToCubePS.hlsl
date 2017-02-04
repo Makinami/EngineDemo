@@ -184,17 +184,6 @@ float3 Uncharted2Tonemap(float3 x)
 
 float3 HDR(float3 L)
 {
-	float middleGray = 0.15;
-	float whitePoint = 2.0;
-	float fAveLogLum = 0.5; // GetAverageLuminance();
-	float fLumScale = middleGray / fAveLogLum;
-	float3 f3ScaledColour = L * fLumScale;
-
-	float ExposureBias = 2.0f;
-	float3 curr = Uncharted2Tonemap(ExposureBias * f3ScaledColour);
-	float3 whiteScale = Uncharted2Tonemap(whitePoint);
-	//return curr * whitePoint;
-
 	L = L*bExposure;
 	L.r = L.r < 1.413 ? pow(L.r * 0.38317, 1.0 / 2.2) : 1.0 - exp(-L.r);
 	L.g = L.g < 1.413 ? pow(L.g * 0.38317, 1.0 / 2.2) : 1.0 - exp(-L.g);
@@ -231,6 +220,6 @@ float4 main( VertexOut vout ) : SV_TARGET
 	float3 inscatterColour = inscatter(x, t, v, bSunDir1, r, mu, attenuation); //S[L]-T(x,xs)S[l]xs
 	float3 groundColour = ground(x, t, v, bSunDir1, r, mu, attenuation); //R[L0]+R[L*]
 	float3 sunColour = sun(x, t, v, bSunDir1, r, mu); // L0
-	
+
 	return float4(HDR(sunColour + groundColour + inscatterColour), 1.0); // Eq(16)
 }
