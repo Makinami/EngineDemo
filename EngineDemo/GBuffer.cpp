@@ -3,7 +3,7 @@
 #include "Utilities\RenderViewTargetStack.h"
 #include "RenderStates.h"
 
-#include "ShadersManager.h"
+#include "ShaderManager.h"
 
 using namespace std;
 using namespace DirectX;
@@ -14,50 +14,8 @@ GBufferClass::GBufferClass()
 
 int GBufferClass::Init(ID3D11Device1 * device, int width, int height)
 {
-
-	EXIT_ON_NULL(mGBuffer[0] =
-				 TextureFactory::CreateTexture(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE, 
-											   DXGI_FORMAT_R8G8B8A8_UNORM, width, height));
-
-	EXIT_ON_NULL(mGBuffer[1] =
-				 TextureFactory::CreateTexture(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
-											   DXGI_FORMAT_R16G16_FLOAT, width, height));
-
-	mGBufferRTV[0] = mGBuffer[0]->GetRTV();
-	mGBufferRTV[1] = mGBuffer[1]->GetRTV();
-
-	mGBufferSRV[0] = mGBuffer[0]->GetSRV();
-	mGBufferSRV[1] = mGBuffer[1]->GetSRV();
-
-	// depth stencil
-	D3D11_TEXTURE2D_DESC textDesc;
-
-	ZeroMemory(&textDesc, sizeof(textDesc));
-
-	textDesc.Width = width;
-	textDesc.Height = height;
-	textDesc.MipLevels = 1;
-	textDesc.ArraySize = 1;
-	textDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-	textDesc.SampleDesc = { 1, 0 };
-	textDesc.Usage = D3D11_USAGE_DEFAULT;
-	textDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-	textDesc.CPUAccessFlags = 0;
-	textDesc.MiscFlags = 0;
-
-	EXIT_ON_NULL(mDepthStencil =
-		TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
-	
-	// view port
-	mViewPort = {};
-	mViewPort.Width = static_cast<float>(width);
-	mViewPort.Height = static_cast<float>(height);
-	mViewPort.MaxDepth = 1.0;
-
-
-
 	// SHADERS
-	mPixelShader = ShadersManager::Instance()->GetPS("Deferred Shaders::phongLingtingPS");
+	mPixelShader = ShaderManager::Instance()->GetPS("Deferred Shaders::phongLingtingPS");
 
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
@@ -118,11 +76,15 @@ int GBufferClass::Init(ID3D11Device1 * device, int width, int height)
 
 	device->CreateBuffer(&cbDesc, NULL, &cbPerFramePS);
 
+	OnResize(device, width, height);
+
 	return S_OK;
 }
 
 void GBufferClass::Shutdown()
 {
+	ReleaseCOM(cbPerFrameVS);
+	ReleaseCOM(cbPerFramePS);
 }
 
 void GBufferClass::SetBufferRTV(ID3D11DeviceContext1 * mImmediateContext) const
@@ -137,7 +99,10 @@ void GBufferClass::SetBufferRTV(ID3D11DeviceContext1 * mImmediateContext) const
 
 void GBufferClass::UnsetBufferRTV(ID3D11DeviceContext1 * mImmediateContext) const
 {
-	RenderTargetStack::Pop(mImmediateContext);
+	if (!RenderTargetStack::Pop(mImmediateContext))
+	{
+		MessageBox(nullptr, L"cannot pop RTV - only one (GBuffer)", nullptr, 0);
+	}
 }
 
 void GBufferClass::SetBufferSRV(ID3D11DeviceContext1 * mImmediateContext, int first_slot)
@@ -198,8 +163,7 @@ void GBufferClass::Resolve(ID3D11DeviceContext1 * mImmediateContext, std::shared
 	this->SetBufferSRV(mImmediateContext);
 	mImmediateContext->PSSetShaderResources(2, 1, mDepthStencil->GetAddressOfSRV());
 
-	//mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::NoWriteGreaterEqualDSS, 0);
-
+	//mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::WriteNoTestDSS, 0);
 
 	mScreenQuad.Draw(mImmediateContext);
 
@@ -207,4 +171,49 @@ void GBufferClass::Resolve(ID3D11DeviceContext1 * mImmediateContext, std::shared
 
 	mImmediateContext->PSSetShaderResources(9, 3, ppSRVNULL);
 
+}
+
+HRESULT GBufferClass::OnResize(ID3D11Device1 * device, int renderWidth, int renderHeight)
+{
+	EXIT_ON_NULL(mGBuffer[0] =
+		TextureFactory::CreateTexture(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
+			DXGI_FORMAT_R8G8B8A8_UNORM, renderWidth, renderHeight));
+
+	EXIT_ON_NULL(mGBuffer[1] =
+		TextureFactory::CreateTexture(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
+			DXGI_FORMAT_R16G16_FLOAT, renderWidth, renderHeight));
+
+	mGBufferRTV[0] = mGBuffer[0]->GetRTV();
+	mGBufferRTV[1] = mGBuffer[1]->GetRTV();
+
+	mGBufferSRV[0] = mGBuffer[0]->GetSRV();
+	mGBufferSRV[1] = mGBuffer[1]->GetSRV();
+
+	// depth stencil
+	D3D11_TEXTURE2D_DESC textDesc;
+
+	ZeroMemory(&textDesc, sizeof(textDesc));
+
+	textDesc.Width = renderWidth;
+	textDesc.Height = renderHeight;
+	textDesc.MipLevels = 1;
+	textDesc.ArraySize = 1;
+	textDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	textDesc.SampleDesc = { 1, 0 };
+	textDesc.Usage = D3D11_USAGE_DEFAULT;
+	textDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	textDesc.CPUAccessFlags = 0;
+	textDesc.MiscFlags = 0;
+
+	EXIT_ON_NULL(mDepthStencil =
+		TextureFactory::CreateTexture(textDesc, { DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, DXGI_FORMAT_UNKNOWN }));
+
+	// view port
+	mViewPort = {};
+	mViewPort.Width = static_cast<float>(renderWidth);
+	mViewPort.Height = static_cast<float>(renderHeight);
+	mViewPort.MaxDepth = 1.0;
+
+	//MessageBox(nullptr, L"on resize in GBuffer", nullptr, 0);
+	return E_NOTIMPL;
 }

@@ -2,6 +2,8 @@
 
 #include "Utilities\CreateShader.h"
 
+#include "RenderStates.h"
+
 WaterClass::WaterClass() :
 	mQuadPatchVB(nullptr),
 	mQuadPatchIB(nullptr),
@@ -133,37 +135,10 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 
 	mSamplerStates = new ID3D11SamplerState*[3];
 
-	D3D11_SAMPLER_DESC samplerDesc;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.BorderColor[0] = 0.0f;
-	samplerDesc.BorderColor[1] = 0.0f;
-	samplerDesc.BorderColor[2] = 0.0f;
-	samplerDesc.BorderColor[3] = 0.0f;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.MaxLOD = FLT_MAX;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MipLODBias = 0;
+	mSamplerStates[0] = RenderStates::Sampler::BilinearClampSS;
+	mSamplerStates[1] = RenderStates::Sampler::TrilinearWrapSS;
+	mSamplerStates[2] = RenderStates::Sampler::BilinearClampComLessSS;
 
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-
-	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[0]))) return false;
-
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-
-	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[1]))) return false;
-
-	samplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
-
-	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[2]))) return false;
-	
 	return true;
 }
 

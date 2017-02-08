@@ -5,7 +5,7 @@
 #include "ImGui\imgui_impl_dx11.h"
 
 // NOTE: here?
-#include "ShadersManager.h"
+#include "ShaderManager.h"
 #include "RenderStates.h"
 
 // 'Hack for inability to set class member function as window proc
@@ -94,7 +94,7 @@ bool SystemClass::Init(std::string filename)
 	ImGui_ImplDX11_Init(mhMainWnd, D3D->GetDevice(), D3D->GetDeviceContext());
 
 	// Pass device to shader manager
-	ShadersManager::Instance()->SetDevice(D3D->GetDevice());
+	ShaderManager::Instance()->SetDevice(D3D->GetDevice());
 
 	// Pass device to TextureFactory
 	TextureFactory::SetDevice(D3D->GetDevice());
@@ -145,7 +145,9 @@ void SystemClass::Shutdown()
 	//RenderTargetStack::Shutdown(D3D->GetDeviceContext());
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
 	RenderStates::ReleaseAll();
-	ShadersManager::Instance()->ReleaseAll();
+	ShaderManager::Instance()->ReleaseAll();
+
+	TwTerminate();
 
 	ImGui_ImplDX11_Shutdown();
 

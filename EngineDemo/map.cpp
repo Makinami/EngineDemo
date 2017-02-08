@@ -4,6 +4,8 @@
 #include "Utilities\CreateShader.h"
 #include "Utilities\MapResources.h"
 
+#include "RenderStates.h"
+
 MapClass::MapClass() :
 	Terrain(nullptr),
 	Water(nullptr),
@@ -131,7 +133,7 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 	XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);
 
-	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt*XM_2PI/(60.f*5.0f)));
+	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt * XM_2PI / (3600.0f * 24.0f)));
 
 	XMStoreFloat3(&dir_f, dir);
 	light.Direction(dir_f);
@@ -167,6 +169,8 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->VSSetConstantBuffers(0, 1, &MatrixBuffer);
 
 	mImmediateContext->PSSetShader(mCubePS, nullptr, 0);
+	
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::NoCullingRS);
 
 	mImmediateContext->DrawIndexed(36, 0, 0);
 

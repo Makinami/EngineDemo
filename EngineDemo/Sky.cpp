@@ -7,7 +7,7 @@
 #include "Utilities\MapResources.h"
 
 // NOTE: here?
-#include "ShadersManager.h"
+#include "ShaderManager.h"
 #include "RenderStates.h"
 
 #include <DirectXColors.h>
@@ -15,7 +15,9 @@
 #include "Shaders\Sky2\Structures.hlsli"
 
 SkyClass::SkyClass()
-	: skyMapSize(512)
+	: skyMapSize(512),
+	mMapVertexShader(0),
+	mMapPixelShader(0)
 {
 }
 
@@ -124,7 +126,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 	// sampler states
 	mSamplerStateBasic = new ID3D11SamplerState*[4];
-	for (size_t i = 0; i < 4; i++) mSamplerStateBasic[i] = RenderStates::Sampler::TriLinearClampSS;
+	for (size_t i = 0; i < 4; i++) mSamplerStateBasic[i] = RenderStates::Sampler::TrilinearClampSS;
 
 
 	D3D11_BUFFER_DESC cbDesc = {};
@@ -180,7 +182,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 	CreatePSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyToScreenPS.cso", device, mPixelShaderToScreen, "SkyToScreenPS - mPixelShaderToScreen");
 
-	mPixelShaderPostFX = ShadersManager::Instance()->GetPS("Sky::SkyPostFX");
+	mPixelShaderPostFX = ShaderManager::Instance()->GetPS("Sky::SkyPostFX");
 
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
@@ -218,7 +220,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 
 	CreateVSFromFile(L"..\\Debug\\Shaders\\Sky\\SkyMapVS.cso", device, mMapVertexShader, "SkyMapVS - mMapVertexShader");
 
-	mMapPixelShader = ShadersManager::Instance()->GetPS("Sky::SkyMapPS");
+	mMapPixelShader = ShaderManager::Instance()->GetPS("Sky::SkyMapPS");
 
 	CreateConstantBuffer(device, sizeof(skyMapBufferType), skyMapCB, "skyMapCB");
 	
@@ -439,7 +441,10 @@ void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLi
 
 	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
 
-	RenderTargetStack::Pop(mImmediateContext);
+	if (!RenderTargetStack::Pop(mImmediateContext))
+	{
+		MessageBox(nullptr, L"Cannot pop RTV - only one (Sky)", nullptr, 0);
+	}
 	ViewportStack::Pop(mImmediateContext);
 
 	mImmediateContext->GenerateMips(newMapText->GetSRV());

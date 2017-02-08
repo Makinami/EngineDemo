@@ -94,11 +94,11 @@ private:
 		D3D11_TEXTURE3D_DESC textDesc3D;
 	};
 
-	union {
+	//union {
 		Microsoft::WRL::ComPtr<ID3D11Texture1D> mTexture1D;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture2D;
 		Microsoft::WRL::ComPtr<ID3D11Texture3D> mTexture3D;
-	};
+	//};
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDepthStencilView;

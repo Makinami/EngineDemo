@@ -50,12 +50,12 @@ namespace ImGui
 	bool Combo(const char* label, int* currIndex, std::vector<ShaderFile>& values);
 }
 
-class ShadersManager
+class ShaderManager
 {
 	using fspath = std::experimental::filesystem::path;
 
 public:
-	static std::shared_ptr<ShadersManager> Instance();
+	static std::shared_ptr<ShaderManager> Instance();
 
 	void ReleaseAll();
 
@@ -67,14 +67,14 @@ public:
 	ID3D11ComputeShader* GetCS(std::string identifier);
 
 public:
-	ShadersManager(ShadersManager const&) = delete;
-	void operator=(ShadersManager const&) = delete;
-	~ShadersManager();
+	ShaderManager(ShaderManager const&) = delete;
+	void operator=(ShaderManager const&) = delete;
+	~ShaderManager();
 
 	void SetDevice(ID3D11Device1* const& _device) { device = _device; };
 
 protected:
-	ShadersManager() {};
+	ShaderManager() {};
 
 private:
 	ID3D11PixelShader* AddPS(std::string& identifier);
@@ -87,7 +87,7 @@ private:
 	fspath ResolveIdentifierToPath(std::string& identifier);
 
 private:
-	static std::shared_ptr<ShadersManager> mInstance;
+	static std::shared_ptr<ShaderManager> mInstance;
 
 	ID3D11Device1* device;
 

@@ -10,7 +10,7 @@
 #include "noise\noise.h"
 #include "RenderStates.h"
 
-#include "ShadersManager.h"
+#include "ShaderManager.h"
 
 using namespace std;
 namespace fs = std::experimental::filesystem;
@@ -46,6 +46,7 @@ CloudsClass2::~CloudsClass2()
 	ReleaseCOM(cbPerFramePS);
 
 	ReleaseCOM(mSamplerStateTrilinear);
+	ReleaseCOM(mBlendStateClouds);
 	ReleaseCOM(mDepthStencilState);
 }
 
@@ -174,32 +175,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	cbDesc.ByteWidth = sizeof(cbPerFramePSType);
 
 	device->CreateBuffer(&cbDesc, NULL, &cbPerFramePS);
-
-	// sampler state
-	D3D11_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = FLT_MAX;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.BorderColor[0] =
-		samplerDesc.BorderColor[1] =
-		samplerDesc.BorderColor[2] =
-		samplerDesc.BorderColor[3] = 0.0f;
-
-	device->CreateSamplerState(&samplerDesc, &mSamplerStateTrilinear);
-
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-	samplerDesc.AddressU =
-		samplerDesc.AddressV =
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-
-	device->CreateSamplerState(&samplerDesc, &mSamplerStateBilinearClamp);
-
+	
 	// blend state
 	D3D11_BLEND_DESC1 blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = false;
@@ -304,8 +280,7 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->Unmap(cbPerFramePS, 0);
 
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
-	mImmediateContext->PSSetSamplers(3, 1, &mSamplerStateTrilinear);
-	mImmediateContext->PSSetSamplers(4, 1, &mSamplerStateBilinearClamp);
+	mImmediateContext->PSSetSamplers(3, 1, &RenderStates::Sampler::TrilinearWrapSS);
 	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceSRV);
 	mImmediateContext->PSSetShaderResources(4, 1, mCloudGeneralSRV.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(5, 1, mCloudDetailSRV.GetAddressOf());

@@ -10,8 +10,12 @@ public:
 
 	struct Sampler
 	{
-		static ID3D11SamplerState* TriLinearClampSS;
-		static ID3D11SamplerState* TriLinearWrapSS;
+		static ID3D11SamplerState* BilinearClampSS;
+		static ID3D11SamplerState* BilinearWrapSS;
+		static ID3D11SamplerState* BilinearClampComLessSS;
+		static ID3D11SamplerState* TrilinearClampSS;
+		static ID3D11SamplerState* TrilinearWrapSS;
+		static ID3D11SamplerState* AnisotropicClampSS;
 		static ID3D11SamplerState* AnisotropicWrapSS;
 	};
 
@@ -25,6 +29,7 @@ public:
 	struct Rasterizer
 	{
 		static ID3D11RasterizerState1* DefaultRS;
+		static ID3D11RasterizerState1* NoCullingRS;
 		static ID3D11RasterizerState1* WireframeRS;
 	};
 

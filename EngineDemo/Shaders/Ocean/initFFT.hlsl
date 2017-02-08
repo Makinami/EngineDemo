@@ -9,6 +9,9 @@ cbuffer constBuffer : register(b0)
 Texture2DArray<float2> spectrum : register(t0);
 RWTexture2DArray<float4> fftWaves : register(u0);
 
+RWTexture2DArray<float> spectrumTex : register(u8);
+Texture2DArray<float> phaseTex : register(t8);
+
 #define FFT_SIZE 256
 
 float2 getSpectrum(float k, float2 s0, float2 s0c)
@@ -24,16 +27,27 @@ float2 i(float2 z) // i * z (complex)
 	return float2(-z.y, z.x);
 }
 
+float2 sampleSpectrum(uint3 coordinates)
+{
+	float phase = phaseTex[coordinates];
+	float2 phaseVector;
+	sincos(phase, phaseVector.x, phaseVector.y);
+
+	float spec = spectrumTex[coordinates];
+
+	return spec*phaseVector;
+}
+
 [numthreads(16, 16, 1)]
 void main(int3 DTid : SV_DispatchThreadID)
 {
 	float x = DTid.x >= FFT_SIZE >> 1 ? DTid.x - FFT_SIZE : DTid.x;
 	float y = DTid.y >= FFT_SIZE >> 1 ? DTid.y - FFT_SIZE : DTid.y;
 
-	float4 spec1 = float4(spectrum[uint3(DTid.xy, 0)], spectrum[uint3(FFT_SIZE - DTid.xy, 0)]);
-	float4 spec2 = float4(spectrum[uint3(DTid.xy, 1)], spectrum[uint3(FFT_SIZE - DTid.xy, 1)]);
-	float4 spec3 = float4(spectrum[uint3(DTid.xy, 2)], spectrum[uint3(FFT_SIZE - DTid.xy, 2)]);
-	float4 spec4 = float4(spectrum[uint3(DTid.xy, 3)], spectrum[uint3(FFT_SIZE - DTid.xy, 3)]);
+	float4 spec1 = float4(sampleSpectrum(uint3(DTid.xy, 0)), sampleSpectrum(uint3(FFT_SIZE - DTid.xy, 0)));
+	float4 spec2 = float4(sampleSpectrum(uint3(DTid.xy, 1)), sampleSpectrum(uint3(FFT_SIZE - DTid.xy, 1)));
+	float4 spec3 = float4(sampleSpectrum(uint3(DTid.xy, 2)), sampleSpectrum(uint3(FFT_SIZE - DTid.xy, 2)));
+	float4 spec4 = float4(sampleSpectrum(uint3(DTid.xy, 3)), sampleSpectrum(uint3(FFT_SIZE - DTid.xy, 3)));
 
 	float2 k1 = float2(x, y) * INVERSE_GRID_SIZE.x;
 	float2 k2 = float2(x, y) * INVERSE_GRID_SIZE.y;
@@ -56,12 +70,12 @@ void main(int3 DTid : SV_DispatchThreadID)
 	float2 h4 = getSpectrum(K4, spec4.xy, spec4.zw);
 
 	float4 slope = float4(i(k1.x * h1) - k1.y * h1, i(k2.x * h2) - k2.y * h2);
-	fftWaves[uint3(DTid.xy, 0)] = float4(slope.xy * IK1, h1); // grid size 1 displacement
-	fftWaves[uint3(DTid.xy, 1)] = float4(slope.zw* IK2, h2); // grid size 2 displacement
+	fftWaves[uint3(DTid.xy, 0)] = float4(slope.xy * IK1*lambdaJ, h1); // grid size 1 displacement
+	fftWaves[uint3(DTid.xy, 1)] = float4(slope.zw* IK2*lambdaJ, h2); // grid size 2 displacement
 	fftWaves[uint3(DTid.xy, 4)] = slope; // grid size 1 & 2 slope
 
 	slope = float4(i(k3.x * h3) - k3.y * h3, i(k4.x * h4) - k4.y * h4);
-	fftWaves[uint3(DTid.xy, 2)] = float4(slope.xy * IK3, h3); // grid size 3 displacement
-	fftWaves[uint3(DTid.xy, 3)] = float4(slope.zw * IK4, h4); // grid size 4 displacement
+	fftWaves[uint3(DTid.xy, 2)] = float4(slope.xy * IK3*lambdaJ, h3); // grid size 3 displacement
+	fftWaves[uint3(DTid.xy, 3)] = float4(slope.zw * IK4*lambdaJ, h4); // grid size 4 displacement
 	fftWaves[uint3(DTid.xy, 5)] = slope; // grid size 3 & 4 slope
 }

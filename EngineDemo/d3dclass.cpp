@@ -107,7 +107,7 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 	}
 
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.BufferCount = 1;
+	sd.BufferCount = 1; 
 	sd.Scaling = DXGI_SCALING_STRETCH;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -141,6 +141,9 @@ bool D3DClass::Init(HWND hwnd, UINT mClientWidth, UINT mClientHeight, std::share
 // Change and recreated necessery resources after window resize
 void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 {
+	// drop resizing if size not changed (window was only moved)
+	if (mClientHeight == mRenderHeight && mClientWidth == mRenderWidth) return;
+
 	assert(mDevice);
 	assert(mImmediateContext);
 	assert(mSwapChain);
@@ -202,6 +205,9 @@ void D3DClass::OnResize(UINT mClientWidth, UINT mClientHeight)
 
 	if (ViewportStack::Empty()) ViewportStack::Push(mImmediateContext, &mScreenViewport);
 	else ViewportStack::Update(mImmediateContext, &mScreenViewport);
+
+	// notify about resize
+	OnResizeNotifier::OnResize(mDevice, mRenderWidth, mRenderHeight);
 }
 
 void D3DClass::Shutdown()

@@ -20,6 +20,14 @@
 
 #include "CDLODQuadTree.h"
 
+#include "PostFX.h"
+
+#include "Utilities\Texture.h"
+
+
+#include "AntTweakBar.h"
+
+
 using namespace std;
 using namespace DirectX;
 
@@ -33,7 +41,9 @@ public:
 
 	void Update(ID3D11DeviceContext1* &mImmediateContext, float dt, DirectionalLight& light, std::shared_ptr<CameraClass> Camera);
 
-	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* waterB );
+	void Draw(ID3D11DeviceContext1* &mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
+
+	void DrawPost(ID3D11DeviceContext1* &mImmediateContext, std::unique_ptr<PostFX::Canvas> const& Canvas, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
 	void ChangedWinSize(ID3D11Device1* &device, int width, int height);
 
@@ -77,6 +87,12 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fresnelSRV;
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> foamSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> FoamCombinedSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> FoamRampSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ColourDepthRampSRV;
+
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> slopeVarianceCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> initFFTCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> fftCS;
@@ -114,6 +130,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mDomainShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> mVS2;
+	ID3D11HullShader* mHS2;
+	ID3D11DomainShader* mDS2;
+	ID3D11PixelShader* mPS2;
+	ID3D11PixelShader* mPS3;
+
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> mGerstnerDS;
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> mQuadVS;
@@ -150,7 +172,19 @@ private:
 		float lambdaV;
 		float scale;
 		XMFLOAT3 camLookAt;
-		float pad;
+		float mipmapLevel;
+		XMFLOAT4 gProj;
+		XMFLOAT2 wind;
+		float maxDepth;
+		float seaColourAlpha;
+		XMFLOAT4 seaColour;
+		XMFLOAT4 seaColourSSS;
+		int SkyFlag;
+		int SeaFlag;
+		int SunFlag;
+		int varianceSlice;
+		float arcHDep;
+		XMFLOAT3 rgbExtinction;
 	} perFrameParams;
 
 	struct LODLevel
@@ -166,10 +200,13 @@ private:
 	float omega(float k);
 	float inline sqr(float x) { return x * x; };
 
+	float PiersonMoskowitzSpectrum(float w);
+	float PhillipsSpectrum(float kx, float ky);
+
 	float Fresnel(float dot, float n1, float n2, bool schlick = true);
 
 private:
-	UINT FFT_SIZE;
+	int FFT_SIZE;
 	float GRID_SIZE[4];
 
 	UINT16 varianceRes;
@@ -206,5 +243,22 @@ private:
 	vector<XMFLOAT4X4> instances[3];
 	XMFLOAT3 cameraPos;
 
+
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> initialSpectrumUAV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> phaseSRV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> newSpectrumUAV;
+
+	bool changed;
+
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> spectrumCS;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> newInit;
+
+	// TweakBar
+	TwBar *myBar;
+
+	float wind_heading;
+	float wind_speed;
+	double dir[3];
+	float max_depth;
 };
 

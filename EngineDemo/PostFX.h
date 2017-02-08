@@ -24,6 +24,8 @@
 #include "Utilities\CreateShader.h"
 #include "Utilities\Texture.h"
 
+#include "ResizeEvent.h"
+
 namespace PostFX
 {
 	struct VertexType
@@ -32,17 +34,21 @@ namespace PostFX
 		XMFLOAT2 tex;
 	};
 
-	class Canvas
+	class Canvas : OnResizeListener
 	{
 	public:
 		bool Init(ID3D11Device1* device, int width, int height);
 		void Shutdown();
 
 	public:
-		void StartRegister(ID3D11DeviceContext1* mImmediateContext) const;
+		void StartRegister(ID3D11DeviceContext1* mImmediateContext, bool clear = true) const;
 		void StopRegister(ID3D11DeviceContext1* mImmediateContext) const;
 
 		void Swap();
+
+		void CopyDepth(ID3D11DeviceContext1* mImmediateContext);
+		void CopyFrame(ID3D11DeviceContext1* mImmediateContext);
+		ID3D11ShaderResourceView* const * GetDepthCopySRV() const;
 
 		void Present(ID3D11DeviceContext1*& mImmediateContext);
 
@@ -52,6 +58,8 @@ namespace PostFX
 		ID3D11ShaderResourceView*const* GetDepthStencilSRV() const;
 
 	private:
+		HRESULT OnResize(ID3D11Device1* device, int renderWidth, int renderHeight);
+
 		std::unique_ptr<Texture> mMain;
 		std::unique_ptr<Texture> mSecondary;
 
@@ -75,7 +83,7 @@ namespace PostFX
 		ID3D11Buffer* MatrixBuffer;
 	};
 
-	class HDR
+	class HDR : OnResizeListener
 	{
 	public:
 		HDR();
@@ -88,6 +96,9 @@ namespace PostFX
 	public:
 		void Process(ID3D11DeviceContext1* mImmediateContext, std::unique_ptr<Canvas>const& Canvas);
 		
+	private:
+		HRESULT OnResize(ID3D11Device1* device, int renderWidth, int renderHeight);
+
 	private:
 		std::unique_ptr<Texture> mLuminanceText;
 
@@ -108,6 +119,10 @@ namespace PostFX
 		};
 
 		ID3D11Buffer* MatrixBuffer;
+		// save working space width
+		int clientWidth;
+		// save working space height
+		int clientHeight;
 	};
 }
 

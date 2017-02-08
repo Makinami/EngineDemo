@@ -139,9 +139,6 @@
     <ClCompile Include="PostFX.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ShadersManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MeshBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -177,6 +174,12 @@
     </ClCompile>
     <ClCompile Include="DeveloperOverlay.cpp">
       <Filter>Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ResizeEvent.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -399,9 +402,6 @@
     <ClInclude Include="PostFX.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ShadersManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MeshBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -449,6 +449,12 @@
     </ClInclude>
     <ClInclude Include="DeveloperOverlay.h">
       <Filter>Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ResizeEvent.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -670,6 +676,39 @@
     </FxCompile>
     <FxCompile Include="Shaders\Clouds\generateDet.hlsl">
       <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Deferred Shaders\phongLingtingPS.hlsl">
+      <Filter>Shaders\Deferred Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS2.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanHS2.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanDS2.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPS2.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanPS3.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\SpectrumCS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\newInitFFTCS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanQuadVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Ocean\OceanVS.hlsl">
+      <Filter>Shaders\Ocean</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Terrain2\createHM.hlsl">
+      <Filter>Shaders\Terrain2</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

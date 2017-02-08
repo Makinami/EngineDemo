@@ -50,6 +50,6 @@ private:
 	int sizeX;
 	int sizeZ;
 	XMFLOAT3 tile_buffer;
-	UINT maxLOD;
+	int maxLOD;
 };
 

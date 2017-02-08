@@ -56,9 +56,13 @@ public:
 
 	static bool Update(_In_ ID3D11DeviceContext1* mImmediateContext, _In_reads_(number) ID3D11RenderTargetView** targetviews, _In_ ID3D11DepthStencilView* depthstencil, _In_opt_ UINT number = 1)
 	{
-		if (Targetviews.size() && std::get<ID3D11RenderTargetView* const*>(Targetviews.top()) == targetviews && DepthStencilDSV.top() == depthstencil)
+		if (Targetviews.size())
 		{
-			mImmediateContext->OMSetRenderTargets(number, targetviews, depthstencil);
+			Targetviews.pop();
+			DepthStencilDSV.pop();
+
+			Push(mImmediateContext, targetviews, depthstencil, number);
+
 			return true;
 		}
 		return false;

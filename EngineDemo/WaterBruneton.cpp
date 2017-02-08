@@ -4,6 +4,8 @@
 #include "Utilities\CreateBuffer.h"
 #include "Utilities\MapResources.h"
 
+#include "RenderStates.h"
+
 const float M_PI = 3.14159265;
 
 WaterBruneton::WaterBruneton() :
@@ -54,34 +56,31 @@ WaterBruneton::~WaterBruneton()
 	ReleaseCOM(variancesCS);
 	ReleaseCOM(initFFTCS);
 	ReleaseCOM(fftCS);
+	ReleaseCOM(BinitFFTCS);
+	ReleaseCOM(Bfftx);
+	ReleaseCOM(Bffty);
+	ReleaseCOM(spectrum12SRV);
+	ReleaseCOM(spectrum34SRV);
+	ReleaseCOM(BbutterflySRV);
+	ReleaseCOM(mInputLayout);
+	ReleaseCOM(mVertexShader);
+	ReleaseCOM(mPixelShader);
 	ReleaseCOM(variancesCB);
 	ReleaseCOM(initFFTCB);
 	ReleaseCOM(fftCB);
+	ReleaseCOM(drawCB);
 	ReleaseCOM(mScreenMeshIB);
 	ReleaseCOM(mScreenMeshVB);
+
+	ReleaseCOM(mRastStateFrame);
+	ReleaseCOM(mSamplerState);
+	ReleaseCOM(mSamplerAnisotropic);
+	ReleaseCOM(mSSSlopeVariance);
+	ReleaseCOM(mDepthStencilStateSea);
 }
 
 bool WaterBruneton::Init(ID3D11Device1 * &device, ID3D11DeviceContext1 * &mImmediateContext)
 {
-	D3D11_SAMPLER_DESC samplerDesc;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.MaxLOD = FLT_MAX;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MipLODBias = 0;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-
-	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerState))) return false;
-
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-
-	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSSSlopeVariance))) return false;
-
 	if (!CreateDataResources(device)) return false;
 
 	if (!CreateInputLayoutAndShaders(device)) return false;
@@ -102,13 +101,6 @@ bool WaterBruneton::Init(ID3D11Device1 * &device, ID3D11DeviceContext1 * &mImmed
 
 	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateFrame))) return false;
 	
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-	samplerDesc.MaxAnisotropy = 16;
-	device->CreateSamplerState(&samplerDesc, &mSamplerAnisotropic);
-
 	// depth stencil state
 	D3D11_DEPTH_STENCIL_DESC dsDesc;
 	dsDesc.DepthEnable = true;
@@ -154,14 +146,14 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * &mImmediateContext, std::shared_
 	mImmediateContext->PSSetConstantBuffers(0, 1, &drawCB);
 	mImmediateContext->PSSetShaderResources(0, 1, &fftWavesSRV);
 	mImmediateContext->PSSetShaderResources(1, 1, &slopeVarianceSRV);
-	mImmediateContext->PSSetSamplers(2, 1, &mSamplerAnisotropic);
-	mImmediateContext->PSSetSamplers(3, 1, &mSSSlopeVariance);
+	mImmediateContext->PSSetSamplers(2, 1, &RenderStates::Sampler::AnisotropicWrapSS);
+	mImmediateContext->PSSetSamplers(3, 1, &RenderStates::Sampler::TrilinearClampSS);
 
 	// VS
 	mImmediateContext->VSSetShader(mVertexShader, nullptr, 0);
 	mImmediateContext->VSSetConstantBuffers(0, 1, &drawCB);
 	mImmediateContext->VSSetShaderResources(0, 1, &fftWavesSRV);
-	mImmediateContext->VSSetSamplers(2, 1, &mSamplerAnisotropic);
+	mImmediateContext->VSSetSamplers(2, 1, &RenderStates::Sampler::AnisotropicWrapSS);
 
 	// IA
 	mImmediateContext->IASetInputLayout(mInputLayout);
@@ -230,7 +222,6 @@ void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * &mImmediateCon
 
 void WaterBruneton::BEvelWater(float t, ID3D11DeviceContext1 * mImmediateContext)
 {
-
 	time += t;
 
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
@@ -645,7 +636,7 @@ void WaterBruneton::ComputeVarianceText(ID3D11DeviceContext1* mImmediateContext)
 	mImmediateContext->CSSetShader(variancesCS, nullptr, 0);
 	mImmediateContext->CSSetShaderResources(0, 1, &spectrumSRV);
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, &slopeVarianceUAV, nullptr);
-	mImmediateContext->CSSetSamplers(0, 1, &mSamplerState);
+	mImmediateContext->CSSetSamplers(0, 1, &RenderStates::Sampler::TrilinearWrapSS);
 
 	variancesParams.GRID_SIZE = XMFLOAT4(GRID_SIZE);
 	variancesParams.slopeVarianceDelta = 0.5 * (theoreticalSlopeVariance - totalSlopeVariance);
