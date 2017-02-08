@@ -163,9 +163,6 @@
     <ClCompile Include="Sky2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TweakBar.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ImGui\imgui.cpp">
       <Filter>3rd-party\ImGui</Filter>
     </ClCompile>
@@ -427,9 +424,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sky.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TweakBar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\imgui_impl_dx11.h">

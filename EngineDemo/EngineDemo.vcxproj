@@ -198,7 +198,6 @@
     <ClCompile Include="terrain.cpp" />
     <ClCompile Include="Terrain2.cpp" />
     <ClCompile Include="timerclass.cpp" />
-    <ClCompile Include="TweakBar.cpp" />
     <ClCompile Include="Utilities\CreateShader.cpp" />
     <ClCompile Include="Utilities\Texture.cpp" />
     <ClCompile Include="Water.cpp" />
@@ -286,7 +285,6 @@
     <ClInclude Include="terrain.h" />
     <ClInclude Include="Terrain2.h" />
     <ClInclude Include="timerclass.h" />
-    <ClInclude Include="TweakBar.h" />
     <ClInclude Include="Utilities\CreateBuffer.h" />
     <ClInclude Include="Utilities\CreateShader.h" />
     <ClInclude Include="Utilities\MapResources.h" />
