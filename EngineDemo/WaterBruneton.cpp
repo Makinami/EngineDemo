@@ -101,11 +101,7 @@ bool WaterBruneton::Init(ID3D11Device1 * &device, ID3D11DeviceContext1 * &mImmed
 	rastDesc.DepthClipEnable = false;
 
 	if (FAILED(device->CreateRasterizerState(&rastDesc, &mRastStateFrame))) return false;
-
-	computeFFTPrf = Performance->ReserveName(L"Bruneton FFT");
-	drawPrf = Performance->ReserveName(L"Bruneton Draw");
-
-
+	
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -133,8 +129,6 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * &mImmediateContext, std::shared_
 		horizon = _horizon;
 		GenerateScreenMesh();
 	}
-
-	CallStart(drawPrf);
 
 	ID3D11ShaderResourceView* ppSRVNULL[2] = { NULL, NULL };
 
@@ -183,16 +177,10 @@ void WaterBruneton::Draw(ID3D11DeviceContext1 * &mImmediateContext, std::shared_
 
 	mImmediateContext->VSSetShaderResources(0, 2, ppSRVNULL);
 	mImmediateContext->PSSetShaderResources(0, 2, ppSRVNULL);
-
-	CallEnd(drawPrf);
 }
 
 void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * &mImmediateContext)
 {
-	//ComputeVarianceText(mImmediateContext);
-
-	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::START);
-
 	time += t;
 
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
@@ -238,13 +226,10 @@ void WaterBruneton::EvaluateWaves(float t, ID3D11DeviceContext1 * &mImmediateCon
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 	mImmediateContext->CSSetShaderResources(0, 1, ppSRVNULL);
-
-	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::END);
 }
 
 void WaterBruneton::BEvelWater(float t, ID3D11DeviceContext1 * mImmediateContext)
 {
-	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::START);
 
 	time += t;
 
@@ -315,8 +300,6 @@ void WaterBruneton::BEvelWater(float t, ID3D11DeviceContext1 * mImmediateContext
 
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewNULL, nullptr);
 	mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-
-	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::END);
 }
 
 int bitReverse(int i, int N)

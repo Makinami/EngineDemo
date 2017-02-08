@@ -408,105 +408,53 @@ float4 MarchClouds(in float3 camera, in float3 ray, in float from, in float to)
 float4 main(PixelInputType pin) : SV_TARGET
 {
 	viewRay = normalize(pin.Ray);
-float3 posRelSun = bCameraPos / 1000.0 + float3(0.0, Rg, 0.0); // TODO: handling arbitrary position of Earth
+	float3 posRelSun = bCameraPos / 1000.0 + float3(0.0, Rg, 0.0); // TODO: handling arbitrary position of Earth
 
-															   // length from core
-float r = length(posRelSun);
-// cos zenith angle
-float mu = dot(posRelSun, viewRay) / r;
-float smu = sign(mu);
+	// length from core
+	float r = length(posRelSun);
+	// cos zenith angle
+	float mu = dot(posRelSun, viewRay) / r;
+	float smu = sign(mu);
 
-// TODO: better distance calculation; these are all over the place when grazing angle
+	// TODO: better distance calculation; these are all over the place when grazing angle
 
-// distance to ground along viewing ray
-float tGround = -r * mu + smu * sqrt(r * r * (mu * mu - 1.0f) + Rg * Rg);
+	// distance to ground along viewing ray
+	float tGround = -r * mu + smu * sqrt(r * r * (mu * mu - 1.0f) + Rg * Rg);
 
-// distance to base/top of clouds
-float tCloudBase = -r * mu + smu * sqrt(r * r * (mu * mu - 1.0f) + Rl * Rl);
-float tCloudTop = -r * mu + smu * sqrt(r * r * (mu * mu - 1.0f) + Rh * Rh);
+	// distance to base/top of clouds
+	float tCloudBase = -r * mu + smu * sqrt(r * r * (mu * mu - 1.0f) + Rl * Rl);
+	float tCloudTop = -r * mu + smu * sqrt(r * r * (mu * mu - 1.0f) + Rh * Rh);
 
-if (tCloudBase > tCloudTop)
-{
-	// TODO: check if packing into float2 is faster
-	float temp = tCloudBase;
-	tCloudBase = tCloudTop;
-	tCloudTop = temp;
-}
+	if (tCloudBase > tCloudTop)
+	{
+		// TODO: check if packing into float2 is faster
+		float temp = tCloudBase;
+		tCloudBase = tCloudTop;
+		tCloudTop = temp;
+	}
 
-// clip if above clouds, and looking up
-//clip(tCloudTop);
-if (tCloudTop < 0.0) return 0.0.xxxx;
+	// clip if above clouds, and looking up
+	//clip(tCloudTop);
+	if (tCloudTop < 0.0) return 0.0.xxxx;
 
-// don't add what's behind the camera
-tCloudBase = max(tCloudBase, 0.0);
+	// don't add what's behind the camera
+	tCloudBase = max(tCloudBase, 0.0);
 
-if (tGround > 0.0)
-tCloudTop = min(tCloudTop, tGround);
+	if (tGround > 0.0)
+	tCloudTop = min(tCloudTop, tGround);
 
-//clip(tCloudTop > tCloudBase ? 1.0 : -1.0);
-if (tCloudTop < tCloudBase) return 0.0.xxxx;
+	//clip(tCloudTop > tCloudBase ? 1.0 : -1.0);
+	if (tCloudTop < tCloudBase) return 0.0.xxxx;
 
-// set global sun direction vector
-bSunDir1 = -normalize(bSunDir);
-cosViewSun = dot(viewRay, bSunDir1);
+	// set global sun direction vector
+	bSunDir1 = -normalize(bSunDir);
+	cosViewSun = dot(viewRay, bSunDir1);
 
-float4 clouds = MarchClouds(posRelSun, viewRay, tCloudBase, tCloudTop);
+	float4 clouds = MarchClouds(posRelSun, viewRay, tCloudBase, tCloudTop);
 
-clouds.rgb = HDR(clouds.rgb);
+	clouds.rgb = HDR(clouds.rgb);
 
-return clouds;
-
-/*
-float3 baseCloudPos = float3(0.0, Rg + 0.01, 0.0);//bCameraPos;
-bSunDir1 = -normalize(bSunDir);
-v = bSunDir1;
-
-float r = length(x);
-float mu = dot(x, v) / r;
-float tg = -r * mu + sqrt(r * r * (mu * mu - 1.0f) + Rg * Rg);
-
-//clip(isnan(tg) || tg >= 0 ? -1 : 1);
-
-float3 g = x - float3(0.0, 0.0, Rg + 10.0);
-float a = v.x * v.x + v.y * v.y - v.z * v.z;
-float b = 2.0 * (g.x * v.x + g.y * v.y - g.z * v.z);
-float c = g.x *g.x + g.y * g.y - g.z * g.z;
-float d = -(b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-bool cone = d > 0.0 && abs(x.z + d * v.z - Rg) <= 10.0;
-
-
-if (tg > 0.0)
-{
-if (cone && d < tg)
-tg = d;
-}
-else if (cone)
-tg = d;
-
-sunLight = sun(x, tg, bSunDir1, bSunDir1, r, dot(bSunDir1, x));
-
-v = normalize(pin.Ray);
-
-x += bCameraPos;
-
-float mu = dot(x, viewRay) / r;
-float tCloudBase = -r * mu + sqrt(r * r * (mu * mu - 1.0f) + Rl * Rl);
-float tCloudTop = -r * mu + sqrt(r * r * (mu * mu - 1.0f) + Rh * Rh);
-
-tg = -r * mu + sqrt(r * r * (mu * mu - 1.0f) + Rg * Rg);
-
-if (tg > 0.0)
-{
-return 0.0.xxxx;
-}
-
-x = bCameraPos;
-float undersqrt = pow(dot(v, x), 2.0) - dot(x, x) + 100.0;
-
-float d0 = -dot(v, x) - sqrt(undersqrt);
-float d1 = -dot(v, x) + sqrt(undersqrt);
-
-return MarchCloud(x, v, t0, t1);*/
+	return clouds;
 }
 
 

@@ -44,8 +44,9 @@ void CameraClass::SetRight(float x, float y, float z)
 void CameraClass::SetLens(float fovY, float aspect, float zn, float zf)
 {
 	XMMATRIX projNoZReverse = XMMatrixPerspectiveFovLH(fovY, aspect, zn, zf);
-	XMMATRIX reverse_Z = XMMATRIX(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 1, 0);
-	XMMATRIX proj = projNoZReverse*reverse_Z;
+	XMMATRIX reverse_Z_RH = XMMATRIX(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 1, 0);
+	XMMATRIX reverse_Z_LH = XMMATRIX{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 1, 1 };
+	XMMATRIX proj = projNoZReverse*reverse_Z_LH;
 
 	XMStoreFloat4x4(&mProj, proj);
 	XMStoreFloat4x4(&mProjNoZReverse, projNoZReverse);

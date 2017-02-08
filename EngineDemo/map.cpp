@@ -18,143 +18,16 @@ MapClass::~MapClass()
 
 bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 {
-	/*WaterB = std::make_unique<WaterBruneton>();
-	WaterB->SetPerformance(Performance);
-	if (!WaterB->Init(device, dc))
-	{
-		LogError(L"Failed to initiate water bruneton");
-		return false;
-	}
-	LogSuccess(L"WaterBruneton initiated");*/
-
-	Terrain2 = std::make_unique<TerrainClass2>();
-	Terrain2->Init(device, dc);
-
-	/*Water = std::make_shared<WaterClass>();
-	Water->SetPerformance(Performance);
-	if (!Water->Init(device, dc))
-	{
-		LogError(L"Failed to initiate water");
-		return false;
-	}
-	LogSuccess(L"Water initiated");*/
-
-	HDR = std::make_unique<PostFX::HDR>();
-	HDR->Init(device, 1280, 720);
-
-	Canvas = std::make_unique<PostFX::Canvas>();
-	Canvas->Init(device, 1280, 720);
-
-	GBuffer = std::make_unique<GBufferClass>();
-	GBuffer->Init(device, 1280, 720);
-
 	Sky = std::make_shared<SkyClass>();
-	Sky->SetPerformance(Performance);
 	Sky->Init(device, dc);
-
-	Ocean = std::make_unique<OceanClass>();
-	if (FAILED(Ocean->Init(device, dc)))
-	{
-		LogError(L"Failed to initiate ocean");
-		return false;
-	}
-	LogSuccess(L"Ocean initiated");
-
-	//Terrain = std::make_shared<TerrainClass>();
-	Sky2 = std::make_unique<SkyClass2>();
-	Sky2->Init(device, dc);
-
-	/*Terrain = std::make_shared<TerrainClass>();
-	Terrain->SetLogger(Logger);
-
-	TerrainClass::InitInfo tii;
-	tii.HeightMapFilename = L"Textures/terrain.raw";
-	tii.LayerMapFilename0 = L"Textures/grass.dds";
-	tii.LayerMapFilename1 = L"Textures/darkdirt.dds";
-	tii.LayerMapFilename2 = L"Textures/stone.dds";
-	tii.LayerMapFilename3 = L"Textures/lightdirt.dds";
-	tii.LayerMapFilename4 = L"Textures/snow.dds";
-	tii.BlendMapFilename = L"Textures/blend.dds";
-	tii.HeightScale = 100.0f;
-	tii.HeightmapWidth = 2049;
-	tii.HeightmapHeight = 2049;
-	tii.CellSpacing = 0.5f;
-
-	if (!Terrain->Init(device, dc, tii))
-	{
-		LogError(L"Failed to initiate terrain");
-		return false;
-	}
-	LogSuccess(L"Terrain initiated");
-	*/
-	Clouds = std::make_shared<CloudsClass>();
-	//Clouds->Init(device, dc);
-
+	
 	Clouds2 = std::make_shared<CloudsClass2>();
 	Clouds2->Init(device, dc);
-
-	ShadowMap = std::make_unique<ShadowMapClass>(device, 2048, 2048);
 
 	light.Ambient(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	light.Diffuse(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Specular(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Direction(XMFLOAT3(-1.0f, 0.0f, 0.0f));
-
-	vector<TerrainClass::Vertex> patchVertices(4);
-
-	patchVertices[0] = TerrainClass::Vertex{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) };
-	patchVertices[1] = TerrainClass::Vertex{ XMFLOAT3(-1.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) };
-	patchVertices[2] = TerrainClass::Vertex{ XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) };
-	patchVertices[3] = TerrainClass::Vertex{ XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) };
-
-
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(TerrainClass::Vertex)*patchVertices.size();
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-	vbd.MiscFlags = 0;
-	vbd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA vinitData;
-	vinitData.pSysMem = &patchVertices[0];
-	device->CreateBuffer(&vbd, &vinitData, &mScreenQuadVB);
-
-	vector<USHORT> indices(6);
-	
-	indices[0] = 0;
-	indices[1] = 1;
-	indices[2] = 2;
-	indices[3] = 0;
-	indices[4] = 2;
-	indices[5] = 3;
-
-	D3D11_BUFFER_DESC ibd;
-	ibd.Usage = D3D11_USAGE_IMMUTABLE;
-	ibd.ByteWidth = sizeof(USHORT)*indices.size();
-	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	ibd.CPUAccessFlags = 0;
-	ibd.MiscFlags = 0;
-	ibd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA iinitData;
-	iinitData.pSysMem = &indices[0];
-	if (FAILED(device->CreateBuffer(&ibd, &iinitData, &mScreenQuadIB))) return false;
-
-	// pixel
-	CreatePSFromFile(L"..\\Debug\\DebugPS.cso", device, mDebugPS);
-	
-	// vertex
-	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	int numElements = sizeof(vertexDesc) / sizeof(vertexDesc[0]);
-
-	CreateVSAndInputLayout(L"..\\Debug\\DebugVS.cso", device, mDebugVS, vertexDesc, numElements, mDebugIL);
 
 	// DS
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -198,12 +71,30 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	cubeVertices.push_back(XMFLOAT4(-1.0f, 1.0f, 1.0f, 0.7f));
 	cubeVertices.push_back(XMFLOAT4(1.0f, -1.0f, 1.0f, 0.7f));
 	cubeVertices.push_back(XMFLOAT4(-1.0f, -1.0f, 1.0f, 0.7f));
+
+	D3D11_BUFFER_DESC vbd;
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
+	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbd.CPUAccessFlags = 0;
+	vbd.MiscFlags = 0;
+	vbd.StructureByteStride = 0;
 	vbd.ByteWidth = sizeof(cubeVertices[0])*cubeVertices.size();
+
+	D3D11_SUBRESOURCE_DATA vinitData;
 	vinitData.pSysMem = &cubeVertices[0];
 	device->CreateBuffer(&vbd, &vinitData, &mCubeVB);
 
 	vector<USHORT> cubeIndices{ 0,1,2,1,2,3,4,5,6,5,6,7,8,9,10,9,10,11,12,13,14,13,14,15,16,17,18,17,18,19,20,21,22,21,22,23 };
+
+	D3D11_BUFFER_DESC ibd;
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.CPUAccessFlags = 0;
+	ibd.MiscFlags = 0;
+	ibd.StructureByteStride = 0;
 	ibd.ByteWidth = sizeof(cubeIndices[0])*cubeIndices.size();
+
+	D3D11_SUBRESOURCE_DATA iinitData;
 	iinitData.pSysMem = &cubeIndices[0];
 	device->CreateBuffer(&ibd, &iinitData, &mCubeIB);
 
@@ -248,46 +139,9 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	/*light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
-
-	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
-	ShadowMap->ClearDepthMap(mImmediateContext);
-
-	Terrain->Draw(mImmediateContext, Camera, light);
-
-	//Clouds->GenerateClouds(mImmediateContext);
-
-	RenderTargetStack::Pop(mImmediateContext);
-	ViewportStack::Pop(mImmediateContext);
-	*/
-	//Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-
-	
-	//Water->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
-	//Water->Draw(mImmediateContext, Camera, light, WaterB->getFFTWaves());
-	
-	//Sky->DrawToMap(mImmediateContext, light);
-	//Sky->DrawToCube(mImmediateContext, light);
-	//Sky->DrawToScreen(mImmediateContext, Camera, light);
 	Sky->Draw(mImmediateContext, Camera, light);
 
-	//WaterB->Draw(mImmediateContext, Camera, light);
-	
-	/*static int counter = 0;
-
-	if (counter == 0)
-		Sky->DrawToCube(mImmediateContext, light);
-
-	if (++counter == 1) counter = 0;
-	
-	Sky->DrawToScreen(mImmediateContext, Camera, light);*/
-
-	//Clouds->Draw(mImmediateContext, Camera, light);
-	//Clouds2->GenerateClouds(mImmediateContext);
 	Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
-
-
-	//DrawDebug(mImmediateContext, Camera);
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
@@ -306,7 +160,7 @@ void MapClass::DrawDebug(ID3D11DeviceContext1 * mImmediateContext, std::shared_p
 	mImmediateContext->IASetIndexBuffer(mCubeIB, DXGI_FORMAT_R16_UINT, 0);
 	mImmediateContext->IASetInputLayout(mCubeIL);
 
-	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0, 0.0));
+	MatrixBufferParams.gWorldProj = Camera->GetViewProjTransMatrix() * XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 0.0)*XMMatrixScaling(100.0, 100.0, 100.0));
 	MapResources(mImmediateContext, MatrixBuffer, MatrixBufferParams);
 
 	mImmediateContext->VSSetShader(mCubeVS, nullptr, 0);

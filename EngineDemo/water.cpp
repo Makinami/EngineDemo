@@ -163,17 +163,12 @@ bool WaterClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * dc)
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
 
 	if (FAILED(device->CreateSamplerState(&samplerDesc, &mSamplerStates[2]))) return false;
-
-	computeFFTPrf = Performance->ReserveName(L"Compute Water FFT");
-	drawPrf = Performance->ReserveName(L"Draw Water");
-
+	
 	return true;
 }
 
 void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
-	Performance->Call(drawPrf, Debug::PerformanceClass::CallType::START);
-
 	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();
 	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();
 
@@ -262,14 +257,10 @@ void WaterClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<
 	ID3D11ShaderResourceView* ppSRVNULL = NULL;
 	mImmediateContext->VSSetShaderResources(0, 1, &ppSRVNULL);
 	mImmediateContext->DSSetShaderResources(0, 1, &ppSRVNULL);
-
-	Performance->Call(drawPrf, Debug::PerformanceClass::CallType::END);
 }
 
 void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateContext)
 {
-	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::START);
-
 	time += t;
 
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
@@ -345,8 +336,6 @@ void WaterClass::evaluateWavesGPU(float t, ID3D11DeviceContext1 * mImmediateCont
 	mImmediateContext->CSSetShader(NULL, NULL, 0);
 	mImmediateContext->CSSetUnorderedAccessViews(0, 2, ppUAViewNULL, NULL);
 	mImmediateContext->CSSetShaderResources(0, 2, ppSRVNULL);
-
-	Performance->Call(computeFFTPrf, Debug::PerformanceClass::CallType::END);
 }
 
 void WaterClass::BuildQuadPatchVB(ID3D11Device1 * device)

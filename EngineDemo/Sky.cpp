@@ -221,9 +221,7 @@ int SkyClass::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateCont
 	mMapPixelShader = ShadersManager::Instance()->GetPS("Sky::SkyMapPS");
 
 	CreateConstantBuffer(device, sizeof(skyMapBufferType), skyMapCB, "skyMapCB");
-
-	drawSky = Performance->ReserveName(L"Bruneton Sky");
-
+	
 	// TEXT FROM FILE
 	char* data;
 	float* fdata;
@@ -345,9 +343,6 @@ HRESULT SkyClass::Shutdown()
 
 void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
 {
-	//Precompute(mImmediateContext);
-	CallStart(drawSky);
-
 	ID3D11ShaderResourceView* ppSRVNULL[4] = { NULL, NULL, NULL, NULL };
 
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -401,8 +396,6 @@ void SkyClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<Ca
 	mImmediateContext->OMSetDepthStencilState(RenderStates::DepthStencil::DefaultDSS, 0);
 
 	mImmediateContext->PSSetShaderResources(9, 3, ppSRVNULL);
-
-	CallEnd(drawSky);
 }
 
 void SkyClass::DrawToMap(ID3D11DeviceContext1 * mImmediateContext, DirectionalLight & light)

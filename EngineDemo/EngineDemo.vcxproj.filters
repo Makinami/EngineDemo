@@ -130,9 +130,6 @@
     <ClCompile Include="WaterBruneton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Performance.cpp">
-      <Filter>Debug</Filter>
-    </ClCompile>
     <ClCompile Include="loggerclass.cpp">
       <Filter>Debug</Filter>
     </ClCompile>
@@ -395,9 +392,6 @@
     </ClInclude>
     <ClInclude Include="Utilities\MapResources.h">
       <Filter>Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="Performance.h">
-      <Filter>Debug</Filter>
     </ClInclude>
     <ClInclude Include="loggerclass.h">
       <Filter>Debug</Filter>

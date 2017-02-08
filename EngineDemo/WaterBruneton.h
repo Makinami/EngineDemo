@@ -15,7 +15,6 @@
 
 #include <memory>
 
-#include "Performance.h"
 #include "cameraclass.h"
 #include "Lights.h"
 
@@ -34,7 +33,7 @@ struct D
 	}
 };
 
-class WaterBruneton : public Debug::HasPerformance
+class WaterBruneton
 {
 public:
 	WaterBruneton();

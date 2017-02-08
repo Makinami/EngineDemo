@@ -188,7 +188,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="map.cpp" />
     <ClCompile Include="Ocean.cpp" />
-    <ClCompile Include="Performance.cpp" />
     <ClCompile Include="playerclass.cpp" />
     <ClCompile Include="RenderStates.cpp" />
     <ClCompile Include="ShadersManager.cpp" />
@@ -276,7 +275,6 @@
     <ClInclude Include="noise\noisegen.h" />
     <ClInclude Include="noise\vectortable.h" />
     <ClInclude Include="Ocean.h" />
-    <ClInclude Include="Performance.h" />
     <ClInclude Include="playerclass.h" />
     <ClInclude Include="RenderStates.h" />
     <ClInclude Include="ShadersManager.h" />

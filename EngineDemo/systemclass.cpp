@@ -115,18 +115,15 @@ bool SystemClass::Init(std::string filename)
 
 	Camera = std::make_shared<CameraClass>();
 	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.1f, 100000.0f);
+	Camera->SetPosition(0.0f, 1.7f, 0.0f);
 
 	Timer = std::make_shared<TimerClass>();
-
-	Performance = std::make_shared<Debug::PerformanceClass>();
-	Performance->Init(D3D->GetDevice(), D3D->GetDeviceContext());
 	
 	/*
 	World
 	*/
 	Map = std::make_shared<MapClass>();
 	Map->SetLogger(Logger);
-	Map->SetPerformance(Performance);
 	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
 
 	/*
@@ -138,8 +135,6 @@ bool SystemClass::Init(std::string filename)
 	Player->SetInput(Input);
 	Player->SetLogger(Logger);
 	Player->Init();
-
-	allDraw = Performance->ReserveName(L"All sky draw");
 
 	return true;
 }
@@ -395,7 +390,6 @@ IMGUI_API bool SystemClass::ImGui_WndProcHandler(HWND hwdn, UINT msg, WPARAM wPa
 // Run every frame
 bool SystemClass::Frame()
 {
-	Performance->Call(allDraw, Debug::PerformanceClass::CallType::START);
 	float dt = Timer->DeltaTime();
 	Input->Capture();
 
@@ -416,12 +410,7 @@ bool SystemClass::Frame()
 	Map->Draw(D3D->GetDeviceContext(), Camera);
 	
 	//Map->Draw20(D3D->GetDeviceContext(), Camera);
-
-	Performance->Call(allDraw, Debug::PerformanceClass::CallType::END);
-	Performance->Compute();
-
-	Performance->Draw(D3D->GetDeviceContext());
-
+	
 	ImGui::Render();
 
 	D3D->EndScene();

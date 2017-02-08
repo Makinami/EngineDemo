@@ -26,14 +26,13 @@
 #include <string>
 
 #include "loggerclass.h"
-#include "Performance.h"
 #include "cameraclass.h"
 #include "Lights.h"
 
 using namespace std;
 using namespace DirectX;
 
-class WaterClass : public HasLogger, public Debug::HasPerformance
+class WaterClass : public HasLogger
 {
 public:
 	struct Vertex

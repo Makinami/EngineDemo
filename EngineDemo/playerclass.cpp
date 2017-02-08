@@ -56,25 +56,5 @@ void PlayerClass::React(float dt)
 		deltaX.x *= speed*dt;
 		deltaX.z *= speed*dt;
 		Camera->Walk(deltaX);
-
-		/*XMVECTOR Ahead = Camera->GetAhead();
-		XMVECTOR Right = Camera->GetRight();
-		XMVECTOR Position = XMLoadFloat3(&mPosition);
-		XMStoreFloat3(&deltaX, speed*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
-		XMVECTOR w = XMVectorReplicate(deltaX.z);
-		XMVECTOR d = XMVectorReplicate(deltaX.x);
-
-		XMVECTOR PosTemp = XMVectorMultiplyAdd(w, Ahead, Position);
-		PosTemp = XMVectorMultiplyAdd(d, Right, PosTemp);
-		XMFLOAT3 fPosTemp;
-		XMStoreFloat3(&fPosTemp, PosTemp);
-		deltaX.x = fPosTemp.x - mPosition.x;
-		deltaX.z = fPosTemp.z - mPosition.z;
-		deltaX.y = Map->GetHeight(fPosTemp.x, fPosTemp.z) - Map->GetHeight(mPosition.x, mPosition.z);
-		XMStoreFloat3(&deltaX, speed*dt*XMVector3Normalize(XMLoadFloat3(&deltaX)));
-		mPosition.x += deltaX.x;
-		mPosition.z += deltaX.z;
-		mPosition.y = Map->GetHeight(mPosition.x, mPosition.z);
-		Camera->SetPosition(mPosition.x, mPosition.y + 1.7f, mPosition.z);*/
 	}
 }

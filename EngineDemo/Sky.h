@@ -15,15 +15,13 @@
 #include "terrain.h"
 #include "cameraclass.h"
 
-#include "Performance.h"
-
 #include "Utilities\Texture.h"
 
 #include "MeshBuffer.h"
 
 #include "PostFX.h"
 
-class SkyClass : public Debug::HasPerformance
+class SkyClass
 {
 public:
 	SkyClass();
@@ -128,9 +126,6 @@ private:
 	{
 		XMFLOAT3 Pos;
 	};
-
-	// performace ids
-	char drawSky;
 
 	// TEMP
 	ID3D11ShaderResourceView* transmittanceFile;

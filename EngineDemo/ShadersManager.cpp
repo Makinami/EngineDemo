@@ -208,8 +208,10 @@ bool ShaderFile::CheckType(const std::string& _type)
 }
 
 ShaderFile::ShaderFile(const ShaderTypes& _type, const std::string& _name, const std::string& _version, const fspath& _file) noexcept
-	: type(_type), name(_name), version(_version), file(_file), readable_id(name + " " + version)
-{ }
+	: type(_type), name(_name), version(_version), file(_file)
+{ 
+	readable_id = _file.filename().string();
+}
 
 // Type string must be a valid representetion of shader type (PS,etc.). Otherwise throws std::logic_error exception.
 ShaderFile::ShaderFile(const std::string& _type, const std::string& _name, const std::string& _version, const fspath _file)

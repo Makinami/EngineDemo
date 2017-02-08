@@ -19,8 +19,6 @@
 #include "playerclass.h"
 #include "map.h"
 
-#include "Performance.h"
-
 #include <imgui.h>
 
 /*
@@ -92,8 +90,6 @@ class SystemClass
 		std::shared_ptr<LoggerClass> Logger; // Logger
 
 		std::shared_ptr<PlayerClass> Player;
-
-		std::shared_ptr<Debug::PerformanceClass> Performance;
 
 		/*
 		World

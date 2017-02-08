@@ -9,7 +9,6 @@
 #include "WaterBruneton.h"
 
 #include "loggerclass.h"
-#include "Performance.h"
 #include "terrain.h"
 #include "Water.h"
 #include "Sky.h"
@@ -37,7 +36,7 @@
 	float Pad; // Pad the last float so we can set an array of lights if we wanted.
 };
 */
-class MapClass : public HasLogger, public Debug::HasPerformance
+class MapClass : public HasLogger
 {
 public:
 	MapClass();
@@ -76,12 +75,12 @@ private:
 	DirectionalLight light;
 
 	// TEMP
-	ID3D11Buffer* mScreenQuadVB;
-	ID3D11Buffer* mScreenQuadIB;
+	ID3D11Buffer* mScreenQuadVB{ nullptr };
+	ID3D11Buffer* mScreenQuadIB{ nullptr };
 
-	ID3D11InputLayout* mDebugIL;
-	ID3D11VertexShader* mDebugVS;
-	ID3D11PixelShader* mDebugPS;
+	ID3D11InputLayout* mDebugIL{ nullptr };
+	ID3D11VertexShader* mDebugVS{ nullptr };
+	ID3D11PixelShader* mDebugPS{ nullptr };
 
 	struct MatrixBufferType
 	{

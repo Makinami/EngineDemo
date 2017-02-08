@@ -284,7 +284,7 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->Map(cbPerFrameVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	dataVS = (cbPerFrameVSType*)mappedResource.pData;
 
-	dataVS->gViewInverse = XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewMatrix()));
+	dataVS->gViewInverse = XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewRelSun()));
 	dataVS->gProjInverse = XMMatrixInverse(nullptr, Camera->GetProjTrans());
 
 	mImmediateContext->Unmap(cbPerFrameVS, 0);
