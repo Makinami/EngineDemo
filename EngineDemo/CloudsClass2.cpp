@@ -10,6 +10,9 @@
 #include "noise\noise.h"
 #include "RenderStates.h"
 
+#include "Utilities\CreateBuffer.h"
+#include "Utilities\MapResources.h"
+
 #include "ShaderManager.h"
 
 using namespace std;
@@ -22,26 +25,38 @@ using namespace Microsoft::WRL;
 CloudsClass2::CloudsClass2()
 	: mScreenQuadIB(0),
 	mScreenQuadVB(0),
-	mInputLayout(0),
-	mVertexShader(nullptr),
-	mPixelShader(0),
 	cbPerFrameVS(0),
 	cbPerFramePS(0),
 	mSamplerStateTrilinear(0),
 	mDepthStencilState(0)
 {
+	cbPerFramePSParams.time = { 0 };
+	for (auto&& param : cbPerFramePSParams.parameters)
+	{
+		param = { 0.0, 0.0, 0.0, 0.0 };
+	}
+
+	for (auto&& name : parametersNames)
+	{
+		name = { "" };
+	}
 }
 
 
 CloudsClass2::~CloudsClass2()
 {
+	ofstream paramStream("clouds_params_names.bin", ios_base::binary);
+	if (paramStream.is_open())
+	{
+		paramStream.write(reinterpret_cast<char*>(&cbPerFramePSParams.parameters[0]), sizeof(cbPerFramePSParams));
+		paramStream.write(reinterpret_cast<char*>(&parametersNames[0]), sizeof(parametersNames));
+		paramStream.write(reinterpret_cast<char*>(&noiseFrequencies), sizeof(noiseFrequencies));
+	}
+	paramStream.close();
+
 	ReleaseCOM(mScreenQuadIB);
 	ReleaseCOM(mScreenQuadVB);
-
-	ReleaseCOM(mInputLayout);
-	ReleaseCOM(mVertexShader);
-	ReleaseCOM(mPixelShader);
-
+	
 	ReleaseCOM(cbPerFrameVS);
 	ReleaseCOM(cbPerFramePS);
 
@@ -57,7 +72,7 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 	// general
 	text3Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	text3Desc.CPUAccessFlags = 0;
-	text3Desc.Format = DXGI_FORMAT_R16_FLOAT;
+	text3Desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	text3Desc.Width = GEN_RES;
 	text3Desc.Height = GEN_RES;
 	text3Desc.Depth = GEN_RES;
@@ -101,13 +116,16 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	CreateCSFromFile(L"..\\Debug\\Shaders\\Clouds\\generateGen.cso", device, mGenerateGenCS);
 	CreateCSFromFile(L"..\\Debug\\Shaders\\Clouds\\generateDet.cso", device, mGenerateDetCS);
+	CreateCSFromFile(L"..\\Debug\\Shaders\\Clouds\\GenerateNoise.cso", device, mGenerateNoise);
+
+	CreateConstantBuffer(device, sizeof(cbGenerateNoiseParams), cbGenerataNoise, "clouds noise generation parameters");
 
 	GenerateSeedGrad(device, mImmediateContext);
 	GenerateClouds(mImmediateContext);
 
 	ID3D11Texture2D* srcTex;
 
-	CreateDDSTextureFromFile(device, L"Textures\\inscatter.dds", (ID3D11Resource**)&srcTex, &mCloudCurlSRV, 0, nullptr);
+	CreateDDSTextureFromFile(device, L"Textures\\cloudsCurlNoise.dds", (ID3D11Resource**)&srcTex, &mCloudCurlSRV, 0, nullptr);
 	ReleaseCOM(srcTex);
 
 	CreateDDSTextureFromFile(device, L"Textures\\cloudsTypes.dds", (ID3D11Resource**)&srcTex, &mCloudTypesSRV, 0, nullptr);
@@ -162,19 +180,8 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Clouds\\CloudsVS.cso", device, mVertexShader, vertexDesc, numElements, mInputLayout);
 	
-	D3D11_BUFFER_DESC cbDesc = {};
-	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cbDesc.MiscFlags = 0;
-	cbDesc.StructureByteStride = 0;
-	cbDesc.ByteWidth = sizeof(cbPerFrameVSType);
-
-	device->CreateBuffer(&cbDesc, NULL, &cbPerFrameVS);
-
-	cbDesc.ByteWidth = sizeof(cbPerFramePSType);
-
-	device->CreateBuffer(&cbDesc, NULL, &cbPerFramePS);
+	CreateConstantBuffer(device, sizeof(cbPerFrameVSType), cbPerFrameVS, "clouds per frame vertex shader buffer __FILE__ __LINE__");
+	CreateConstantBuffer(device, sizeof(cbPerFramePSParams), cbPerFramePS, "clouds per frame params __FILE__ __LINE__");
 	
 	// blend state
 	D3D11_BLEND_DESC1 blendDesc = {};
@@ -203,13 +210,29 @@ int CloudsClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediate
 
 	dev = device;
 
+	ifstream paramStream("clouds_params_names.bin", ios_base::binary);
+	if (paramStream.is_open())
+	{
+		paramStream.read(reinterpret_cast<char*>(&cbPerFramePSParams.parameters[0]), sizeof(cbPerFramePSParams));
+		paramStream.read(reinterpret_cast<char*>(&parametersNames[0]), sizeof(parametersNames));
+		paramStream.read(reinterpret_cast<char*>(&noiseFrequencies), sizeof(noiseFrequencies));
+	}
+	paramStream.close();
+
 	return 0;
+}
+
+void CloudsClass2::Update(float dt)
+{
+	cbPerFramePSParams.time += dt;
 }
 
 void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light, ID3D11ShaderResourceView* transmittanceSRV)
 {
 	static ShaderMap shaderfiles;
-	static int currShader{ 0 };
+	static int currPixelShader{ 0 };
+	static int currBaseNoiseShader{ 0 };
+	static int currDetailNoiseShader{ 0 };
 	static std::string shader{ "/* Shader editor */" };
 	shader.reserve(32 * 1024); // for now 32k. I am still looking into arbitrary length textbox (https://github.com/ocornut/imgui/issues/1008)
 
@@ -219,32 +242,76 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	ImGui::SameLine();
 
 	auto reload = (shaderfiles.find(ShaderTypes::Pixel) != std::end(shaderfiles)
-		&& shaderfiles[ShaderTypes::Pixel].size() > currShader);
+		&& shaderfiles[ShaderTypes::Pixel].size() > currPixelShader);
 	
 	if (ImGui::Button("Reload shader", reload))
 	{
-		CreatePSFromFile(shaderfiles[ShaderTypes::Pixel][currShader].file, dev, mPixelShader);
+		CreatePSFromFile(shaderfiles[ShaderTypes::Pixel][currPixelShader].file, dev, mPixelShader);
 	}
 
 	ImGui::SameLine();
 
 	auto editable = (reload
-		&& shaderfiles[ShaderTypes::Pixel][currShader].file.extension() == ".hlsl");
+		&& shaderfiles[ShaderTypes::Pixel][currPixelShader].file.extension() == ".hlsl");
 	
 	if (ImGui::Button("Edit", editable))
 	{
 		ShellExecute(nullptr, nullptr,
-			shaderfiles[ShaderTypes::Pixel][currShader].file.wstring().c_str(), nullptr, nullptr, SW_SHOW);
+			shaderfiles[ShaderTypes::Pixel][currPixelShader].file.wstring().c_str(), nullptr, nullptr, SW_SHOW);
 	}
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Edit current shader in external program");
+		ImGui::SetTooltip("Edit current (pixel) shader in external program");
 
-	if (ImGui::Combo("Pixel Shader", &currShader, shaderfiles[ShaderTypes::Pixel]))
+	if (ImGui::Combo("Pixel Shader", &currPixelShader, shaderfiles[ShaderTypes::Pixel]))
 	{
-		ReleaseCOM(mPixelShader);
-		CreatePSFromFile(shaderfiles[ShaderTypes::Pixel][currShader].file, dev, mPixelShader);
+		CreatePSFromFile(shaderfiles[ShaderTypes::Pixel][currPixelShader].file, dev, mPixelShader);
 	}
-	
+
+	if (ImGui::Combo("Base Noise Shader", &currBaseNoiseShader, shaderfiles[ShaderTypes::Compute]))
+	{
+		CreateCSFromFile(shaderfiles[ShaderTypes::Compute][currBaseNoiseShader].file, dev, mGenerateGenCS);
+		GenerateClouds(mImmediateContext);
+		mImmediateContext->CSSetShader(mGenerateGenCS.Get(), nullptr, 0);
+	}
+
+	if (ImGui::Combo("Detail Noise Shader", &currDetailNoiseShader, shaderfiles[ShaderTypes::Compute]))
+	{
+		CreateCSFromFile(shaderfiles[ShaderTypes::Compute][currDetailNoiseShader].file, dev, mGenerateDetCS);
+		GenerateClouds(mImmediateContext);
+	}
+
+	if (ImGui::CollapsingHeader("Clouds rendering parameters"))
+	{
+		for (auto i = 0; i < cbPerFramePSParams.parameters.size(); ++i)
+		{
+			ImGui::PushID(i);
+			ImGui::DragFloat4("##param", &cbPerFramePSParams.parameters[i].x, 0.005f);
+			ImGui::SameLine();
+			ImGui::InputText("##name", parametersNames[i].data(), 20);
+			ImGui::PopID();
+		}
+	}
+
+	if (false && ImGui::CollapsingHeader("Clouds generating parameters"))
+	{
+		ImGui::PushID("baseNoise");
+		ImGui::Text("Base Noise");
+		ImGui::DragInt3("frequencies of perlin noise", &noiseFrequencies.baseFrequency.x, 0.2, 1, 8);
+		ImGui::DragInt("frequency of worley noise", &noiseFrequencies.baseFrequency.w, 0.2, 1, 8);
+		ImGui::PopID();
+
+		ImGui::PushID("detailNoise");
+		ImGui::Text("Detail Noise");
+		ImGui::DragInt3("frequencies of perlin noise", &noiseFrequencies.detailFrequency.x, 0.2, 1, 5);
+		ImGui::DragInt("frequency of worley noise", &noiseFrequencies.detailFrequency.w, 0.2, 1, 5);
+		ImGui::PopID();
+
+		if (ImGui::Button("Regenerate noise"))
+		{
+			GenerateClouds(mImmediateContext);
+		}
+	}
+		
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	UINT stride = sizeof(XMFLOAT3);
 	UINT offset = 0;
@@ -253,42 +320,32 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	mImmediateContext->IASetVertexBuffers(0, 1, &mScreenQuadVB, &stride, &offset);
 	mImmediateContext->IASetIndexBuffer(mScreenQuadIB, DXGI_FORMAT_R16_UINT, 0);
-	mImmediateContext->IASetInputLayout(mInputLayout);
+	mImmediateContext->IASetInputLayout(mInputLayout.Get());
 
 	// VS
-	cbPerFrameVSType* dataVS;
-	mImmediateContext->Map(cbPerFrameVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	dataVS = (cbPerFrameVSType*)mappedResource.pData;
-
-	dataVS->gViewInverse = XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewRelSun()));
-	dataVS->gProjInverse = XMMatrixInverse(nullptr, Camera->GetProjTrans());
-
-	mImmediateContext->Unmap(cbPerFrameVS, 0);
+	cbPerFrameVSParams.gProjInverse = XMMatrixInverse(nullptr, Camera->GetProjTrans());
+	cbPerFrameVSParams.gViewInverse = XMMatrixInverse(nullptr, XMMatrixTranspose(Camera->GetViewRelSun()));;
+	MapResources(mImmediateContext, cbPerFrameVS, cbPerFrameVSParams);
 
 	mImmediateContext->VSSetConstantBuffers(0, 1, &cbPerFrameVS);
 
-	mImmediateContext->VSSetShader(mVertexShader, NULL, 0);
+	mImmediateContext->VSSetShader(mVertexShader.Get(), NULL, 0);
 
 	// PS
-	cbPerFramePSType* dataPS;
-	mImmediateContext->Map(cbPerFramePS, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	dataPS = (cbPerFramePSType*)mappedResource.pData;
-
-	XMStoreFloat3(&(dataPS->gCameraPos), Camera->GetPosition());
-	dataPS->gSunDir = light.Direction();
-
-	mImmediateContext->Unmap(cbPerFramePS, 0);
+	XMStoreFloat3(&cbPerFramePSParams.gCameraPos, Camera->GetPosition());
+	cbPerFramePSParams.gSunDir = light.Direction();
+	MapResources(mImmediateContext, cbPerFramePS, cbPerFramePSParams);
 
 	mImmediateContext->PSSetConstantBuffers(0, 1, &cbPerFramePS);
 	mImmediateContext->PSSetSamplers(3, 1, &RenderStates::Sampler::TrilinearWrapSS);
 	mImmediateContext->PSSetShaderResources(1, 1, &transmittanceSRV);
 	mImmediateContext->PSSetShaderResources(4, 1, mCloudGeneralSRV.GetAddressOf());
 	mImmediateContext->PSSetShaderResources(5, 1, mCloudDetailSRV.GetAddressOf());
-	//mImmediateContext->PSSetShaderResources(6, 1, &mCloudCurlSRV);
+	mImmediateContext->PSSetShaderResources(6, 1, &mCloudCurlSRV);
 	mImmediateContext->PSSetShaderResources(7, 1, &mCloudTypesSRV);
 	mImmediateContext->PSSetShaderResources(8, 1, &mWeatherSRV);
 
-	mImmediateContext->PSSetShader(mPixelShader, NULL, 0);
+	mImmediateContext->PSSetShader(mPixelShader.Get(), NULL, 0);
 
 	float blendFactors[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	mImmediateContext->OMSetBlendState(mBlendStateClouds, blendFactors, 0xffffffff);
@@ -303,14 +360,43 @@ void CloudsClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 int CloudsClass2::GenerateClouds(ID3D11DeviceContext1 * mImmediateContext)
 {
 	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
-	mImmediateContext->CSSetShader(mGenerateGenCS, nullptr, 0);
+	mImmediateContext->CSSetShader(mGenerateGenCS.Get(), nullptr, 0);
 	mImmediateContext->CSSetShaderResources(0, 1, mRandomGradSRV.GetAddressOf());
 	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mCloudGeneralUAV.GetAddressOf(), nullptr);
-	mImmediateContext->CSSetUnorderedAccessViews(1, 1, mCloudDetailUAV.GetAddressOf(), nullptr);
 
 	mImmediateContext->Dispatch(GEN_RES / 16, GEN_RES / 16, GEN_RES);
 
-	mImmediateContext->CSSetShader(mGenerateDetCS, nullptr, 0);
+	mImmediateContext->CSSetShader(mGenerateDetCS.Get(), nullptr, 0);
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mCloudDetailUAV.GetAddressOf(), nullptr);
+
+	mImmediateContext->Dispatch(DET_RES / 16, DET_RES / 16, DET_RES);
+
+	mImmediateContext->CSSetUnorderedAccessViews(0, 2, ppUAViewNULL, nullptr);
+
+	return S_OK;
+}
+
+int CloudsClass2::GenerateCloudsParametrized(ID3D11DeviceContext1 * mImmediateContext)
+{
+	ID3D11UnorderedAccessView* ppUAViewNULL[2] = { NULL, NULL };
+	mImmediateContext->CSSetShader(mGenerateNoise.Get(), nullptr, 0);
+	mImmediateContext->CSSetShaderResources(0, 1, mRandomGradSRV.GetAddressOf());
+
+	// base nosie
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mCloudGeneralUAV.GetAddressOf(), nullptr);
+	cbGenerateNoiseParams.gFrequency = noiseFrequencies.baseFrequency;
+	cbGenerateNoiseParams.textSize = GEN_RES;
+	MapResources(mImmediateContext, cbGenerataNoise, cbGenerateNoiseParams);
+	mImmediateContext->CSSetConstantBuffers(0, 1, &cbGenerataNoise);
+
+	mImmediateContext->Dispatch(GEN_RES / 16, GEN_RES / 16, GEN_RES);
+
+	// detail noise
+	mImmediateContext->CSSetUnorderedAccessViews(0, 1, mCloudDetailUAV.GetAddressOf(), nullptr);
+	cbGenerateNoiseParams.gFrequency = noiseFrequencies.detailFrequency;
+	cbGenerateNoiseParams.textSize = DET_RES;
+	MapResources(mImmediateContext, cbGenerataNoise, cbGenerateNoiseParams);
+	mImmediateContext->CSSetConstantBuffers(0, 1, &cbGenerataNoise);
 
 	mImmediateContext->Dispatch(DET_RES / 16, DET_RES / 16, DET_RES);
 

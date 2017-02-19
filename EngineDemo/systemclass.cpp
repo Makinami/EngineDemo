@@ -62,18 +62,10 @@ bool SystemClass::Init(std::string filename)
 {
 	// Load setting
 	Settings = std::make_shared<INIReader>(filename);
-
-	// Create logger
-	Logger = std::make_shared<LoggerClass>(Settings->GetWString("General", "logfile", L"log.txt"), (HWND)0);
-
-	if (!CreateStatusWindow())
-		Logger->Notice(L"Could not create status window. Prociding without it.");
-	else if (Logger->SetWindow(mEdit))
-		Logger->Success(L"Created and assigned status window.");
-
-	if (Settings->ParseError() < 0) Logger->Notice(L"Could not open file. Will use default settings.");
-	else if (Settings->ParseError() > 0) Logger->Notice(L"Could not parse one or more lines (first line: " + std::to_wstring(Settings->ParseError()) + L"). Will skip them and use defaults instead.");
-	else Logger->Success(L"Setting loaded.");
+	
+	if (Settings->ParseError() < 0) Logger::Instance().Notice(L"Could not open file. Will use default settings.");
+	else if (Settings->ParseError() > 0) Logger::Instance().Notice(L"Could not parse one or more lines (first line: " + std::to_wstring(Settings->ParseError()) + L"). Will skip them and use defaults instead.");
+	else Logger::Instance().Success(L"Setting loaded.");
 
 	// Set client size
 	mClientHeight = Settings->GetInteger("Window", "height", mClientHeight);
@@ -81,15 +73,14 @@ bool SystemClass::Init(std::string filename)
 
 	// Init main window
 	if (!InitMainWindow()) return false;
-	Logger->Success(L"Main window created.");
+	Logger::Instance().Success(L"Main window created.");
 
 	// Create D3D class
 	D3D = std::make_shared<D3DClass>();
 	
 	// Give D3D logger and initiate
-	D3D->SetLogger(Logger);
 	if (!D3D->Init(mhMainWnd, mClientWidth, mClientHeight, Settings)) return false;
-	Logger->Success(L"DirectX initiated.");
+	Logger::Instance().Success(L"DirectX initiated.");
 
 	ImGui_ImplDX11_Init(mhMainWnd, D3D->GetDevice(), D3D->GetDeviceContext());
 
@@ -108,10 +99,10 @@ bool SystemClass::Init(std::string filename)
 	
 	if (!Input->Init(mhAppInstance, mhMainWnd, mClientWidth, mClientHeight))
 	{
-		Logger->Error(L"Failed to initiate input");
+		Logger::Instance().Error(L"Failed to initiate input");
 		return false;
 	}
-	Logger->Success(L"Input initiated");
+	Logger::Instance().Success(L"Input initiated");
 
 	Camera = std::make_shared<CameraClass>();
 	Camera->SetLens(XM_PIDIV4, mClientWidth / static_cast<float>(mClientHeight), 0.1f, 100000.0f);
@@ -123,7 +114,6 @@ bool SystemClass::Init(std::string filename)
 	World
 	*/
 	Map = std::make_shared<MapClass>();
-	Map->SetLogger(Logger);
 	Map->Init(D3D->GetDevice(), D3D->GetDeviceContext());	
 
 	/*
@@ -133,7 +123,6 @@ bool SystemClass::Init(std::string filename)
 	Player->SetMap(Map);
 	Player->SetCamera(Camera);
 	Player->SetInput(Input);
-	Player->SetLogger(Logger);
 	Player->Init();
 
 	return true;
@@ -146,8 +135,6 @@ void SystemClass::Shutdown()
 	//ViewportStack::Shutdown(D3D->GetDeviceContext());
 	RenderStates::ReleaseAll();
 	ShaderManager::Instance()->ReleaseAll();
-
-	TwTerminate();
 
 	ImGui_ImplDX11_Shutdown();
 
@@ -412,6 +399,8 @@ bool SystemClass::Frame()
 	Map->Draw(D3D->GetDeviceContext(), Camera);
 	
 	//Map->Draw20(D3D->GetDeviceContext(), Camera);
+
+	Logger::Instance().Render();
 	
 	ImGui::Render();
 
@@ -434,7 +423,7 @@ bool SystemClass::InitMainWindow()
 	if (!RegisterClass(&wc))
 	{
 		MessageBox(0, L"RegisterClass Failed.", 0, 0);
-		Logger->Error(L"Main window class not registered. Exiting...");
+		Logger::Instance().Error(L"Main window class not registered. Exiting...");
 		return false;
 	}
 
@@ -449,7 +438,7 @@ bool SystemClass::InitMainWindow()
 	if (!mhMainWnd)
 	{
 		MessageBox(0, L"CreateWindow Failes.", 0, 0);
-		Logger->Error(L"Main window not created. Exiting...");
+		Logger::Instance().Error(L"Main window not created. Exiting...");
 		return false;
 	}
 

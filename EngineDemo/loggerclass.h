@@ -11,6 +11,7 @@
 
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <time.h>
 #include <memory>
 
@@ -21,25 +22,21 @@ using namespace std;
 #define LOG_NONE    0x00000000L
 #define LOG_FILE	0x00000001L
 #define LOG_WINDOW	0x00000002L
+#define LOG_IMGUI	0x00000004L
 #define LOG_ALL		0xFFFFFFFFL
 
 /*
 	Main logger class:
 		Has the ability to both log to external file, and earlier defined Window's Edit Control.
 */
-class LoggerClass
+class Logger
 {
 	public:
-		LoggerClass(const std::wstring &fileName = L"log.txt", HWND hWnd = 0);
-		~LoggerClass();
+		static Logger& Instance();
 
 		// Set/get filename for external logger
 		int SetFile(const wstring &fileName);
-		wstring GetFile() const;
-
-		// Set/get edit control handler
-		int SetWindow(HWND hWnd);
-		HWND GetWindow() const;
+		wstring GetFileName() const;
 
 		//Write to log
 		int Write(wstring msg, DWORD output = LOG_ALL);
@@ -49,20 +46,24 @@ class LoggerClass
 		int Success(wstring msg, DWORD output = LOG_ALL);
 		int Notice(wstring msg, DWORD output = LOG_ALL);
 
-		// Retrieve defined and valid output channels
-		DWORD GetValidChannels() const;
+		void Render();
 
 	private:
+		Logger();
+		Logger(const Logger&) = delete;
+		Logger& operator=(const Logger&) = delete;
+		~Logger();
+
 		// Output raw message to file
-		void WriteFileRaw(wstring text);
+		void WriteRaw(ostream& stream, wstring text);
+		void WriteRaw(wostream& stream, wstring text);
 		
 		// Output
-		wofstream mOutFile;
-		HWND	  mOutWnd;
+		wofstream outFile;
+		ostringstream outString;
 
 		// Shortcuts for chaking validity (as well as filename)
-		wstring mFileName;
-		bool	mWndValid;
+		wstring fileName; // default: log_default.txt
 };
 
 
@@ -76,21 +77,10 @@ class HasLogger
 		HasLogger();
 		~HasLogger();
 
-		// Set previously 'globaly' (or not) created Logger
-		void SetLogger(std::shared_ptr<LoggerClass> &lLogger);
-
 	protected:
-		// Check is Logger set
-		bool IsSet() const;
-		// Check valid outputs
-		DWORD GetValidChannels() const;
-
 		// Shortcuts to writing to logger
 		int LogWrite(wstring msg, DWORD output = LOG_ALL);
 		int LogError(wstring msg, DWORD output = LOG_ALL);
 		int LogSuccess(wstring msg, DWORD output = LOG_ALL);
 		int LogNotice(wstring msg, DWORD output = LOG_ALL);
-
-		// Shared logger
-		std::shared_ptr<LoggerClass> Logger;
 };

@@ -710,6 +710,29 @@
     <FxCompile Include="Shaders\Terrain2\createHM.hlsl">
       <Filter>Shaders\Terrain2</Filter>
     </FxCompile>
+    <FxCompile Include="cubeVS.hlsl" />
+    <FxCompile Include="Shaders\Deferred Shaders\phongLingtingPS.hlsl" />
+    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl" />
+    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterAdd.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterCopy.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterMultipleA.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterMultipleB.hlsl" />
+    <FxCompile Include="Shaders\Sky2\irradianceAdd.hlsl" />
+    <FxCompile Include="Shaders\Sky\SkyPostFX.hlsl" />
+    <FxCompile Include="cubeVS.hlsl" />
+    <FxCompile Include="Shaders\Deferred Shaders\phongLingtingPS.hlsl" />
+    <FxCompile Include="Shaders\PostFX\LuminancePass.hlsl" />
+    <FxCompile Include="Shaders\PostFX\ToneMapping.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterAdd.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterCopy.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterMultipleA.hlsl" />
+    <FxCompile Include="Shaders\Sky2\inscatterMultipleB.hlsl" />
+    <FxCompile Include="Shaders\Sky2\irradianceAdd.hlsl" />
+    <FxCompile Include="Shaders\Sky\SkyPostFX.hlsl" />
+    <FxCompile Include="Shaders\Clouds\GenerateNoise.hlsl">
+      <Filter>Shaders\Clouds</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="settings.ini" />

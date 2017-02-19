@@ -103,35 +103,6 @@ HRESULT OceanClass::Init(ID3D11Device1 *& device, ID3D11DeviceContext1 *& mImmed
 	CreateDDSTextureFromFile(device, L"Textures\\FoamRamp.dds", nullptr, &FoamRampSRV);
 	CreateDDSTextureFromFile(device, L"Textures\\ColourDepthRamp.dds", nullptr, &ColourDepthRampSRV);
 
-	myBar = TwNewBar("Ocean");
-
-	TwAddVarRW(myBar, "Wind speed", TW_TYPE_FLOAT, &wind_speed, " group=Wind  min=2.7 max=33.0 step=0.1 precision=1 ");
-	TwAddVarRW(myBar, "Wind heading", TW_TYPE_FLOAT, &wind_heading, " group=Wind ");
-	
-	perFrameParams.maxDepth = 100.0;
-	TwAddVarRW(myBar, "MaxDep", TW_TYPE_FLOAT, &perFrameParams.maxDepth, " label='Max depth' min=1");
-	perFrameParams.seaColourAlpha = 0.25;
-	TwAddVarRW(myBar, "SeaColourA", TW_TYPE_FLOAT, &perFrameParams.seaColourAlpha, " label='Sea Colour Alpha' min=0 max=1 step=0.01 ");
-
-	perFrameParams.SeaFlag = true;
-	TwAddVarRW(myBar, "SeaFlag", TW_TYPE_BOOL32, &perFrameParams.SeaFlag, " label='Sea Light' ");
-	perFrameParams.SunFlag = true;
-	TwAddVarRW(myBar, "SunFlag", TW_TYPE_BOOL32, &perFrameParams.SunFlag, " label='Sun Light' ");
-	perFrameParams.SkyFlag = true;
-	TwAddVarRW(myBar, "SkyFlag", TW_TYPE_BOOL32, &perFrameParams.SkyFlag, " label='Sky Light' ");
-
-	perFrameParams.seaColour = XMFLOAT4{ 10.0f / 255.0f, 40.0F / 255.0f, 120.0f / 255.0f, 25.5f / 255.0f };
-	TwAddVarRW(myBar, "Red", TW_TYPE_FLOAT, &perFrameParams.seaColourSSS.x, "");
-	TwAddVarRW(myBar, "Green", TW_TYPE_FLOAT, &perFrameParams.seaColourSSS.y, "");
-	TwAddVarRW(myBar, "Blue", TW_TYPE_FLOAT, &perFrameParams.seaColourSSS.z, "");
-
-	perFrameParams.arcHDep = 1.5;
-	TwAddVarRW(myBar, "ArcHeightDep", TW_TYPE_FLOAT, &perFrameParams.arcHDep, " label='Wave strech factor' step=0.01 ");
-
-	perFrameParams.rgbExtinction = XMFLOAT3{ 7.0, 30.0, 70.0 };
-	TwAddVarRW(myBar, "extR", TW_TYPE_FLOAT, &perFrameParams.rgbExtinction.x, " label='Ext Red' step=0.1 ");
-	TwAddVarRW(myBar, "extG", TW_TYPE_FLOAT, &perFrameParams.rgbExtinction.y, " label='Ext Green' step=0.1 ");
-	TwAddVarRW(myBar, "extB", TW_TYPE_FLOAT, &perFrameParams.rgbExtinction.z, " label='Ext Blue' step=0.1 ");
 	return S_OK;
 }
 
@@ -472,12 +443,6 @@ void OceanClass::DrawPost(ID3D11DeviceContext1 *& mImmediateContext, std::unique
 void OceanClass::Release()
 {
 	ReleaseCOM(initFFTCB);
-
-	if (myBar)
-	{
-		TwDeleteBar(myBar);
-		myBar = nullptr;
-	}
 }
 
 HRESULT OceanClass::CompileShadersAndInputLayout(ID3D11Device1 *& device)
@@ -836,7 +801,7 @@ HRESULT OceanClass::CreateDataResources(ID3D11Device1 *& device)
 	*/
 	std::default_random_engine rd;
 	std::uniform_real_distribution<> dis(0.0, XM_2PI);
-	std::function<float()> rnd = std::bind(dis, rd);
+	std::function<double()> rnd = std::bind(dis, rd);
 
 	std::vector<float> phase(4*FFT_SIZE*FFT_SIZE);
 	for (auto&& i : phase)

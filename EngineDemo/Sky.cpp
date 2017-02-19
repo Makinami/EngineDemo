@@ -507,7 +507,7 @@ void SkyClass::Process(ID3D11DeviceContext1 * mImmediateContext, std::unique_ptr
 ID3D11ShaderResourceView * SkyClass::getTransmittanceSRV()
 {
 	// UnresolvedMergeConflict (implement)
-	return nullptr;// transmitanceSRV;
+	return transmittanceFile;
 }
 
 HRESULT SkyClass::Precompute(ID3D11DeviceContext1 * mImmediateContext)

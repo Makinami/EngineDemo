@@ -1,136 +1,136 @@
 #include "loggerclass.h"
 
+#include <codecvt>
+#include <imgui.h>
+
 // ------------------------------------------------------------------------
 //                           LoggerClass definition
 // ------------------------------------------------------------------------
 
-// Initialize logger
-LoggerClass::LoggerClass(const std::wstring &fileName, HWND hWnd)
-: mOutWnd(hWnd),
-  mFileName(fileName)
+inline Logger & Logger::Instance()
 {
-	SetFile(fileName);
-	SetWindow(hWnd);
+	static Logger _instance;
+	return _instance;
 }
 
-LoggerClass::~LoggerClass()
+Logger::Logger()
 {
-	mOutFile.close();
+	SetFile(L"log_default.txt");
+}
+
+Logger::~Logger()
+{
+	outFile.close();
 }
 
 // Set new file output (while closing the previous one if existed)
-int LoggerClass::SetFile(const wstring &fileName)
+int Logger::SetFile(const wstring &newName)
 {
-	mOutFile.close();
-	mFileName = L"";
-	mOutFile.open(fileName);
-	if (mOutFile.is_open())
+	if (fileName == newName)
 	{
-		mFileName = fileName;
+		Notice(L"Reset logger to the same file");
+		return true;
+	}
+
+	wofstream newStream(newName);
+	if (newStream.is_open())
+	{
+		if (outFile.is_open()) Notice(L"Logger moved to " + newName);
+		outFile.close();
+		outFile = move(newStream);
+		fileName = newName;
+
 		time_t timestamp = time(nullptr);
 		tm timeinfo;
 		localtime_s(&timeinfo, &timestamp);
 		wchar_t date[50];
 		wcsftime(date, 50, L"%x %X", &timeinfo);
-		WriteFileRaw(L"    Logging initiated at: " + std::wstring(date) + L"\n\n");
+		WriteRaw(outFile, L"    Logging initiated at: " + std::wstring(date) + L"\n\n");
+		WriteRaw(outString, L"    Logging initiated at: " + std::wstring(date) + L"\n\n");
+
 		return true;
 	}
 	else
 	{
-		mOutFile.close();
-		mFileName = L"";
+		Error(L"Couldn't set new log file: " + newName);
 		return false;
 	}
 }
 
-wstring LoggerClass::GetFile() const
+wstring Logger::GetFileName() const
 {
-	return mFileName;
-}
-
-// Set new output Edit Control
-int LoggerClass::SetWindow(HWND hWnd)
-{
-	wchar_t lpClassName[20];
-	GetClassName(hWnd, lpClassName, 20);
-	if (!std::wcscmp(lpClassName, WC_EDIT))
-	{
-		mOutWnd = hWnd;
-		mWndValid = true;
-		return true;
-	}
-	else
-	{
-		mOutWnd = 0;
-		mWndValid = false;
-		return false;
-	}
-}
-
-HWND LoggerClass::GetWindow() const
-{
-	return mOutWnd;
+	return fileName;
 }
 
 // Write message to log based on output (default: LOG_ALL - all available)
-int LoggerClass::Write(wstring msg, DWORD output)
+int Logger::Write(wstring msg, DWORD output)
 {
-	if ((output & LOG_WINDOW) && (mOutWnd))
+	// Add current time to the beggining of the message
+	time_t timestamp = time(nullptr);
+	tm timeinfo;
+	localtime_s(&timeinfo, &timestamp);
+	wchar_t date[50];
+	wcsftime(date, 50, L"%X", &timeinfo);
+	std::wstring text = std::wstring(date) + L" : " + msg + L"\n";
+
+	if ((output & LOG_FILE) && (fileName != L""))
 	{
-		std::wstring text = L"\r\n" + msg;
-		auto selection = Edit_GetSel(mOutWnd); // save current selection
-		auto length = Edit_GetTextLength(mOutWnd);
-		SendMessage(mOutWnd, EM_SETSEL, (WPARAM)length, (LPARAM)length); // set coursor at the end of edit
-		SendMessage(mOutWnd, EM_REPLACESEL, 0, (LPARAM)text.c_str()); // write message
-		SendMessage(mOutWnd, EM_SETSEL, (WPARAM)LOWORD(selection), (LPARAM)HIWORD(selection)); // restore selection
-	}
-	if ((output & LOG_FILE) && (mFileName != L""))
-	{
-		// Add current time to the beggining of the message
-		time_t timestamp = time(nullptr);
-		tm timeinfo;
-		localtime_s(&timeinfo, &timestamp);
-		wchar_t date[50];
-		wcsftime(date, 50, L"%X", &timeinfo);
-		std::wstring text = std::wstring(date) + L" : " + msg + L"\n";
 		// Write to file
-		WriteFileRaw(text);
+		WriteRaw(outFile, text);
+	}
+	if (output & LOG_IMGUI)
+	{
+		WriteRaw(outString, text);
 	}
 	return 1;
 }
 
 // Append "ERROR: " and write
-int LoggerClass::Error(wstring msg, DWORD output)
+int Logger::Error(wstring msg, DWORD output)
 {
 	return Write(L"ERROR: " + msg);
 }
 
 // Append "success: " and write
-int LoggerClass::Success(wstring msg, DWORD output)
+int Logger::Success(wstring msg, DWORD output)
 {
-	return Write(L"success: " + msg);
+	return Write(L"Success: " + msg);
 }
 
 // Append "Notice: " and write
-int LoggerClass::Notice(wstring msg, DWORD output)
+int Logger::Notice(wstring msg, DWORD output)
 {
 	return Write(L"Notice: " + msg);
 }
 
-// Get valid output channels
-DWORD LoggerClass::GetValidChannels() const
+void Logger::Render()
 {
-	DWORD validChannels = LOG_NONE;
-	if (mOutWnd) validChannels |= LOG_WINDOW;
-	if (mFileName != L"") validChannels |= LOG_FILE;
-	
-	return validChannels;
+	static bool show = true;
+	static const bool readonly = true;
+	ImGui::SetNextWindowPos(ImVec2(0, 720-150));
+	ImGui::SetNextWindowSize(ImVec2(1280, 150));
+	ImGuiWindowFlags window_flags = 0;
+	window_flags |= ImGuiWindowFlags_NoTitleBar;
+	window_flags |= ImGuiWindowFlags_NoResize;
+	window_flags |= ImGuiWindowFlags_NoMove;
+	window_flags |= ImGuiWindowFlags_NoCollapse;
+	ImGui::Begin("Log", &show, window_flags);
+
+	ImGui::InputTextMultiline("##log", outString.str().data(), outString.str().size(), ImVec2(1264, 134), ImGuiInputTextFlags_ReadOnly);
+
+	ImGui::End();
+}
+
+inline void Logger::WriteRaw(ostream& stream, wstring text)
+{
+	wstring_convert<codecvt_utf8<wchar_t>> myconv;
+	stream << myconv.to_bytes(text) << flush;
 }
 
 // Write raw message to open file
-inline void LoggerClass::WriteFileRaw(wstring text)
+inline void Logger::WriteRaw(wostream& stream, wstring text)
 {
-	if (mFileName != L"") mOutFile << text << std::flush;
+	stream << text << std::flush;
 }
 
 
@@ -144,46 +144,26 @@ HasLogger::HasLogger()
 HasLogger::~HasLogger()
 {}
 
-// Check if logger set
-bool HasLogger::IsSet() const
-{
-	return Logger ? true : false;
-}
-
-
-// Retrieve valid output channels
-DWORD HasLogger::GetValidChannels() const
-{
-	if (IsSet()) return Logger->GetValidChannels();
-	else return LOG_NONE;
-}
-
 // Write to log
 int HasLogger::LogWrite(wstring msg, DWORD output)
 {
-	return IsSet() ? Logger->Write(msg, output) : 0;
+	return Logger::Instance().Write(msg, output);
 }
 
 // Write error to log
 int HasLogger::LogError(wstring msg, DWORD output)
 {
-	return IsSet() ? Logger->Error(msg, output) : 0;
+	return Logger::Instance().Error(msg, output);
 }
 
 // Write succes to log
 int HasLogger::LogSuccess(wstring msg, DWORD output)
 {
-	return IsSet() ? Logger->Success(msg, output) : 0;
+	return Logger::Instance().Success(msg, output);
 }
 
 // Write notice to log
 int HasLogger::LogNotice(wstring msg, DWORD output)
 {
-	return IsSet() ? Logger->Notice(msg, output) : 0;
-}
-
-// Set new log
-void HasLogger::SetLogger(std::shared_ptr<LoggerClass>& lLogger)
-{
-	Logger = lLogger;
+	return Logger::Instance().Notice(msg, output);
 }

@@ -21,10 +21,6 @@
 
 #include <imgui.h>
 
-#pragma comment(lib, "AntTweakBar.lib")
-
-#include "AntTweakBar.h"
-
 /*
 Main System Class:
 Creates new game and status window (at least for now) and manages other subsystems
@@ -91,7 +87,6 @@ class SystemClass
 		std::shared_ptr<TimerClass> Timer;
 
 		std::shared_ptr<INIReader> Settings; // Setting
-		std::shared_ptr<LoggerClass> Logger; // Logger
 
 		std::shared_ptr<PlayerClass> Player;
 

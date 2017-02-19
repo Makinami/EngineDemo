@@ -24,10 +24,6 @@
 
 #include "Utilities\Texture.h"
 
-
-#include "AntTweakBar.h"
-
-
 using namespace std;
 using namespace DirectX;
 
@@ -252,10 +248,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> spectrumCS;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> newInit;
-
-	// TweakBar
-	TwBar *myBar;
-
+	
 	float wind_heading;
 	float wind_speed;
 	double dir[3];

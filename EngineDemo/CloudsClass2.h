@@ -17,6 +17,7 @@
 #include <wrl\client.h>
 
 #include <unordered_map>
+#include <array>
 
 #include "cameraclass.h"
 #include "Lights.h"
@@ -29,10 +30,13 @@ public:
 
 	int Init(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
+	void Update(float dt);
+
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView* transmittanceSRV);
 	
 public:
 	int GenerateClouds(ID3D11DeviceContext1* mImmediateContext);
+	int GenerateCloudsParametrized(ID3D11DeviceContext1* mImmediateContext);
 
 	HRESULT GenerateSeedGrad(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
 
@@ -47,15 +51,16 @@ private:
 	ID3D11ShaderResourceView* mCloudTypesSRV;
 	ID3D11ShaderResourceView* mWeatherSRV;
 
-	ID3D11ComputeShader* mGenerateGenCS;
-	ID3D11ComputeShader* mGenerateDetCS;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> mGenerateGenCS;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> mGenerateDetCS;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> mGenerateNoise;
 
 	ID3D11Buffer* mScreenQuadVB;
 	ID3D11Buffer* mScreenQuadIB;
 
-	ID3D11InputLayout* mInputLayout;
-	ID3D11VertexShader* mVertexShader;
-	ID3D11PixelShader* mPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 
 	const int GEN_RES = 128;
 	const int DET_RES = 32;
@@ -65,18 +70,35 @@ private:
 	{
 		XMMATRIX gViewInverse;
 		XMMATRIX gProjInverse;
-	};
+	} cbPerFrameVSParams;
 
 	struct cbPerFramePSType
 	{
 		XMFLOAT3 gCameraPos;
 		float bExposure;
 		XMFLOAT3 gSunDir;
-		float pad;
+		float time;
+		std::array<XMFLOAT4, 10> parameters;
 	} cbPerFramePSParams;
+
+	std::array<std::array<char, 20>, 10> parametersNames;
+
+	struct
+	{
+		XMINT4 gFrequency;
+		int textSize;
+		XMUINT3 pad;
+	} cbGenerateNoiseParams;
+
+	struct
+	{
+		XMINT4 baseFrequency;
+		XMINT4 detailFrequency;
+	} noiseFrequencies = { {1,1,1,1},{1,1,1,1} };
 
 	ID3D11Buffer* cbPerFrameVS;
 	ID3D11Buffer* cbPerFramePS;
+	ID3D11Buffer* cbGenerataNoise;
 
 	ID3D11SamplerState* mSamplerStateTrilinear;
 	ID3D11SamplerState* mSamplerStateBilinearClamp;

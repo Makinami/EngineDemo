@@ -29,7 +29,7 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	light.Ambient(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	light.Diffuse(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Specular(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
-	light.Direction(XMFLOAT3(-1.0f, 0.0f, 0.0f));
+	light.Direction(XMFLOAT3(-0.707f, -0.707f, 0.0f));
 
 	// DS
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -130,13 +130,15 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 	//WaterB->BEvelWater(dt, mImmediateContext);
 	//Ocean->Update(mImmediateContext, dt, light, Camera);
 
-	XMFLOAT3 dir_f = light.Direction();
+	/*XMFLOAT3 dir_f = light.Direction();
 	XMVECTOR dir = XMLoadFloat3(&dir_f);
 
-	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt * XM_2PI / (3600.0f * 24.0f)));
+	dir = XMVector3Transform(dir, XMMatrixRotationZ(dt * XM_2PI * (24*60) / (3600.0f * 24.0f)));
 
 	XMStoreFloat3(&dir_f, dir);
-	light.Direction(dir_f);
+	light.Direction(dir_f);*/
+
+	Clouds2->Update(dt);
 }
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)

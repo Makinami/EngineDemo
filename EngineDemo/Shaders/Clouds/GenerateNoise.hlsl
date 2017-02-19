@@ -1,6 +1,11 @@
-RWTexture3D<float> clouds : register(u0);
+RWTexture3D<float4> noiseTex : register(u0);
 
-static const uint textSize = 32;
+cbuffer cbGenerateNoise : register(b0)
+{
+	uint4 cFrequency;
+	uint textSize;
+	uint3 pad;
+}
 
 #include "..\\PerlinNoise.hlsli"
 #include "..\\WorleyNoise.hlsli"
@@ -15,8 +20,13 @@ float Remap(float original_value, float original_min, float original_max, float 
 [numthreads(16, 16, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-	float f = fBmPerlin(DTid, 16.0)*0.5 + 0.5;
-	f *= 1.0 - fBmWorley(DTid, 16.0, 0.5, 3);
-	//f = Remap(f, 1.0 - fBmWorley(DTid, 16.0, 0.5, 3), 1.0, 0.0, 1.0);
-	clouds[DTid] = dot(float3(1.0 - fBmWorley(DTid, 8.0, 0.5, 2), 1.0 - fBmWorley(DTid, 4.0, 0.5, 2), 1.0 - fBmWorley(DTid, 2.0, 0.5, 2))*0.75 + 0.25, float3(0.625, 0.25, 0.125));
+	float4 noise;
+	float4 frequency = pow(2.0, cFrequency);
+	[unroll(3)]
+	for (uint i = 0; i < 3; ++i)
+		noise[i] = 0.5*PerlinNoise(float3(DTid) / frequency[i] + 131.31*i, textSize.xxx / cFrequency[i]) + 0.5;
+
+	noise.w = saturate(worley(float3(DTid), frequency[3], textSize / cFrequency[3]));
+
+	noiseTex[DTid] = noise;
 }

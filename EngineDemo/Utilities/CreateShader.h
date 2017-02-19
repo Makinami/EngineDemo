@@ -24,20 +24,16 @@ void LoadCompiledShader(_In_ const fs::path& fileName, _Out_ ID3DBlob* &blob, _I
 template <typename T>
 bool CreatePSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &ps, const std::string& name = "")
 {
-	ID3DBlob* blob{ nullptr };
+	ID3DBlob* shaderBlob{ nullptr };
+	ID3D11PixelShader* shader{ nullptr };
 
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
+	LoadCompiledShader(fileName, shaderBlob, "ps_5_0");
 
-	LoadCompiledShader(fileName, blob, "ps_5_0");
-
-	if (blob != nullptr && SUCCEEDED(device->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &ps)))
+	if (shaderBlob != nullptr && SUCCEEDED(device->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, &shader)))
 	{
-		SetDebugName(ps, name);
+		SetDebugName(shader, name);
+
+		ps = std::move(shader);
 
 		return true;
 	}
@@ -48,20 +44,16 @@ bool CreatePSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename T>
 bool CreateCSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &cs, const std::string& name = "")
 {
-	ID3DBlob* blob{ nullptr };
+	ID3DBlob* shaderBlob{ nullptr };
+	ID3D11ComputeShader* shader{ nullptr };
 
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
+	LoadCompiledShader(fileName, shaderBlob, "cs_5_0");
 
-	LoadCompiledShader(fileName, blob, "cs_5_0");
-
-	if (blob != nullptr && SUCCEEDED(device->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &cs)))
+	if (shaderBlob != nullptr && SUCCEEDED(device->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, &shader)))
 	{
-		SetDebugName(cs, name);
+		SetDebugName(shader, name);
+
+		cs = std::move(shader);
 
 		return true;
 	}
@@ -72,20 +64,16 @@ bool CreateCSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename T>
 bool CreateDSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &ds, const std::string& name = "")
 {
-	ID3DBlob* blob{ nullptr };
+	ID3DBlob* shaderBlob{ nullptr };
+	ID3D11DomainShader* shader{ nullptr };
 
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
+	LoadCompiledShader(fileName, shaderBlob, "ds_5_0");
 
-	LoadCompiledShader(fileName, blob, "ds_5_0");
-
-	if (blob != nullptr && SUCCEEDED(device->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &ds)))
+	if (shaderBlob != nullptr && SUCCEEDED(device->CreateDomainShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, &shader)))
 	{
-		SetDebugName(ds, name);
+		SetDebugName(shader, name);
+
+		ds = std::move(shader);
 
 		return true;
 	}
@@ -96,20 +84,16 @@ bool CreateDSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename T>
 bool CreateHSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &hs, const std::string& name = "")
 {
-	ID3DBlob* blob{ nullptr };
+	ID3DBlob* shaderBlob{ nullptr };
+	ID3D11HullShader* shader{ nullptr };
 
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
+	LoadCompiledShader(fileName, shaderBlob, "hs_5_0");
 
-	LoadCompiledShader(fileName, blob, "hs_5_0");
-
-	if (blob != nullptr && SUCCEEDED(device->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &hs)))
+	if (shaderBlob != nullptr && SUCCEEDED(device->CreateHullShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, &shader)))
 	{
-		SetDebugName(hs, name);
+		SetDebugName(shader, name);
+
+		hs = std::move(shader);
 
 		return true;
 	}
@@ -121,13 +105,6 @@ template <typename T>
 bool CreateVSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &vs, const std::string& name = "")
 {
 	ID3DBlob* blob{ nullptr };
-
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
 
 	LoadCompiledShader(fileName, blob, "vs_5_0");
 
@@ -144,20 +121,16 @@ bool CreateVSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename T>
 bool CreateGSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &gs, const std::string& name = "")
 {
-	ID3DBlob* blob{ nullptr };
+	ID3DBlob* shaderBlob{ nullptr };
+	ID3D11GeometryShader* shader{ nullptr };
 
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
+	LoadCompiledShader(fileName, shaderBlob, "hs_5_0");
 
-	LoadCompiledShader(fileName, blob, "hs_5_0");
-
-	if (blob != nullptr && SUCCEEDED(device->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &gs)))
+	if (shaderBlob != nullptr && SUCCEEDED(device->CreateGeometryShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, &shader)))
 	{
-		SetDebugName(gs, name);
+		SetDebugName(shader, name);
+
+		gs = std::move(shader);
 
 		return true;
 	}
@@ -168,22 +141,20 @@ bool CreateGSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename Tvs, typename Til>
 bool CreateVSAndInputLayout(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ Tvs &vs, const D3D11_INPUT_ELEMENT_DESC* ilDesc, const UINT numElements, _Out_opt_ Til &il, const std::string& vsname = "", const std::string& ilname = "")
 {
-	ID3DBlob* blob{ nullptr };
+	ID3DBlob* shaderBlob{ nullptr };
+	ID3D11VertexShader* shader{ nullptr };
+	ID3D11InputLayout* input{ nullptr };
 
-	if (fileName.extension() != ".cso"
-#ifndef DEPLOYMENT
-		&& fileName.extension() != ".hlsl"
-#endif
-		)
-		return false;
+	LoadCompiledShader(fileName, shaderBlob, "vs_5_0");
 
-	LoadCompiledShader(fileName, blob, "cs_5_0");
-
-	if (blob != nullptr && SUCCEEDED(device->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &vs)) 
-		&& SUCCEEDED(device->CreateInputLayout(ilDesc, numElements, blob->GetBufferPointer(), blob->GetBufferSize(), &il)))
+	if (shaderBlob != nullptr && SUCCEEDED(device->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, &shader)) 
+		&& SUCCEEDED(device->CreateInputLayout(ilDesc, numElements, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &input)))
 	{
-		SetDebugName(vs, vsname);
-		SetDebugName(il, ilname);
+		SetDebugName(shader, vsname);
+		SetDebugName(input, ilname);
+
+		vs = shader;
+		il = input;
 
 		return true;
 	}

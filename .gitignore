@@ -237,4 +237,5 @@ DirectXTK/
 /AntTweakBar
 /tasks.png
 /EngineDemo/ImGui
-/EngineDemo/ImGui
+/EngineDemo/log_default.txt
+/EngineDemo/clouds_params_names.bin
