@@ -126,6 +126,8 @@ private:
 		float padding[2];
 	};
 private:
+	void CreateRandomHeightMap();
+
 	void LoadHeighMap();
 	void Smooth();
 	bool InBounds(int i, int j);

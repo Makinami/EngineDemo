@@ -4,6 +4,10 @@
 
 #include "RenderStates.h"
 
+#include <numeric>
+#include <random>
+#include <functional>
+
 TerrainClass::TerrainClass() :
 	mQuadPatchVB(0),
 	mQuadPatchIB(0),
@@ -115,7 +119,10 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	mNumPatchVertices = mNumPatchVertRows*mNumPatchVertCols;
 	mNumPatchQuadFaces = (mNumPatchVertRows - 1)*(mNumPatchVertCols - 1);
 	
-	LoadHeighMap();
+	//LoadHeighMap();
+
+	CreateRandomHeightMap();
+
 	//Smooth();
 	CalcAllPatchBoundsY();
 	
@@ -195,7 +202,7 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
 	mImmediateContext->PSSetShaderResources(2, 1, &mLayerMapArraySRV);
-	return;
+	//return;
 
 	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();//XMMatrixTranspose(V*P);
 	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();//XMMatrixTranspose(V*P*T);
@@ -301,7 +308,7 @@ void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	if (ShadowMap) mImmediateContext->RSSetState(mRastStateBasic);
 	else mImmediateContext->RSSetState(mRastStateShadow);
 
-	//mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
+	mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
 
 	mImmediateContext->HSSetShader(0, 0, 0);
 	mImmediateContext->DSSetShader(0, 0, 0);
@@ -309,6 +316,82 @@ void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	ID3D11ShaderResourceView* NULLRes = NULL;
 	mImmediateContext->PSSetShaderResources(0, 1, &NULLRes);
 	mImmediateContext->PSSetShaderResources(3, 1, &NULLRes);
+}
+
+void TerrainClass::CreateRandomHeightMap()
+{
+	mHeightmap.resize(mInfo.HeightmapWidth*mInfo.HeightmapHeight);
+
+	auto& heightmap = mHeightmap;
+
+	auto get = [&heightmap, sizeX = mInfo.HeightmapWidth, sizeY = mInfo.HeightmapHeight](int x, int y) -> decltype(mHeightmap)::value_type
+	{
+		if (x < 0 || x >= sizeX || y < 0 || y >= sizeY)
+			return -1;
+		else
+			return heightmap[y*sizeX + x];
+	};
+
+	auto set = [&heightmap, sizeX = mInfo.HeightmapWidth, sizeY = mInfo.HeightmapHeight](int x, int y, auto val) -> void
+	{
+		heightmap[y*sizeX + x] = val;
+	};
+
+	auto average = [](std::initializer_list<float> list)
+	{
+		float sum = std::accumulate(std::cbegin(list), std::cend(list), 0.0,
+			[](auto&& a, auto&& b) {
+				return a + (b != -1 ? b : 0);
+			});
+
+		int total = std::count_if(std::cbegin(list), std::cend(list), [](auto&& val) { return val != -1; });
+
+		return sum / total;
+	};
+
+	auto square = [get, set, average](int x, int y, int size, float offset)
+	{
+		set(x, y,
+			average({ get(x - size,y - size), get(x + size, y - size),
+					  get(x - size, y + size), get(x + size, y + size) }) + offset);
+	};
+
+	auto diamond = [get, set, average](int x, int y, int size, float offset)
+	{
+		set(x, y,
+			average({ get(x, y - size), get(x + size, y),
+					  get(x, y + size), get(x - size, y) }) + offset);
+	};
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(-1, 1);
+
+	auto random = [&dis, &gen]() { return dis(gen); };
+
+	std::function<void(int)> divide = [&divide, &random, &square, &diamond, sizeX = mInfo.HeightmapWidth - 1, sizeY = mInfo.HeightmapHeight - 1](int size)
+	{
+		auto half = size / 2;
+		auto scale = size * 0.1;
+		if (half < 1) return;
+
+		for (auto y = half; y < sizeY; y += size)
+			for (auto x = half; x < sizeX; x += size)
+				square(x, y, half, random() * scale * (x + y) / (float)(sizeX + sizeY));
+
+		for (auto y = 0; y <= sizeY; y += half)
+			for (auto x = (y + half) % size; x <= sizeX; x += size)
+				diamond(x, y, half, random() * scale * (x + y) / (float)(sizeX + sizeY));
+
+		divide(half);
+	};
+
+	set(0, 0, 0.0);
+	set(0, mInfo.HeightmapHeight - 1, mInfo.HeightmapHeight / 20.0f);
+	set(mInfo.HeightmapWidth - 1, 0, mInfo.HeightmapHeight / 20.0f);
+	set(mInfo.HeightmapWidth - 1, mInfo.HeightmapHeight - 1, mInfo.HeightmapHeight / 10.0f);
+
+	divide(mInfo.HeightmapHeight - 1);
 }
 
 void TerrainClass::LoadHeighMap()

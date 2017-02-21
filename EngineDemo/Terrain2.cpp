@@ -21,6 +21,67 @@ TerrainClass2::~TerrainClass2()
 
 bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmediateContext)
 {
+	CreateDDSTextureFromFile(device, L"ring.dds", nullptr, &mHeighmapRawSRV);
+	CreateDDSTextureFromFile(device, L"processedHeighmap.dds", nullptr, &mProDF);
+	//mImmediateContext->VSSetShaderResources(40, 1, mProDF.GetAddressOf());
+
+	terrainQuadTree.Init(device, -2048.0f, -2048.0f, 4096.0f, 4096.0f, 7, 20, XMFLOAT3(1.0, 80.0, 1.0));
+
+	CreateConstantBuffer(device, sizeof(MatrixBuffer), mMatrixCB);
+
+	mPixelShader = ShaderManager::Instance()->GetPS("Terrain2::TerrainPS");
+	
+	// vs & il quad
+	const D3D11_INPUT_ELEMENT_DESC vertexQuadDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "PSIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "PSIZE", 1, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "PSIZE", 2, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
+	};
+
+	UINT numElements = sizeof(vertexQuadDesc) / sizeof(vertexQuadDesc[0]);
+
+	CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Terrain2\\TerrainVS.cso", device, mVertexShader, vertexQuadDesc, numElements, mQuadIL);
+
+	return true;
+}
+
+void TerrainClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
+{
+	terrainQuadTree.GenerateTree(mImmediateContext, Camera);
+
+	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
+	XMStoreFloat3(&MatrixBuffer.camPos, Camera->GetPosition());
+	MatrixBuffer.gWorldProj = ViewProjTrans;
+	MapResources(mImmediateContext, mMatrixCB.Get(), MatrixBuffer);
+	
+	// IA
+	mImmediateContext->IASetInputLayout(mQuadIL.Get());
+	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// VS
+	mImmediateContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
+	mImmediateContext->VSSetConstantBuffers(4, 1, mMatrixCB.GetAddressOf());
+	mImmediateContext->VSSetShaderResources(10, 1, mHeighmap->GetAddressOfSRV());
+	mImmediateContext->VSSetSamplers(0, 1, &RenderStates::Sampler::BilinearClampSS);
+
+	// PS
+	mImmediateContext->PSSetShader(mPixelShader, nullptr, 0);
+	mImmediateContext->PSSetShaderResources(0, 1, mHeighmapRawSRV.GetAddressOf());
+	mImmediateContext->PSSetSamplers(0, 1, &RenderStates::Sampler::BilinearWrapSS);
+
+	// RS
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
+
+	terrainQuadTree.Draw(mImmediateContext);
+
+	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
+}
+
+HRESULT TerrainClass2::GenerateDistanceField(ID3D11Device1* device, ID3D11DeviceContext1 * mImmediateContext)
+{
 	mInitJFA = ShaderManager::Instance()->GetCS("Terrain2::initJFA");
 	mStepJFA = ShaderManager::Instance()->GetCS("Terrain2::stepJFA");
 	mPostJFA = ShaderManager::Instance()->GetCS("Terrain2::postJFA");
@@ -28,10 +89,6 @@ bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 	mProcessHM = ShaderManager::Instance()->GetCS("Terrain2::procesHeighmap");
 
 	mCreateHM = ShaderManager::Instance()->GetCS("Terrain2::createHM");
-
-	CreateDDSTextureFromFile(device, L"ring.dds", nullptr, &mHeighmapRawSRV);
-	CreateDDSTextureFromFile(device, L"processedHeighmap.dds", nullptr, &mProDF);
-	//mImmediateContext->VSSetShaderResources(40, 1, mProDF.GetAddressOf());
 
 	D3D11_TEXTURE2D_DESC textDesc;
 
@@ -48,16 +105,16 @@ bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 	textDesc.CPUAccessFlags = 0;
 	textDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
-	EXIT_ON_NULL(mOceanDFA = 
-				 TextureFactory::CreateTexture(textDesc));
+	EXIT_ON_NULL(mOceanDFA =
+		TextureFactory::CreateTexture(textDesc));
 
 	EXIT_ON_NULL(mOceanDFB =
-				 TextureFactory::CreateTexture(textDesc));
+		TextureFactory::CreateTexture(textDesc));
 
 	EXIT_ON_NULL(mHeighmap =
-				 TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
-											   DXGI_FORMAT_R16_FLOAT,
-											   4096, 4096));
+		TextureFactory::CreateTexture(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
+			DXGI_FORMAT_R16_FLOAT,
+			4096, 4096));
 
 	//textDesc.Format = DXGI_FORMAT_R32_FLOAT;
 	EXIT_ON_NULL(mGenHeightmap =
@@ -144,57 +201,5 @@ bool TerrainClass2::Init(ID3D11Device1 * device, ID3D11DeviceContext1 * mImmedia
 	mImmediateContext->PSSetShaderResources(86, 1, mHeighmap->GetAddressOfSRV());
 	mImmediateContext->PSSetShaderResources(84, 1, mHeighmapRawSRV.GetAddressOf());
 
-	terrainQuadTree.Init(device, -2048.0f, -2048.0f, 4096.0f, 4096.0f, 7, 20, XMFLOAT3(1.0, 80.0, 1.0));
-
-	CreateConstantBuffer(device, sizeof(MatrixBuffer), mMatrixCB);
-
-	mPixelShader = ShaderManager::Instance()->GetPS("Terrain2::TerrainPS");
-	
-	// vs & il quad
-	const D3D11_INPUT_ELEMENT_DESC vertexQuadDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "PSIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "PSIZE", 1, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "BLENDINDICES", 0, DXGI_FORMAT_R32_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "PSIZE", 2, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
-	};
-
-	UINT numElements = sizeof(vertexQuadDesc) / sizeof(vertexQuadDesc[0]);
-
-	CreateVSAndInputLayout(L"..\\Debug\\Shaders\\Terrain2\\TerrainVS.cso", device, mVertexShader, vertexQuadDesc, numElements, mQuadIL);
-
-	return true;
-}
-
-void TerrainClass2::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight & light)
-{
-	terrainQuadTree.GenerateTree(mImmediateContext, Camera);
-
-	XMMATRIX ViewProjTrans = Camera->GetViewProjTransMatrix();
-	XMStoreFloat3(&MatrixBuffer.camPos, Camera->GetPosition());
-	MatrixBuffer.gWorldProj = ViewProjTrans;
-	MapResources(mImmediateContext, mMatrixCB.Get(), MatrixBuffer);
-	
-	// IA
-	mImmediateContext->IASetInputLayout(mQuadIL.Get());
-	mImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// VS
-	mImmediateContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
-	mImmediateContext->VSSetConstantBuffers(4, 1, mMatrixCB.GetAddressOf());
-	mImmediateContext->VSSetShaderResources(10, 1, mHeighmap->GetAddressOfSRV());
-	mImmediateContext->VSSetSamplers(0, 1, &RenderStates::Sampler::BilinearClampSS);
-
-	// PS
-	mImmediateContext->PSSetShader(mPixelShader, nullptr, 0);
-	mImmediateContext->PSSetShaderResources(0, 1, mHeighmapRawSRV.GetAddressOf());
-	mImmediateContext->PSSetSamplers(0, 1, &RenderStates::Sampler::BilinearWrapSS);
-
-	// RS
-	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
-
-	terrainQuadTree.Draw(mImmediateContext);
-
-	mImmediateContext->RSSetState(RenderStates::Rasterizer::DefaultRS);
+	return S_OK;
 }

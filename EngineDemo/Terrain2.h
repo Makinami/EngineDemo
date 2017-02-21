@@ -34,6 +34,8 @@ public:
 	void Draw(ID3D11DeviceContext1* mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light);
 
 private:
+	HRESULT GenerateDistanceField(ID3D11Device1* device, ID3D11DeviceContext1* mImmediateContext);
+
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mHeighmapRawSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mProDF;
 

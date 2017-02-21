@@ -67,7 +67,7 @@ HRESULT RenderStates::InitAll(ID3D11Device1 * device)
 
 	// Bilinear Clamp Com Less
 	D3D11_SAMPLER_DESC BilinearClampComLessDesc = {};
-	BilinearClampComLessDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	BilinearClampComLessDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 	BilinearClampComLessDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	BilinearClampComLessDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	BilinearClampComLessDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
