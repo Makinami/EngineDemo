@@ -16,15 +16,16 @@
 namespace fs = std::experimental::filesystem;
 
 // Load content of file given by 'fileName' to memory at 'data' alocating needed memory at returning size in 'size'. Calle is responsible for dealocating memory
+[[deprecated("Use LoadCompileShader insteead")]]
 bool LoadShader(_In_ std::wstring fileName, _Out_ char* &data, _Out_ size_t &size);
 
 // Read compiled shader to the blob (only cso and hlsl in not deployment build)
-void LoadCompiledShader(_In_ const fs::path& fileName, _Out_ ID3DBlob* &blob, _In_ const std::string target = "", _In_ const std::string entry_point = "main");
+void LoadCompiledShader(_In_ const fs::path& fileName, _Out_ Microsoft::WRL::ComPtr<ID3DBlob> &blob, _In_ const std::string& target = "", _In_ const std::string& entry_point = "main");
 
 template <typename T>
-bool CreatePSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &ps, const std::string& name = "")
+bool CreatePSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * &device, _Out_opt_ T &ps, const std::string& name = "")
 {
-	ID3DBlob* shaderBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob{ nullptr };
 	ID3D11PixelShader* shader{ nullptr };
 
 	LoadCompiledShader(fileName, shaderBlob, "ps_5_0");
@@ -42,9 +43,9 @@ bool CreatePSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 }
 
 template <typename T>
-bool CreateCSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &cs, const std::string& name = "")
+bool CreateCSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * &device, _Out_opt_ T &cs, const std::string& name = "")
 {
-	ID3DBlob* shaderBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob{ nullptr };
 	ID3D11ComputeShader* shader{ nullptr };
 
 	LoadCompiledShader(fileName, shaderBlob, "cs_5_0");
@@ -62,9 +63,9 @@ bool CreateCSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 }
 
 template <typename T>
-bool CreateDSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &ds, const std::string& name = "")
+bool CreateDSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * &device, _Out_opt_ T &ds, const std::string& name = "")
 {
-	ID3DBlob* shaderBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob{ nullptr };
 	ID3D11DomainShader* shader{ nullptr };
 
 	LoadCompiledShader(fileName, shaderBlob, "ds_5_0");
@@ -82,9 +83,9 @@ bool CreateDSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 }
 
 template <typename T>
-bool CreateHSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &hs, const std::string& name = "")
+bool CreateHSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * &device, _Out_opt_ T &hs, const std::string& name = "")
 {
-	ID3DBlob* shaderBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob{ nullptr };
 	ID3D11HullShader* shader{ nullptr };
 
 	LoadCompiledShader(fileName, shaderBlob, "hs_5_0");
@@ -102,9 +103,9 @@ bool CreateHSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 }
 
 template <typename T>
-bool CreateVSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &vs, const std::string& name = "")
+bool CreateVSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * &device, _Out_opt_ T &vs, const std::string& name = "")
 {
-	ID3DBlob* blob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> blob{ nullptr };
 
 	LoadCompiledShader(fileName, blob, "vs_5_0");
 
@@ -121,7 +122,7 @@ bool CreateVSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename T>
 bool CreateGSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ T &gs, const std::string& name = "")
 {
-	ID3DBlob* shaderBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob{ nullptr };
 	ID3D11GeometryShader* shader{ nullptr };
 
 	LoadCompiledShader(fileName, shaderBlob, "hs_5_0");
@@ -141,7 +142,7 @@ bool CreateGSFromFile(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device
 template <typename Tvs, typename Til>
 bool CreateVSAndInputLayout(_In_ const fs::path& fileName, _In_ ID3D11Device1 * device, _Out_opt_ Tvs &vs, const D3D11_INPUT_ELEMENT_DESC* ilDesc, const UINT numElements, _Out_opt_ Til &il, const std::string& vsname = "", const std::string& ilname = "")
 {
-	ID3DBlob* shaderBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob{ nullptr };
 	ID3D11VertexShader* shader{ nullptr };
 	ID3D11InputLayout* input{ nullptr };
 
