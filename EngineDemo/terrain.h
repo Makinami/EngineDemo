@@ -127,6 +127,9 @@ private:
 	};
 private:
 	void CreateRandomHeightMap();
+	void DiamondSquareStep(int size);
+
+	float GetHeightRaw(int x, int y) const noexcept;
 
 	void LoadHeighMap();
 	void Smooth();

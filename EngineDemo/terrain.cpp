@@ -7,6 +7,7 @@
 #include <numeric>
 #include <random>
 #include <functional>
+#include <limits>
 
 TerrainClass::TerrainClass() :
 	mQuadPatchVB(0),
@@ -324,66 +325,9 @@ void TerrainClass::CreateRandomHeightMap()
 
 	auto& heightmap = mHeightmap;
 
-	auto get = [&heightmap, sizeX = mInfo.HeightmapWidth, sizeY = mInfo.HeightmapHeight](int x, int y) -> decltype(mHeightmap)::value_type
-	{
-		if (x < 0 || x >= sizeX || y < 0 || y >= sizeY)
-			return -1;
-		else
-			return heightmap[y*sizeX + x];
-	};
-
-	auto set = [&heightmap, sizeX = mInfo.HeightmapWidth, sizeY = mInfo.HeightmapHeight](int x, int y, auto val) -> void
+	auto set = [&heightmap, sizeX = mInfo.HeightmapWidth](int x, int y, auto val) -> void
 	{
 		heightmap[y*sizeX + x] = val;
-	};
-
-	auto average = [](std::initializer_list<float> list)
-	{
-		float sum = std::accumulate(std::cbegin(list), std::cend(list), 0.0,
-			[](auto&& a, auto&& b) {
-				return a + (b != -1 ? b : 0);
-			});
-
-		int total = std::count_if(std::cbegin(list), std::cend(list), [](auto&& val) { return val != -1; });
-
-		return sum / total;
-	};
-
-	auto square = [get, set, average](int x, int y, int size, float offset)
-	{
-		set(x, y,
-			average({ get(x - size,y - size), get(x + size, y - size),
-					  get(x - size, y + size), get(x + size, y + size) }) + offset);
-	};
-
-	auto diamond = [get, set, average](int x, int y, int size, float offset)
-	{
-		set(x, y,
-			average({ get(x, y - size), get(x + size, y),
-					  get(x, y + size), get(x - size, y) }) + offset);
-	};
-
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<> dis(-1, 1);
-
-	auto random = [&dis, &gen]() { return dis(gen); };
-
-	std::function<void(int)> divide = [&divide, &random, &square, &diamond, sizeX = mInfo.HeightmapWidth - 1, sizeY = mInfo.HeightmapHeight - 1](int size)
-	{
-		auto half = size / 2;
-		auto scale = size * 0.1;
-		if (half < 1) return;
-
-		for (auto y = half; y < sizeY; y += size)
-			for (auto x = half; x < sizeX; x += size)
-				square(x, y, half, random() * scale * (x + y) / (float)(sizeX + sizeY));
-
-		for (auto y = 0; y <= sizeY; y += half)
-			for (auto x = (y + half) % size; x <= sizeX; x += size)
-				diamond(x, y, half, random() * scale * (x + y) / (float)(sizeX + sizeY));
-
-		divide(half);
 	};
 
 	set(0, 0, 0.0);
@@ -391,7 +335,71 @@ void TerrainClass::CreateRandomHeightMap()
 	set(mInfo.HeightmapWidth - 1, 0, mInfo.HeightmapHeight / 20.0f);
 	set(mInfo.HeightmapWidth - 1, mInfo.HeightmapHeight - 1, mInfo.HeightmapHeight / 10.0f);
 
-	divide(mInfo.HeightmapHeight - 1);
+	DiamondSquareStep(mInfo.HeightmapWidth - 1);
+}
+
+void TerrainClass::DiamondSquareStep(int size)
+{
+	auto generator = std::minstd_rand{ std::random_device{}() };
+	auto dist = std::uniform_real_distribution<float>{ -1.0f, 1.0f };
+
+	auto sizeY = mInfo.HeightmapHeight - 1;
+	auto sizeX = mInfo.HeightmapWidth - 1;
+
+	auto half = size / 2;
+	auto scale = size * 0.1;
+	if (half < 1) return;
+
+	// average given lift of floats (lowest() is invalid)
+	static auto average = [](const std::initializer_list<float>& list)
+	{
+		float sum = std::accumulate(std::cbegin(list), std::cend(list), 0.0,
+			[](auto&& a, auto&& b) {
+			return a + (b != std::numeric_limits<float>::lowest() ? b : 0);
+		});
+
+		int total = std::count_if(std::cbegin(list), std::cend(list), [](auto&& val) { return val != std::numeric_limits<float>::lowest(); });
+
+		return sum / total;
+	};
+
+	// square step
+	for (auto y = half; y < sizeY; y += size)
+	{
+		for (auto x = half; x < sizeX; x += size)
+		{
+			auto offset = scale * dist(generator);
+			mHeightmap[y*mInfo.HeightmapWidth + x] = 
+				average({ GetHeightRaw(x - half, y - half), 
+						  GetHeightRaw(x + half, y - half),
+						  GetHeightRaw(x - half, y + half),
+						  GetHeightRaw(x + half, y + half) }) + offset;
+		}
+	}
+
+	// diamond step
+	for (auto y = 0; y <= sizeY; y += half)
+	{
+		for (auto x = (y + half) % size; x <= sizeX; x += size)
+		{
+			auto offset = scale * dist(generator);
+			mHeightmap[y*mInfo.HeightmapWidth + x] =
+				average({ GetHeightRaw(x, y - half),
+						  GetHeightRaw(x + half, y),
+						  GetHeightRaw(x, y + half),
+						  GetHeightRaw(x - half, y) }) + offset;
+		}
+	}
+
+	DiamondSquareStep(half);
+}
+
+float TerrainClass::GetHeightRaw(int x, int y) const noexcept
+{
+	if (x < 0 || x >= mInfo.HeightmapWidth || y < 0 || y >= mInfo.HeightmapHeight)
+		return std::numeric_limits<float>::lowest();
+	else
+		return mHeightmap[y*mInfo.HeightmapWidth + x];
 }
 
 void TerrainClass::LoadHeighMap()
