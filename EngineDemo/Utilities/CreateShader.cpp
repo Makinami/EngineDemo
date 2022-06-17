@@ -27,10 +27,11 @@ bool LoadShader(std::wstring fileName, char *& data, size_t & size)
 	return false;
 }
 
-void LoadCompiledShader(const fs::path & fileName, ID3DBlob *& shaderBlob, const std::string target, const std::string entry_point)
+void LoadCompiledShader(const fs::path & fileName, Microsoft::WRL::ComPtr<ID3DBlob>& shaderBlob, const std::string& target, const std::string& entry_point)
 {
 	HRESULT hr;
-	ID3DBlob* errorBlob{ nullptr };
+	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob{ nullptr };
+
 #ifndef DEPLOYMENT
 	if (fileName.extension() == ".hlsl")
 	{
@@ -38,6 +39,7 @@ void LoadCompiledShader(const fs::path & fileName, ID3DBlob *& shaderBlob, const
 			D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBlob, &errorBlob);
 	}
 #endif
+
 	if (fileName.extension() == ".cso")
 	{
 		hr = D3DReadFileToBlob(fileName.wstring().c_str(), &shaderBlob);

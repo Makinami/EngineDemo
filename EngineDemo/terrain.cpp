@@ -4,6 +4,11 @@
 
 #include "RenderStates.h"
 
+#include <numeric>
+#include <random>
+#include <functional>
+#include <limits>
+
 TerrainClass::TerrainClass() :
 	mQuadPatchVB(0),
 	mQuadPatchIB(0),
@@ -115,7 +120,10 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 	mNumPatchVertices = mNumPatchVertRows*mNumPatchVertCols;
 	mNumPatchQuadFaces = (mNumPatchVertRows - 1)*(mNumPatchVertCols - 1);
 	
-	LoadHeighMap();
+	//LoadHeighMap();
+
+	CreateRandomHeightMap();
+
 	//Smooth();
 	CalcAllPatchBoundsY();
 	
@@ -195,7 +203,7 @@ bool TerrainClass::Init(ID3D11Device1* device, ID3D11DeviceContext1* dc, const I
 void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera, DirectionalLight& light, ID3D11ShaderResourceView * ShadowMap)
 {
 	mImmediateContext->PSSetShaderResources(2, 1, &mLayerMapArraySRV);
-	return;
+	//return;
 
 	XMMATRIX ShadowViewProjTrans = light.GetViewProjTrans();//XMMatrixTranspose(V*P);
 	XMMATRIX ShadowMapProjTrans = light.GetMapProjTrans();//XMMatrixTranspose(V*P*T);
@@ -301,7 +309,7 @@ void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	if (ShadowMap) mImmediateContext->RSSetState(mRastStateBasic);
 	else mImmediateContext->RSSetState(mRastStateShadow);
 
-	//mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
+	mImmediateContext->DrawIndexed(mNumPatchQuadFaces * 4, 0, 0);
 
 	mImmediateContext->HSSetShader(0, 0, 0);
 	mImmediateContext->DSSetShader(0, 0, 0);
@@ -309,6 +317,89 @@ void TerrainClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_pt
 	ID3D11ShaderResourceView* NULLRes = NULL;
 	mImmediateContext->PSSetShaderResources(0, 1, &NULLRes);
 	mImmediateContext->PSSetShaderResources(3, 1, &NULLRes);
+}
+
+void TerrainClass::CreateRandomHeightMap()
+{
+	mHeightmap.resize(mInfo.HeightmapWidth*mInfo.HeightmapHeight);
+
+	auto& heightmap = mHeightmap;
+
+	auto set = [&heightmap, sizeX = mInfo.HeightmapWidth](int x, int y, auto val) -> void
+	{
+		heightmap[y*sizeX + x] = val;
+	};
+
+	set(0, 0, 0.0);
+	set(0, mInfo.HeightmapHeight - 1, mInfo.HeightmapHeight / 20.0f);
+	set(mInfo.HeightmapWidth - 1, 0, mInfo.HeightmapHeight / 20.0f);
+	set(mInfo.HeightmapWidth - 1, mInfo.HeightmapHeight - 1, mInfo.HeightmapHeight / 10.0f);
+
+	DiamondSquareStep(mInfo.HeightmapWidth - 1);
+}
+
+void TerrainClass::DiamondSquareStep(int size)
+{
+	auto generator = std::minstd_rand{ std::random_device{}() };
+	auto dist = std::uniform_real_distribution<float>{ -1.0f, 1.0f };
+
+	auto sizeY = mInfo.HeightmapHeight - 1;
+	auto sizeX = mInfo.HeightmapWidth - 1;
+
+	auto half = size / 2;
+	auto scale = size * 0.1;
+	if (half < 1) return;
+
+	// average given lift of floats (lowest() is invalid)
+	static auto average = [](const std::initializer_list<float>& list)
+	{
+		float sum = std::accumulate(std::cbegin(list), std::cend(list), 0.0,
+			[](auto&& a, auto&& b) {
+			return a + (b != std::numeric_limits<float>::lowest() ? b : 0);
+		});
+
+		int total = std::count_if(std::cbegin(list), std::cend(list), [](auto&& val) { return val != std::numeric_limits<float>::lowest(); });
+
+		return sum / total;
+	};
+
+	// square step
+	for (auto y = half; y < sizeY; y += size)
+	{
+		for (auto x = half; x < sizeX; x += size)
+		{
+			auto offset = scale * dist(generator);
+			mHeightmap[y*mInfo.HeightmapWidth + x] = 
+				average({ GetHeightRaw(x - half, y - half), 
+						  GetHeightRaw(x + half, y - half),
+						  GetHeightRaw(x - half, y + half),
+						  GetHeightRaw(x + half, y + half) }) + offset;
+		}
+	}
+
+	// diamond step
+	for (auto y = 0; y <= sizeY; y += half)
+	{
+		for (auto x = (y + half) % size; x <= sizeX; x += size)
+		{
+			auto offset = scale * dist(generator);
+			mHeightmap[y*mInfo.HeightmapWidth + x] =
+				average({ GetHeightRaw(x, y - half),
+						  GetHeightRaw(x + half, y),
+						  GetHeightRaw(x, y + half),
+						  GetHeightRaw(x - half, y) }) + offset;
+		}
+	}
+
+	DiamondSquareStep(half);
+}
+
+float TerrainClass::GetHeightRaw(int x, int y) const noexcept
+{
+	if (x < 0 || x >= mInfo.HeightmapWidth || y < 0 || y >= mInfo.HeightmapHeight)
+		return std::numeric_limits<float>::lowest();
+	else
+		return mHeightmap[y*mInfo.HeightmapWidth + x];
 }
 
 void TerrainClass::LoadHeighMap()

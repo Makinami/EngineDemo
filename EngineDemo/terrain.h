@@ -126,6 +126,11 @@ private:
 		float padding[2];
 	};
 private:
+	void CreateRandomHeightMap();
+	void DiamondSquareStep(int size);
+
+	float GetHeightRaw(int x, int y) const noexcept;
+
 	void LoadHeighMap();
 	void Smooth();
 	bool InBounds(int i, int j);

@@ -26,10 +26,34 @@ bool MapClass::Init(ID3D11Device1* device, ID3D11DeviceContext1 * dc)
 	Clouds2 = std::make_shared<CloudsClass2>();
 	Clouds2->Init(device, dc);
 
+	Terrain = std::make_shared<TerrainClass>();
+	TerrainClass::InitInfo tii;
+	tii.HeightMapFilename = L"Textures/terrain.raw";
+	tii.LayerMapFilename0 = L"Textures/grass.dds";
+	tii.LayerMapFilename1 = L"Textures/darkdirt.dds";
+	tii.LayerMapFilename2 = L"Textures/stone.dds";
+	tii.LayerMapFilename3 = L"Textures/lightdirt.dds";
+	tii.LayerMapFilename4 = L"Textures/snow.dds";
+	tii.BlendMapFilename = L"Textures/blend.dds";
+	tii.HeightScale = 100.0f;
+	tii.HeightmapWidth = 2049;
+	tii.HeightmapHeight = 2049;
+	tii.CellSpacing = 0.5f;
+	if (!Terrain->Init(device, dc, tii))
+	{
+		LogError(L"Failed to initiate terrain");
+		return false;
+	}
+
+	Terrain2 = std::make_unique<TerrainClass2>();
+	Terrain2->Init(device, dc);
+
 	light.Ambient(XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 	light.Diffuse(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Specular(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
 	light.Direction(XMFLOAT3(-0.707f, -0.707f, 0.0f));
+
+	ShadowMap = std::make_unique<ShadowMapClass>(device, 2048, 2048);
 
 	// DS
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -137,15 +161,24 @@ void MapClass::Update(float dt, ID3D11DeviceContext1 * mImmediateContext, std::s
 
 	XMStoreFloat3(&dir_f, dir);
 	light.Direction(dir_f);*/
+	light.SetLitWorld(XMFLOAT3(-768.0f, -150.0f, -768.0f), XMFLOAT3(768.0f, 150.0f, 768.0f));
 
 	Clouds2->Update(dt);
 }
 
 void MapClass::Draw(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
 {
-	Sky->Draw(mImmediateContext, Camera, light);
+	ShadowMap->BindDsvAndSetNullRenderTarget(mImmediateContext);
+	ShadowMap->ClearDepthMap(mImmediateContext);
 
-	Clouds2->Draw(mImmediateContext, Camera, light, Sky->getTransmittanceSRV());
+	Terrain->Draw(mImmediateContext, Camera, light, nullptr);
+
+	RenderTargetStack::Pop(mImmediateContext);
+	ViewportStack::Pop(mImmediateContext);
+
+	Terrain->Draw(mImmediateContext, Camera, light, ShadowMap->DepthMapSRV());
+
+	Sky->Draw(mImmediateContext, Camera, light);
 }
 
 void MapClass::Draw20(ID3D11DeviceContext1 * mImmediateContext, std::shared_ptr<CameraClass> Camera)
